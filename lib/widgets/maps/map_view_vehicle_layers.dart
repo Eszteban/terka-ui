@@ -60,14 +60,14 @@ extension _MapViewVehicleLayers on _MapViewState {
                 (vehicle) => Marker(
                   point: vehicle.point,
                   width: 320,
-                  height: 220,
+                  height: 360,
                   alignment: Alignment.center,
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.center,
                     children: [
                       Positioned(
-                        bottom: 122,
+                        bottom: 192,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
                           onTap: _consumeNextMapTapClose,

@@ -397,7 +397,9 @@ class _PlanMapViewState extends State<PlanMapView> {
                     ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                  urlTemplate: Theme.of(context).brightness == Brightness.dark
+                      ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+                      : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
                   userAgentPackageName: 'hu.terka.terka_mobile_ui',
                   maxZoom: 19,
                 ),
@@ -588,7 +590,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                       Marker(
                         point: widget.vehicleMarker!.point,
                         width: _isVehicleLabelVisible ? 320 : 24,
-                        height: _isVehicleLabelVisible ? 220 : 24,
+                        height: _isVehicleLabelVisible ? 360 : 24,
                         alignment: Alignment.center,
                         child:
                             (widget.enableVehicleInfoLabelTap &&
@@ -599,7 +601,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                                 children: [
                                   if (_isVehicleLabelVisible)
                                     Positioned(
-                                      bottom: 122,
+                                      bottom: 192,
                                       child: GestureDetector(
                                         behavior: HitTestBehavior.opaque,
                                         onTap: _consumeNextMapTapClose,

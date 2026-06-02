@@ -25,6 +25,18 @@ class AppColors {
   static const Color drawerGradientMiddle = Color(0xFF6D3E1F);
   static const Color drawerGradientEnd = Color(0xFF8D4B20);
 
+  // --- VEHICLE CARD TOKENS ---
+  static const Color darkVehicleCardBackground = Color(0xFF161413);
+  static const Color darkVehicleCardActionText = Color(0xFFD6A280);
+  static const Color lightVehicleCardBackground = Color(0xFFFFFFFF);
+  static const Color lightVehicleCardActionText = seed;
+
+  static Color getVehicleCardBackground(BuildContext context) =>
+      _isDarkMode(context) ? darkVehicleCardBackground : lightVehicleCardBackground;
+
+  static Color getVehicleCardActionText(BuildContext context) =>
+      _isDarkMode(context) ? darkVehicleCardActionText : lightVehicleCardActionText;
+
   // Dinamikus elérés kontextus alapján (Így a widgetjeidben nem kell if-ezni!)
   static bool _isDarkMode(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;

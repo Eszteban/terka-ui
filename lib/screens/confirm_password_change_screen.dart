@@ -93,7 +93,7 @@ class _ConfirmPasswordChangeScreenState extends State<ConfirmPasswordChangeScree
                           'Másold be az e-mailben kapott tokent vagy linket.',
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _tokenController,
                           minLines: 2,

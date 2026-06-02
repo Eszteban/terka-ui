@@ -1,17 +1,6 @@
 part of 'map_view.dart';
 
 extension _MapViewHelpers on _MapViewState {
-  Color _markerColor(RouteStopType type) {
-    switch (type) {
-      case RouteStopType.start:
-        return Colors.green;
-      case RouteStopType.transfer:
-        return Colors.orange;
-      case RouteStopType.end:
-        return Colors.red;
-    }
-  }
-
   Color _vehicleColor(String mode) {
     switch (mode) {
       case 'RAIL':

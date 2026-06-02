@@ -71,7 +71,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   children: [
                     Text(_error!, style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.lg),
                     FilledButton(
                       onPressed: _loadTickets,
                       child: const Text('Újrapróbálás'),
@@ -88,7 +88,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
               : ListView.separated(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   itemCount: _tickets.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.lg),
                   itemBuilder: (context, index) {
                     final ticket = _tickets[index];
                     final isSingle = ticket.ticketType == 'vonaljegy';

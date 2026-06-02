@@ -114,49 +114,53 @@ class DummyTable extends StatelessWidget {
                             mapData,
                           );
 
+                          final colorScheme = Theme.of(context).colorScheme;
                           return Card(
-                            child: ExpansionTile(
-                              onExpansionChanged: desktopInlineMapMode
-                                  ? (expanded) {
-                                      if (expanded && mapData.hasContent) {
-                                        onShowOnMap(mapPayload);
+                            margin: const EdgeInsets.symmetric(vertical: 6),
+                            clipBehavior: Clip.antiAlias,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: ExpansionTile(
+                                shape: const Border(),
+                                collapsedShape: const Border(),
+                                tilePadding: EdgeInsets.zero,
+                                onExpansionChanged: desktopInlineMapMode
+                                    ? (expanded) {
+                                        if (expanded && mapData.hasContent) {
+                                          onShowOnMap(mapPayload);
+                                        }
                                       }
-                                    }
-                                  : null,
-                              title: lineBadges.isEmpty
-                                  ? Text(
-                                      'Utazási terv • ${summary['duration']}',
-                                    )
-                                  : Wrap(
-                                      spacing: 8,
-                                      runSpacing: 6,
-                                      children: lineBadges,
+                                    : null,
+                                title: _buildBentoHeader(context, itinerary, summary, lineBadges),
+                                childrenPadding: const EdgeInsets.fromLTRB(
+                                  0,
+                                  12,
+                                  0,
+                                  0,
+                                ),
+                                children: [
+                                  ..._buildLegTiles(context, itinerary),
+                                  if (!desktopInlineMapMode) ...[
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: FilledButton.icon(
+                                        onPressed: mapData.hasContent
+                                            ? () => onShowOnMap(mapPayload)
+                                            : null,
+                                        icon: const Icon(Icons.map),
+                                        label: const Text('Mutasd térképen!'),
+                                      ),
                                     ),
-                              subtitle: Text(
-                                'Átszállások: ${summary['transfers']} • Indulás: ${summary['start']} • Érkezés: ${summary['end']}',
-                              ),
-                              childrenPadding: const EdgeInsets.fromLTRB(
-                                16,
-                                0,
-                                16,
-                                16,
-                              ),
-                              children: [
-                                ..._buildLegTiles(context, itinerary),
-                                if (!desktopInlineMapMode) ...[
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: FilledButton.icon(
-                                      onPressed: mapData.hasContent
-                                          ? () => onShowOnMap(mapPayload)
-                                          : null,
-                                      icon: const Icon(Icons.map),
-                                      label: const Text('Mutasd térképen!'),
-                                    ),
-                                  ),
+                                  ],
                                 ],
-                              ],
+                              ),
                             ),
                           );
                         },
@@ -186,6 +190,181 @@ class DummyTable extends StatelessWidget {
                   ],
                 ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildBentoHeader(
+    BuildContext context,
+    Map<String, dynamic> itinerary,
+    Map<String, String> summary,
+    List<Widget> lineBadges,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final durationTimeBg = isDark
+        ? colorScheme.primaryContainer.withValues(alpha: 0.12)
+        : colorScheme.primaryContainer.withValues(alpha: 0.4);
+    final linesBg = isDark
+        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.4)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+
+    final legs = itinerary['legs'];
+    String fromName = 'Ismeretlen';
+    String toName = 'Ismeretlen';
+
+    if (legs is List && legs.isNotEmpty) {
+      final legMaps = legs
+          .whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList();
+      if (legMaps.isNotEmpty) {
+        fromName = _plainTextFromHtml(
+          _nestedString(legMaps.first, ['from', 'name']) ?? 'Ismeretlen',
+        ).trim();
+        toName = _plainTextFromHtml(
+          _nestedString(legMaps.last, ['to', 'name']) ?? 'Ismeretlen',
+        ).trim();
+      }
+    }
+
+    final durationTimeTile = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: durationTimeBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'UTAZÁSI IDŐ & MENETREND',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            summary['duration'] ?? '-',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule,
+                size: 13,
+                color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                '${summary['start']} - ${summary['end']}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onPrimaryContainer.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final transferText = summary['transfers'] == '0'
+        ? 'Közvetlen'
+        : '${summary['transfers']} átszállás';
+
+    final linesTile = Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: linesBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'JÁRATOK • ${transferText.toUpperCase()}',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.6,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (lineBadges.isNotEmpty)
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              children: lineBadges,
+            )
+          else
+            Text(
+              'Gyalogos',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+
+    final routeHeader = Padding(
+      padding: const EdgeInsets.only(bottom: 12, right: 28),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.directions_transit_rounded,
+              size: 20,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$fromName → $toName',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        routeHeader,
+        durationTimeTile,
+        const SizedBox(height: 6),
+        linesTile,
       ],
     );
   }
@@ -239,6 +418,10 @@ class DummyTable extends StatelessWidget {
     BuildContext context,
     Map<String, dynamic> itinerary,
   ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     final legs = itinerary['legs'];
     if (legs is! List) {
       return const [
@@ -270,7 +453,6 @@ class DummyTable extends StatelessWidget {
       );
 
       final isWalkLeg = mode == 'WALK';
-      final walkMinutes = _durationMinutes(leg['duration']);
       final waitMinutes = isWalkLeg
           ? _waitingMinutesUntilNextTransit(leg, nextLeg)
           : null;
@@ -283,133 +465,209 @@ class DummyTable extends StatelessWidget {
           : _todayServiceDate();
       final canOpenTrip = !isWalkLeg && tripId.isNotEmpty;
 
-      return Card(
-        margin: const EdgeInsets.only(bottom: 8),
-        child: InkWell(
-          onTap: canOpenTrip
-              ? () => _openTripDetails(
-                  context,
-                  tripId: tripId,
-                  serviceDay: serviceDay,
-                )
-              : null,
+      final leftTile = Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isWalkLeg
+              ? (isDark
+                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
+                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4))
+              : routeColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Row(
+          border: Border.all(
+            color: isWalkLeg
+                ? colorScheme.outlineVariant.withValues(alpha: 0.15)
+                : routeColor.withValues(alpha: 0.3),
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              isWalkLeg ? 'SÉTA' : 'JÁRAT',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: isWalkLeg
+                    ? colorScheme.onSurfaceVariant.withValues(alpha: 0.7)
+                    : routeColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (isWalkLeg)
+              Icon(
+                _iconForMode(mode),
+                size: 24,
+                color: colorScheme.onSurfaceVariant,
+              )
+            else
+              _containsSpanMarkup(lineNumber)
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      decoration: BoxDecoration(
+                        color: routeColor,
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                      child: Text(
+                        _plainTextFromHtml(lineNumber),
+                        style: TextStyle(
+                          color: routeTextColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 24,
+                          height: 1.0,
+                          fontFamily: _spanFontFamily,
+                          leadingDistribution: TextLeadingDistribution.even,
+                        ),
+                      ),
+                    )
+                  : Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: routeColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        _plainTextFromHtml(lineNumber),
+                        style: TextStyle(
+                          color: routeTextColor,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+            const SizedBox(height: 8),
+            Text(
+              duration,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: isWalkLeg ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final rightTile = Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isDark
+              ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.5)
+              : colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.15),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              isWalkLeg ? 'GYALOGLÁS RÉSZLETEI' : 'UTAZÁS RÉSZLETEI',
+              style: TextStyle(
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (isWalkLeg)
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _iconForMode(mode),
-                      size: 18,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  )
-                else
-                  _containsSpanMarkup(lineNumber)
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 0,
-                            vertical: 0,
-                          ),
-                          decoration: BoxDecoration(
-                            color: routeColor,
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Text(
-                            _plainTextFromHtml(lineNumber),
-                            style: TextStyle(
-                              color: routeTextColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 28,
-                              height: 1.0,
-                              fontFamily: _spanFontFamily,
-                              leadingDistribution: TextLeadingDistribution.even,
-                            ),
-                          ),
-                        )
-                      : Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: routeColor,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            _plainTextFromHtml(lineNumber),
-                            style: TextStyle(
-                              color: routeTextColor,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RichText(
-                        text: TextSpan(
-                          style: titleStyle,
-                          children: [
-                            ..._buildSpanAwareInlineSpans(fromName, titleStyle),
-                            const TextSpan(text: ' → '),
-                            ..._buildSpanAwareInlineSpans(toName, titleStyle),
-                          ],
-                        ),
+                  child: RichText(
+                    text: TextSpan(
+                      style: titleStyle?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                        color: colorScheme.onSurface,
                       ),
-                      const SizedBox(height: 4),
-                      RichText(
-                        text: TextSpan(
-                          style: subtitleStyle,
-                          children: isWalkLeg
-                              ? [
-                                  TextSpan(
-                                    text: '${walkMinutes ?? 0} perc séta',
-                                  ),
-                                  if (waitMinutes != null && waitMinutes > 0)
-                                    TextSpan(
-                                      text:
-                                          ', majd $waitMinutes perc várakozás',
-                                    ),
-                                ]
-                              : [
-                                  const TextSpan(text: 'Járat: '),
-                                  ..._buildSpanAwareInlineSpans(
-                                    tripNumber,
-                                    subtitleStyle,
-                                  ),
-                                  TextSpan(text: ' • $duration'),
-                                ],
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Indulás: $startTime • Érkezés: $endTime',
-                        style: subtitleStyle,
-                      ),
-                    ],
+                      children: [
+                        ..._buildSpanAwareInlineSpans(fromName, titleStyle),
+                        const TextSpan(text: ' → '),
+                        ..._buildSpanAwareInlineSpans(toName, titleStyle),
+                      ],
+                    ),
                   ),
                 ),
                 if (canOpenTrip)
-                  const Padding(
-                    padding: EdgeInsets.only(left: 6, top: 2),
-                    child: Icon(Icons.chevron_right, size: 20),
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: colorScheme.onSurfaceVariant,
                   ),
               ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(
+                  Icons.schedule,
+                  size: 12,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$startTime - $endTime',
+                  style: subtitleStyle?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            if (isWalkLeg)
+              Text(
+                waitMinutes != null && waitMinutes > 0
+                    ? 'majd $waitMinutes perc várakozás'
+                    : 'gyaloglás',
+                style: subtitleStyle?.copyWith(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+              )
+            else
+              Text(
+                'Járat azonosító: $tripNumber',
+                style: subtitleStyle?.copyWith(
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+              ),
+          ],
+        ),
+      );
+
+      return Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: canOpenTrip
+                ? () => _openTripDetails(
+                      context,
+                      tripId: tripId,
+                      serviceDay: serviceDay,
+                    )
+                : null,
+            borderRadius: BorderRadius.circular(12),
+            child: IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  leftTile,
+                  const SizedBox(width: 8),
+                  Expanded(child: rightTile),
+                ],
+              ),
             ),
           ),
         ),

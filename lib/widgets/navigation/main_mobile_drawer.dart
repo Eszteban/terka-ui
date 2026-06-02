@@ -19,7 +19,7 @@ class MainMobileDrawer extends StatelessWidget {
 
     return Drawer(
       child: ColoredBox(
-        color: colorScheme.surfaceContainer,
+        color: AppColors.getSurface(context),
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.none),
           children: [
@@ -66,15 +66,24 @@ class MainMobileDrawer extends StatelessWidget {
               ],
             ),
             ListTile(
-              title: Text('Hírek', style: TextStyle(color: colorScheme.onSurface)),
+              title: Text(
+                'MÁV Hírek',
+                style: TextStyle(color: colorScheme.onSurface),
+              ),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
-              title: Text('Térkép', style: TextStyle(color: colorScheme.onSurface)),
+              title: Text(
+                'Térkép',
+                style: TextStyle(color: colorScheme.onSurface),
+              ),
               onTap: onMapTap,
             ),
             ExpansionTile(
-              title: Text('Profil', style: TextStyle(color: colorScheme.onSurface)),
+              title: Text(
+                'Profil',
+                style: TextStyle(color: colorScheme.onSurface),
+              ),
               iconColor: colorScheme.onSurface,
               collapsedIconColor: colorScheme.onSurface,
               children: [
@@ -100,7 +109,10 @@ class MainMobileDrawer extends StatelessWidget {
                   onTap: () => Navigator.pop(context),
                 ),
                 ListTile(
-                  title: Text('  Jegyeim', style: TextStyle(color: colorScheme.onSurface)),
+                  title: Text(
+                    '  Jegyeim',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
                   onTap: () => Navigator.pop(context),
                 ),
                 ListTile(

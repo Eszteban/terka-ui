@@ -436,7 +436,7 @@ class _MainScreenState extends State<MainScreen> {
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: ColoredBox(
-        color: colorScheme.surface.withOpacity(0.84),
+        color: AppColors.getSurface(context).withOpacity(0.84),
         child: DecoratedBox(
           decoration: BoxDecoration(
             border: Border.all(
@@ -564,7 +564,7 @@ class _MainScreenState extends State<MainScreen> {
                   ? Column(
                       children: [
                         ColoredBox(
-                          color: Theme.of(context).colorScheme.surfaceContainer,
+                          color: AppColors.getSurface(context),
                           child: SafeArea(
                             bottom: false,
                             child: const SizedBox.shrink(),
@@ -683,13 +683,29 @@ class _SelectedMapResultCard extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      child: ExpansionTile(
-        initiallyExpanded: false,
-        title: Text(
-          current.title,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          title: Text(
+            current.title,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         subtitle: Text(
           current.subtitle,
           style: Theme.of(context).textTheme.bodyMedium,
@@ -726,6 +742,7 @@ class _SelectedMapResultCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -769,21 +786,109 @@ class _SelectedItineraryMapScreen extends StatelessWidget {
   }
 }
 
-class _PlanLoadingView extends StatelessWidget {
+class _PlanLoadingView extends StatefulWidget {
+  @override
+  State<_PlanLoadingView> createState() => _PlanLoadingViewState();
+}
+
+class _PlanLoadingViewState extends State<_PlanLoadingView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          Text(
-            'A tervek betöltése folyamatban...',
-            style: Theme.of(context).textTheme.titleMedium,
-            textAlign: TextAlign.center,
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final skeletonColor = isDark
+        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.7);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final opacity = 0.35 + (_controller.value * 0.4);
+        return Opacity(
+          opacity: opacity,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: 3,
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header Row Skeleton
+                      Row(
+                        children: [
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: skeletonColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 180,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: skeletonColor,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Bento Grid Skeleton
+                      _buildSkeletonTile(skeletonColor, height: 80),
+                      const SizedBox(height: 6),
+                      _buildSkeletonTile(skeletonColor, height: 60),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSkeletonTile(Color color, {required double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(12),
       ),
     );
   }

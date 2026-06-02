@@ -48,12 +48,12 @@ class TopNavbar extends StatelessWidget {
     if (isDesktop) {
       final navItems = <({String label, IconData icon, VoidCallback onTap})>[
         (label: 'Főoldal', icon: Icons.home, onTap: onHomeTap),
-        (label: 'Hírek', icon: Icons.newspaper, onTap: onNewsTap),
+        (label: 'MÁV Hírek', icon: Icons.newspaper, onTap: onNewsTap),
         (label: 'Profil', icon: Icons.person, onTap: onProfileTap),
       ];
 
       return ColoredBox(
-        color: colorScheme.surfaceContainer,
+        color: AppColors.getSurface(context),
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
@@ -92,7 +92,7 @@ class TopNavbar extends StatelessWidget {
     }
 
     return ColoredBox(
-      color: colorScheme.surfaceContainer,
+      color: AppColors.getSurface(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,

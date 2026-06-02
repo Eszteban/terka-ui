@@ -1,0 +1,27 @@
+# Flutter / Dart build és cache mappák
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# Függőségek (hasonló a node_modules-hoz)
+# Bár a Dart a .dart_tool-ba tölt le, a régebbi/egyedi verziók vagy egyéb cache-ek itt lehetnek
+.packages
+
+# Platform-specifikus generált és külső fájlok (Android / iOS ephemerals)
+android/.gradle/
+android/app/build/
+ios/.symlinks/
+ios/Pods/
+ios/DerivedData/
+
+# Webes és asztali build melléktermékek
+linux/flutter/ephemeral/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+
+# IDE és környezeti fájlok, amik nem hordoznak kódlogikát
+.idea/
+.vscode/
+*.local
+.env*

@@ -849,20 +849,36 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         : '';
     final hasPlatformCode = platformCode.isNotEmpty;
 
-    return Card(
-      child: InkWell(
-        onTap: canOpenTrip
-            ? () => _openTripDetails(
-                tripId: tripId,
-                serviceDay: serviceDay,
-              )
-            : null,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: canOpenTrip
+              ? () => _openTripDetails(
+                  tripId: tripId,
+                  serviceDay: serviceDay,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               Container(
                 padding: routeShortNameUsesSpanFont
                     ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0)
@@ -965,6 +981,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
           ),
         ),
       ),
+    )
     );
   }
 

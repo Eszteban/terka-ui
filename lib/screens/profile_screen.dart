@@ -196,12 +196,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final textTheme = theme.textTheme;
+
+    final bentoShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+        width: 1,
+      ),
+    );
+    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardElevation = isDark ? 0.0 : 2.0;
+    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return ListView(
       children: [
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.sm),
         Card(
+          elevation: cardElevation,
+          shadowColor: cardShadowColor,
+          shape: bentoShape,
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -241,6 +259,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Add spacing between the two main cards
         const SizedBox(height: AppSpacing.xl),
         Card(
+          elevation: cardElevation,
+          shadowColor: cardShadowColor,
+          shape: bentoShape,
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
@@ -288,6 +310,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: AppSpacing.xl),
         Card(
+          elevation: cardElevation,
+          shadowColor: cardShadowColor,
+          shape: bentoShape,
+          color: cardColor,
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(

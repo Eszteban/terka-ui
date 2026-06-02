@@ -615,11 +615,22 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppSpacing.formMaxWidth),
         child: Card(
+          elevation: isDark ? 0 : 2,
+          shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+              width: 1,
+            ),
+          ),
+          color: isDark ? const Color(0xFF1A1615) : Colors.white,
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.xl),
             children: [
@@ -628,34 +639,110 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: AppSpacing.xl),
-              TextField(
-                controller: widget.fromController,
-                focusNode: _fromFocusNode,
-                key: const Key('search1'),
-                decoration: const InputDecoration(
-                  labelText: 'Indulás',
-                  hintText: 'Írj be legalább 3 karaktert...',
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.15
+                            : 0.04,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                onChanged: (value) {
-                  _selectedFromPlaceToken = null;
-                  _selectedFromCoordinates = null;
-                  _onQueryChanged(value);
-                },
+                child: TextField(
+                  controller: widget.fromController,
+                  focusNode: _fromFocusNode,
+                  key: const Key('search1'),
+                  decoration: InputDecoration(
+                    labelText: 'Indulás',
+                    hintText: 'Írj be legalább 3 karaktert...',
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1615) : Colors.white,
+                    prefixIcon: Icon(Icons.my_location_rounded, color: colorScheme.primary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    _selectedFromPlaceToken = null;
+                    _selectedFromCoordinates = null;
+                    _onQueryChanged(value);
+                  },
+                ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              TextField(
-                controller: widget.toController,
-                focusNode: _toFocusNode,
-                key: const Key('search2'),
-                decoration: const InputDecoration(
-                  labelText: 'Érkezés',
-                  hintText: 'Írj be legalább 3 karaktert...',
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: Theme.of(context).brightness == Brightness.dark
+                            ? 0.15
+                            : 0.04,
+                      ),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                onChanged: (value) {
-                  _selectedToPlaceToken = null;
-                  _selectedToCoordinates = null;
-                  _onQueryChanged(value);
-                },
+                child: TextField(
+                  controller: widget.toController,
+                  focusNode: _toFocusNode,
+                  key: const Key('search2'),
+                  decoration: InputDecoration(
+                    labelText: 'Érkezés',
+                    hintText: 'Írj be legalább 3 karaktert...',
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1615) : Colors.white,
+                    prefixIcon: Icon(Icons.location_on_rounded, color: colorScheme.primary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                  onChanged: (value) {
+                    _selectedToPlaceToken = null;
+                    _selectedToCoordinates = null;
+                    _onQueryChanged(value);
+                  },
+                ),
               ),
               if (_isLoadingSuggestions)
                 const Padding(
@@ -740,72 +827,165 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                 child: _showAdvancedFields
                     ? Column(
                         children: [
-                          const SizedBox(height: AppSpacing.md),
-                          InkWell(
-                            onTap: widget.onPickDate,
-                            borderRadius: BorderRadius.circular(12),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Dátum',
-                                suffixIcon: Icon(Icons.calendar_today),
-                              ),
-                              child: Text(
-                                widget.selectedDate == null
-                                    ? 'Válassz dátumot'
-                                    : '${widget.selectedDate!.toLocal()}'.split(
-                                        ' ',
-                                      )[0],
-                                style: Theme.of(context).textTheme.bodyMedium,
+                          const SizedBox(height: AppSpacing.lg),
+                           Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(
+                                    alpha: isDark ? 0.15 : 0.04,
+                                  ),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Material(
+                              color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              child: InkWell(
+                                onTap: widget.onPickDate,
+                                child: InputDecorator(
+                                  decoration: InputDecoration(
+                                    labelText: 'Dátum',
+                                    suffixIcon: const Icon(Icons.calendar_today),
+                                    filled: true,
+                                    fillColor: Colors.transparent,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide(
+                                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      borderSide: BorderSide(
+                                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    widget.selectedDate == null
+                                        ? 'Válassz dátumot'
+                                        : '${widget.selectedDate!.toLocal()}'.split(
+                                            ' ',
+                                          )[0],
+                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Row(
                             children: [
                               Expanded(
-                                child: InkWell(
-                                  onTap: () => _pickTime(isArrival: false),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: InputDecorator(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Indulás (idő)',
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    child: Text(
-                                      _formatTimeLabel(_departureTime),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: isDark ? 0.15 : 0.04,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Material(
+                                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      onTap: () => _pickTime(isArrival: false),
+                                      child: InputDecorator(
+                                        decoration: InputDecoration(
+                                          labelText: 'Indulás (idő)',
+                                          suffixIcon: const Icon(Icons.access_time),
+                                          filled: true,
+                                          fillColor: Colors.transparent,
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                            borderSide: BorderSide(
+                                              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                            borderSide: BorderSide(
+                                              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _formatTimeLabel(_departureTime),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Row(
                             children: [
                               Expanded(
-                                child: InkWell(
-                                  onTap: () => _pickTime(isArrival: true),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: InputDecorator(
-                                    decoration: const InputDecoration(
-                                      labelText: 'Érkezés (idő)',
-                                      suffixIcon: Icon(Icons.access_time),
-                                    ),
-                                    child: Text(
-                                      _formatTimeLabel(_arrivalTime),
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyMedium,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(14),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(
+                                          alpha: isDark ? 0.15 : 0.04,
+                                        ),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Material(
+                                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: InkWell(
+                                      onTap: () => _pickTime(isArrival: true),
+                                      child: InputDecorator(
+                                        decoration: InputDecoration(
+                                          labelText: 'Érkezés (idő)',
+                                          suffixIcon: const Icon(Icons.access_time),
+                                          filled: true,
+                                          fillColor: Colors.transparent,
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                            borderSide: BorderSide(
+                                              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                                            ),
+                                          ),
+                                          enabledBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(14),
+                                            borderSide: BorderSide(
+                                              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _formatTimeLabel(_arrivalTime),
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.bodyMedium,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Row(
                             children: [
                               Expanded(
@@ -826,7 +1006,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Row(
                             children: [
                               Expanded(
@@ -847,7 +1027,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -863,7 +1043,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               ),
                             ],
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.lg),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -880,9 +1060,24 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                 child: FilterChip(
                                   label: const Text('Jegyfigyelés'),
                                   selected: widget.ticketWatch,
+                                  backgroundColor: isDark ? const Color(0xFF1A1615) : Colors.white,
+                                  selectedColor: isDark
+                                      ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+                                      : colorScheme.primaryContainer.withValues(alpha: 0.6),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  side: widget.ticketWatch
+                                      ? BorderSide(color: colorScheme.primary, width: 1.2)
+                                      : BorderSide(
+                                          color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.4 : 0.3),
+                                        ),
+                                  elevation: 1.5,
+                                  pressElevation: 3,
+                                  shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                                  selectedShadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
                                   materialTapTargetSize:
                                       MaterialTapTargetSize.padded,
-                                  selectedColor: colorScheme.secondaryContainer,
                                   onSelected: widget.onTicketWatchChanged,
                                 ),
                               ),
@@ -900,6 +1095,14 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   }
 
   List<Widget> _buildTransportChips() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    final unselectedBg = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final selectedBg = isDark
+        ? colorScheme.primaryContainer.withValues(alpha: 0.3)
+        : colorScheme.primaryContainer.withValues(alpha: 0.6);
+
     const labels = [
       'Helyi busz',
       'Helyközi busz',
@@ -912,15 +1115,32 @@ class _RoutePlanFormState extends State<RoutePlanForm>
 
     return labels
         .map(
-          (label) => ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            child: FilterChip(
-              label: Text(label),
-              selected: widget.selectedTransportModes.contains(label),
-              materialTapTargetSize: MaterialTapTargetSize.padded,
-              onSelected: (_) => widget.onTransportModeToggle(label),
-            ),
-          ),
+          (label) {
+            final selected = widget.selectedTransportModes.contains(label);
+            return ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              child: FilterChip(
+                label: Text(label),
+                selected: selected,
+                backgroundColor: unselectedBg,
+                selectedColor: selectedBg,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                side: selected
+                    ? BorderSide(color: colorScheme.primary, width: 1.2)
+                    : BorderSide(
+                        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.4 : 0.3),
+                      ),
+                elevation: 1.5,
+                pressElevation: 3,
+                shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                selectedShadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+                onSelected: (_) => widget.onTransportModeToggle(label),
+              ),
+            );
+          },
         )
         .toList();
   }

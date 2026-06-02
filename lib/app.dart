@@ -111,10 +111,11 @@ class _TerkaAppState extends State<TerkaApp> {
           fillColor: lightColorScheme.surfaceContainerLowest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: lightColorScheme.outlineVariant),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -159,10 +160,11 @@ class _TerkaAppState extends State<TerkaApp> {
           fillColor: darkColorScheme.surfaceContainerLowest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide(color: darkColorScheme.outlineVariant),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -191,3 +193,4 @@ class _TerkaAppState extends State<TerkaApp> {
     );
   }
 }
+

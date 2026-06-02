@@ -94,7 +94,7 @@ class _ActivateAccountScreenState extends State<ActivateAccountScreen> {
                           'Illeszd be az e-mailben kapott aktivációs tokent vagy teljes linket.',
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _tokenController,
                           minLines: 2,

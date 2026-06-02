@@ -13,7 +13,7 @@ extension _MapViewInteractions on _MapViewState {
     final maxStops = _maxStopsForZoom(camera.zoom);
     if (modes.isEmpty) {
       if (mounted) {
-        setState(() {
+        refreshState(() {
           _vehicleMarkers = const [];
           _nearbyStops = const [];
         });
@@ -23,7 +23,7 @@ extension _MapViewInteractions on _MapViewState {
 
     final requestId = ++_vehicleRequestNonce;
     if (mounted) {
-      setState(() {
+      refreshState(() {
         _isLoadingVehicles = true;
       });
     }
@@ -47,7 +47,7 @@ extension _MapViewInteractions on _MapViewState {
 
       if (!response.isSuccess) {
         if (mounted) {
-          setState(() {
+          refreshState(() {
             _vehicleMarkers = const [];
           });
         }
@@ -62,7 +62,7 @@ extension _MapViewInteractions on _MapViewState {
       final dynamic list = decoded['data']?['vehiclePositions'];
       if (list is! List) {
         if (mounted) {
-          setState(() {
+          refreshState(() {
             _vehicleMarkers = const [];
           });
         }
@@ -93,9 +93,6 @@ extension _MapViewInteractions on _MapViewState {
 
         final rawServiceLabel = item['label'] is String
             ? item['label'] as String
-            : (item['vehicleId']?.toString() ?? 'Jármű');
-        final rawuicLabel = item['uicCode'] is String
-            ? item['uicCode'] as String
             : (item['vehicleId']?.toString() ?? 'Jármű');
         final serviceLabel = _plainTextFromHtml(
           item['label'] is String
@@ -277,7 +274,7 @@ extension _MapViewInteractions on _MapViewState {
       }
 
       if (mounted && requestId == _vehicleRequestNonce) {
-        setState(() {
+        refreshState(() {
           _vehicleMarkers = markers;
           _nearbyStops = shouldLoadStops ? stops : const [];
           if (_selectedVehicleMarkerId != null &&
@@ -294,14 +291,14 @@ extension _MapViewInteractions on _MapViewState {
       }
     } catch (_) {
       if (mounted && requestId == _vehicleRequestNonce) {
-        setState(() {
+        refreshState(() {
           _vehicleMarkers = const [];
           _nearbyStops = const [];
         });
       }
     } finally {
       if (mounted && requestId == _vehicleRequestNonce) {
-        setState(() {
+        refreshState(() {
           _isLoadingVehicles = false;
         });
       }
@@ -311,7 +308,7 @@ extension _MapViewInteractions on _MapViewState {
   Future<void> _jumpToCurrentLocation() async {
     if (_isLocating) return;
 
-    setState(() => _isLocating = true);
+    refreshState(() => _isLocating = true);
 
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -391,14 +388,14 @@ extension _MapViewInteractions on _MapViewState {
       }
     } finally {
       if (mounted) {
-        setState(() => _isLocating = false);
+        refreshState(() => _isLocating = false);
       }
     }
   }
 
   void _toggleVehicleLabel(String markerId) {
     _consumeNextMapTapClose();
-    setState(() {
+    refreshState(() {
       _selectedStopMarkerId = null;
       _selectedStopQuickInfo = null;
       _isLoadingSelectedStopQuickInfo = false;
@@ -413,7 +410,7 @@ extension _MapViewInteractions on _MapViewState {
   void _toggleStopLabel(_MapStopData stop) {
     _consumeNextMapTapClose();
     final isSame = _selectedStopMarkerId == stop.stopId;
-    setState(() {
+    refreshState(() {
       _selectedVehicleMarkerId = null;
       if (isSame) {
         _selectedStopMarkerId = null;
@@ -447,7 +444,7 @@ extension _MapViewInteractions on _MapViewState {
       }
 
       if (!response.isSuccess) {
-        setState(() {
+        refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
           _selectedStopQuickInfo =
               _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
@@ -457,7 +454,7 @@ extension _MapViewInteractions on _MapViewState {
 
       final decoded = response.json;
       if (decoded == null) {
-        setState(() {
+        refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
           _selectedStopQuickInfo =
               _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
@@ -467,7 +464,7 @@ extension _MapViewInteractions on _MapViewState {
 
       final stop = decoded['data']?['stop'];
       if (stop is! Map) {
-        setState(() {
+        refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
           _selectedStopQuickInfo =
               _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
@@ -510,7 +507,7 @@ extension _MapViewInteractions on _MapViewState {
             : fallbackName,
       );
 
-      setState(() {
+      refreshState(() {
         _isLoadingSelectedStopQuickInfo = false;
         _selectedStopQuickInfo = _StopQuickInfo(
           stopName: stopName,
@@ -522,7 +519,7 @@ extension _MapViewInteractions on _MapViewState {
       if (!mounted || _selectedStopMarkerId != stopId) {
         return;
       }
-      setState(() {
+      refreshState(() {
         _isLoadingSelectedStopQuickInfo = false;
         _selectedStopQuickInfo =
             _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);

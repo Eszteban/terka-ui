@@ -173,7 +173,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(_error!, textAlign: TextAlign.center),
-                      const SizedBox(height: AppSpacing.md),
+                      const SizedBox(height: AppSpacing.lg),
                       FilledButton(
                         onPressed: _loadOptions,
                         child: const Text('Újrapróbálás'),
@@ -217,7 +217,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                 validator: (value) =>
                                     value == null || value.isEmpty ? 'Válassz szolgáltatót.' : null,
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               DropdownButtonFormField<String>(
                                 initialValue: _selectedTicketType,
                                 decoration: const InputDecoration(
@@ -241,7 +241,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                   });
                                 },
                               ),
-                              const SizedBox(height: AppSpacing.md),
+                              const SizedBox(height: AppSpacing.lg),
                               if (_isPass) ...[
                                 TextFormField(
                                   controller: _ticketStartController,
@@ -264,7 +264,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: AppSpacing.md),
+                                const SizedBox(height: AppSpacing.lg),
                                 TextFormField(
                                   controller: _ticketEndController,
                                   readOnly: true,

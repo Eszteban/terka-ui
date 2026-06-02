@@ -14,6 +14,7 @@ import '../../screens/stop_details_screen.dart';
 import '../../screens/trip_details_screen.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
+import 'vehicle_info_card.dart';
 
 part 'map_view_models.dart';
 part 'map_view_overlays.dart';
@@ -429,7 +430,9 @@ class _MapViewState extends State<MapView> {
                     ),
               children: [
                 TileLayer(
-                  urlTemplate: 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
+                  urlTemplate: Theme.of(context).brightness == Brightness.dark
+                      ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+                      : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
                   userAgentPackageName: 'hu.terka.terka_mobile_ui',
                   maxZoom: 19,
                 ),
@@ -671,5 +674,11 @@ class _MapViewState extends State<MapView> {
         ),
       ),
     );
+  }
+
+  void refreshState(VoidCallback fn) {
+    if (mounted) {
+      setState(fn);
+    }
   }
 }

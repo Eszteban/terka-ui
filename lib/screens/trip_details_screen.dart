@@ -8,6 +8,7 @@ import '../services/graphql/graphql_queries.dart';
 import '../utils/markup_text_utils.dart';
 import '../widgets/maps/plan_map_view.dart';
 import '../widgets/maps/route_map_data.dart';
+import '../widgets/maps/vehicle_info_card.dart';
 import 'stop_details_screen.dart';
 
 typedef TripDetailsBackgroundMapCallback =
@@ -74,7 +75,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   static const double _mobileSheetMinSize = 0.16;
   static const double _mobileSheetInitialSize = 0.24;
   static const double _mobileSheetMaxSize = 0.9;
-  static const bool _debugDumpDecodedPolyline = true;
   final GraphqlClient _graphqlClient = const GraphqlClient();
 
   bool _isLoading = true;
@@ -90,7 +90,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   void initState() {
     super.initState();
     _loadTrip();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadTrip());
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => _loadTrip(),
+    );
   }
 
   @override
@@ -198,10 +201,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             },
           ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: _loadTrip,
-            ),
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _loadTrip),
           ],
         ),
         body: _buildBody(),
@@ -250,7 +250,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final route = _route(trip);
     final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
     final tripHeadsign = _plainText(rawTripHeadsign);
-    final tripHeadsignUsesSpanFont = _containsSpanMarkup(rawTripHeadsign);
     final title = _plainText(trip['tripShortName']?.toString() ?? '-');
     final rawLineLabel = route['shortName']?.toString() ?? '-';
     final lineLabel = _plainText(rawLineLabel);
@@ -321,12 +320,17 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           final stopName = _plainText(
             stop is Map ? (stop['name']?.toString() ?? '-') : '-',
           );
-          final stopId = stop is Map ? (stop['id']?.toString().trim() ?? '') : '';
+          final stopId = stop is Map
+              ? (stop['id']?.toString().trim() ?? '')
+              : '';
           final passedStop = _isPassedStop(stopTime);
-          
+
           LatLng? point;
           if (stop is Map && stop['lat'] is num && stop['lon'] is num) {
-            point = LatLng((stop['lat'] as num).toDouble(), (stop['lon'] as num).toDouble());
+            point = LatLng(
+              (stop['lat'] as num).toDouble(),
+              (stop['lon'] as num).toDouble(),
+            );
           }
 
           return DataRow(
@@ -431,9 +435,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     routeTextColor,
                   ),
             enableStopInfoLabelTap: true,
-            stopInfoCardBuilder: (context, stop) => _buildRouteStopTapInfoCard(
-              stop,
-            ),
+            stopInfoCardBuilder: (context, stop) =>
+                _buildRouteStopTapInfoCard(stop),
           ),
         ),
         DraggableScrollableSheet(
@@ -441,11 +444,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           minChildSize: _mobileSheetMinSize,
           maxChildSize: _mobileSheetMaxSize,
           snap: true,
-          snapSizes: const [
-            _mobileSheetInitialSize,
-            0.5,
-            _mobileSheetMaxSize,
-          ],
+          snapSizes: const [_mobileSheetInitialSize, 0.5, _mobileSheetMaxSize],
           builder: (context, scrollController) {
             final colorScheme = Theme.of(context).colorScheme;
             return Material(
@@ -569,7 +568,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final stopName = _selectedStopQuickInfo?.stopName.trim().isNotEmpty == true
         ? _selectedStopQuickInfo!.stopName.trim()
         : stop.label;
-    final lines = _selectedStopQuickInfo?.lines ?? const <_TripStopQuickRoute>[];
+    final lines =
+        _selectedStopQuickInfo?.lines ?? const <_TripStopQuickRoute>[];
 
     if (stopId.isNotEmpty &&
         _selectedStopQuickInfoStopId != stopId &&
@@ -586,56 +586,58 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
     return Material(
       color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.black.withOpacity(0.08)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              stop.label,
-              textAlign: TextAlign.center,
-              softWrap: true,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 6),
-            if (_isLoadingSelectedStopQuickInfo && stopId.isNotEmpty)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else if (lines.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                alignment: WrapAlignment.center,
-                children: lines.map(_buildTripStopRouteBadge).toList(),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: stopId.isEmpty
+            ? null
+            : () {
+                _openStopDetails(
+                  stopId: stopId,
+                  stopName: stopName,
+                  initialStopPoint: stop.point,
+                );
+              },
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 300),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: stopId.isEmpty
-                    ? null
-                    : () {
-                        _openStopDetails(
-                          stopId: stopId,
-                          stopName: stopName,
-                          initialStopPoint: stop.point,
-                        );
-                      },
-                child: const Text('Megálló adatai'),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                stop.label,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              if (_isLoadingSelectedStopQuickInfo && stopId.isNotEmpty)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else if (lines.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  alignment: WrapAlignment.center,
+                  children: lines.map(_buildTripStopRouteBadge).toList(),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -746,7 +748,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               id: id,
               label: label,
               usesSpanFont: _containsSpanMarkup(rawLabel),
-              backgroundColor: _hexColor(route['color']?.toString() ?? '0A84FF'),
+              backgroundColor: _hexColor(
+                route['color']?.toString() ?? '0A84FF',
+              ),
               textColor: _hexColor(route['textColor']?.toString() ?? 'FFFFFF'),
             );
           }
@@ -802,7 +806,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
 
     if (_isDesktopBackgroundMapMode &&
-      widget.onShowOnBackgroundMap != null &&
+        widget.onShowOnBackgroundMap != null &&
         (routeData.hasContent || vehicleMarker != null)) {
       widget.onShowOnBackgroundMap!(routeData, vehicleMarker);
       if (closeAfter) {
@@ -856,9 +860,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     routeTextColor,
                   ),
             enableStopInfoLabelTap: true,
-            stopInfoCardBuilder: (context, stop) => _buildRouteStopTapInfoCard(
-              stop,
-            ),
+            stopInfoCardBuilder: (context, stop) =>
+                _buildRouteStopTapInfoCard(stop),
           ),
         ),
         Positioned(
@@ -882,14 +885,26 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final info = _buildTripVehicleInfo(trip);
 
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Material(
       color: Colors.transparent,
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: colorScheme.surface.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.black.withOpacity(0.08)),
+          borderRadius: BorderRadius.circular(16),
+          border: isDark
+              ? Border.all(color: Colors.white.withOpacity(0.08))
+              : null,
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -938,68 +953,68 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     Color routeColor,
     Color routeTextColor,
   ) {
-    final info = _buildTripVehicleInfo(trip);
-    final colorScheme = Theme.of(context).colorScheme;
+    final route = _route(trip);
+    final vehicle = _firstVehicle(trip);
+    final hasVehicle = vehicle.isNotEmpty;
+    final rawLine = route['shortName']?.toString() ?? '-';
+    final lineLabel = _plainText(rawLine);
+    final lineLabelUsesSpanFont = _containsSpanMarkup(rawLine);
 
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: colorScheme.surface.withOpacity(0.95),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: colorScheme.outlineVariant),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildLineBadge(
-                  lineLabel: info.line,
-                  routeColor: routeColor,
-                  routeTextColor: routeTextColor,
-                  useSpanFont: info.lineUsesSpanFont,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    info.tripShortName,
-                    softWrap: true,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              info.tripHeadsign,
-              softWrap: true,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              info.vehicleInfoText,
-              maxLines: 5,
-              style: const TextStyle(
-                fontSize: 12,
-                height: 1.15,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+    final rawTripShortName = trip['tripShortName']?.toString() ?? '-';
+    final tripNumberLabel = _plainText(rawTripShortName);
+
+    final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
+    final tripHeadsignLabel = _plainText(rawTripHeadsign);
+
+    final vehicleTrip = vehicle['trip'];
+    final vehicleTripGtfsId = vehicleTrip is Map
+        ? vehicleTrip['gtfsId']?.toString()
+        : null;
+    final vehicleId = vehicle['vehicleId']?.toString();
+    final rawVehicleLabel = vehicle['label'].toString() != ""
+        ? vehicle['label'].toString()
+        : vehicle['uicCode'].toString();
+    final serviceLabel = !hasVehicle
+        ? ''
+        : (vehicleId != null &&
+              vehicleTripGtfsId != null &&
+              vehicleId == vehicleTripGtfsId)
+        ? 'Becsült pozíció'
+        : rawVehicleLabel.trim().isNotEmpty
+        ? _plainText(rawVehicleLabel)
+        : 'ismeretlen jármű';
+
+    final routeMode = route['mode']?.toString() ?? '';
+    final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
+        ? 'vonatpótló busz'
+        : 'Ismeretlen';
+    final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
+    final modelLabel = rawVehicleModel.trim().isNotEmpty
+        ? _plainText(rawVehicleModel)
+        : fallbackModel;
+
+    final nextStop = vehicle['nextStop'];
+    final int? arrivalDelaySeconds =
+        nextStop != null && nextStop['arrivalDelay'] is num
+        ? (nextStop['arrivalDelay'] as num).toInt()
+        : null;
+
+    final nextStopName = nextStop != null && nextStop['stop'] != null
+        ? nextStop['stop']['name']?.toString()
+        : null;
+
+    return VehicleInfoCard(
+      lineLabel: lineLabel,
+      lineLabelUsesSpanFont: lineLabelUsesSpanFont,
+      tripNumberLabel: tripNumberLabel,
+      tripHeadsignLabel: tripHeadsignLabel,
+      serviceLabel: serviceLabel,
+      modelLabel: modelLabel,
+      arrivalDelaySeconds: arrivalDelaySeconds,
+      nextStopName: nextStopName,
+      markerColor: routeColor,
+      markerTextColor: routeTextColor,
+      onTap: null,
     );
   }
 
@@ -1034,8 +1049,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               vehicleTripGtfsId != null &&
               vehicleId == vehicleTripGtfsId)
         ? 'Becsült pozíció'
-      : rawVehicleLabel.trim().isNotEmpty
-      ? _plainText(rawVehicleLabel)
+        : rawVehicleLabel.trim().isNotEmpty
+        ? _plainText(rawVehicleLabel)
         : 'ismeretlen jármű';
     final routeMode = route['mode']?.toString() ?? '';
     final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
@@ -1050,30 +1065,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     final tripShortName = _plainText(rawTripShortName);
     final tripShortNameUsesSpanFont = _containsSpanMarkup(rawTripShortName);
 
-    final delayText = _delayText(null);
+    final delayText = _delayText(vehicle["nextStop"]["arrivalDelay"]);
 
-    String nextStopName = '-';
-    final stopRelationship = vehicle['stopRelationship'];
-    if (stopRelationship is Map) {
-      final stop = stopRelationship['stop'];
-      if (stop is Map && stop['name'] is String) {
-        nextStopName = _plainText(stop['name'] as String);
-      }
-    } else if (stopRelationship is List) {
-      for (final rel in stopRelationship) {
-        if (rel is! Map) {
-          continue;
-        }
-        final stop = rel['stop'];
-        if (stop is Map && stop['name'] is String) {
-          final name = _plainText(stop['name'] as String).trim();
-          if (name.isNotEmpty) {
-            nextStopName = name;
-            break;
-          }
-        }
-      }
-    }
+    String nextStopName = vehicle['nextStop']["stop"]["name"]?.toString() ?? '';
 
     final vehicleInfoText = hasVehicle
         ? '$label\n$model\n$delayText\nköv: $nextStopName'
@@ -1201,13 +1195,11 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       final lon = stop['lon'];
       final name = stop['name']?.toString() ?? '';
       if (lat is num && lon is num) {
-        result.add(
-          (
-            point: LatLng(lat.toDouble(), lon.toDouble()),
-            label: _plainText(name),
-            stopId: stop['id']?.toString().trim(),
-          ),
-        );
+        result.add((
+          point: LatLng(lat.toDouble(), lon.toDouble()),
+          label: _plainText(name),
+          stopId: stop['id']?.toString().trim(),
+        ));
       }
     }
     return result;
@@ -1225,7 +1217,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
 
     final points = _decodePolyline(encoded);
-    
+
     return points;
   }
 
@@ -1264,8 +1256,6 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
     return points;
   }
-
-  
 
   RouteMapData _buildTripRouteMapData(Map<String, dynamic> trip) {
     final route = _route(trip);

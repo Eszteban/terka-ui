@@ -130,7 +130,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'E-mail: ${widget.session.email}',
                           style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _usernameController,
                           decoration: const InputDecoration(
@@ -153,7 +153,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           'Jelszó módosítás (opcionális)',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _currentPasswordController,
                           obscureText: true,
@@ -162,7 +162,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             prefixIcon: Icon(Icons.lock_outline),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _newPasswordController,
                           obscureText: true,
@@ -191,7 +191,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _confirmNewPasswordController,
                           obscureText: true,

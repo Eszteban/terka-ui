@@ -94,7 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Jelentkezz be a fiókodba',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.lg),
                         TextFormField(
                           controller: _passwordController,
                           obscureText: true,

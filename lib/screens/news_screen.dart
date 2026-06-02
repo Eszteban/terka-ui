@@ -56,42 +56,89 @@ class _NewsScreenState extends State<NewsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final isDesktop = MediaQuery.of(context).size.width > 700;
 
     return FutureBuilder<List<_NewsItem>>(
       future: _newsFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+        final isLoading = snapshot.connectionState == ConnectionState.waiting;
+        final hasError = snapshot.hasError;
+        final items = snapshot.data ?? const <_NewsItem>[];
 
-        if (snapshot.hasError) {
-          return const Center(
+        Widget content;
+        if (isLoading) {
+          content = const _NewsLoadingView();
+        } else if (hasError) {
+          content = const Center(
             child: Text('Hiba történt a hírek betöltése közben.'),
+          );
+        } else if (items.isEmpty) {
+          content = const Center(child: Text('Nincsenek elérhető hírek.'));
+        } else {
+          content = ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                    ),
+                    boxShadow: isDark ? null : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(
+                      unescape.convert(item.title),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        height: 1.3,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                      color: const Color(0xFF8D4B20).withValues(alpha: 0.5),
+                    ),
+                    onTap: () => _openLink(item.link),
+                  ),
+                ),
+              );
+            },
           );
         }
 
-        final items = snapshot.data ?? const <_NewsItem>[];
-        if (items.isEmpty) {
-          return const Center(child: Text('Nincsenek elérhető hírek.'));
-        }
-
-        final list = ListView.separated(
-          padding: const EdgeInsets.all(8),
-          itemCount: items.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return ListTile(
-              title: Text(unescape.convert(item.title)),
-              trailing: const Icon(Icons.open_in_new),
-              onTap: () => _openLink(item.link),
-            );
-          },
+        final bentoShape = RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+            width: 1,
+          ),
         );
 
         if (!isDesktop) {
-          return Card(child: list);
+          return Card(
+            elevation: isDark ? 0 : 2,
+            shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            shape: bentoShape,
+            color: isDark ? const Color(0xFF1A1615) : Colors.white,
+            child: content,
+          );
         }
 
         return Column(
@@ -112,7 +159,11 @@ class _NewsScreenState extends State<NewsScreen> {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: Card(
-                    child: list,
+                    elevation: isDark ? 0 : 2,
+                    shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                    shape: bentoShape,
+                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    child: content,
                   ),
                 ),
               ),
@@ -129,4 +180,112 @@ class _NewsItem {
   final String link;
 
   const _NewsItem({required this.title, required this.link});
+}
+
+class _NewsLoadingView extends StatefulWidget {
+  const _NewsLoadingView();
+
+  @override
+  State<_NewsLoadingView> createState() => _NewsLoadingViewState();
+}
+
+class _NewsLoadingViewState extends State<_NewsLoadingView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final skeletonColor = isDark
+        ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)
+        : colorScheme.surfaceContainerHighest.withValues(alpha: 0.7);
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final opacity = 0.35 + (_controller.value * 0.4);
+        return Opacity(
+          opacity: opacity,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: 5,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+                    ),
+                    boxShadow: isDark ? null : [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              height: 14,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: skeletonColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Container(
+                              height: 14,
+                              width: 140,
+                              decoration: BoxDecoration(
+                                color: skeletonColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: skeletonColor,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 }
