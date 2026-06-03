@@ -461,9 +461,11 @@ class _MapViewState extends State<MapView> {
                         .map(
                           (stop) => Marker(
                             point: stop.point,
-                            width: 34,
-                            height: 34,
-                            alignment: Alignment.topCenter,
+                            width: 38,
+                            height: 38,
+                            alignment: widget.useBaseMapStopIcon
+                                ? Alignment.center
+                                : Alignment.topCenter,
                             child: Stack(
                               clipBehavior: Clip.none,
                               alignment: Alignment.bottomCenter,
@@ -509,7 +511,7 @@ class _MapViewState extends State<MapView> {
                                     ),
                                   ),
                                 widget.useBaseMapStopIcon
-                                    ? _buildMapStopDot()
+                                    ? _buildMapStopDot(stop.bearing)
                                     : Icon(
                                         Icons.location_on,
                                         color: _routeStopColor(stop.type),

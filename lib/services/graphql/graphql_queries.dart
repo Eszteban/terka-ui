@@ -242,6 +242,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         name
         lat
         lon
+        bearing
       }
     }
     tripGeometry {
@@ -346,6 +347,7 @@ query StopsByBbox(
     name
     lat
     lon
+    bearing
   }
 }
 ''';
@@ -376,6 +378,7 @@ String buildStopDetailsQuery(List<String> expandedIds) {
     name
     lat
     lon
+    bearing
     routes {
       gtfsId
       shortName

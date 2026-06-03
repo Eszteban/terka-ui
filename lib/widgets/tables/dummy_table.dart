@@ -64,7 +64,9 @@ class DummyTable extends StatelessWidget {
     final itineraries = _extractItineraries(responseText);
     final summaryLabel = _buildResultsHeader(itineraries);
 
-    if (desktopInlineMapMode && !hasDesktopMapSelection && itineraries.isNotEmpty) {
+    if (desktopInlineMapMode &&
+        !hasDesktopMapSelection &&
+        itineraries.isNotEmpty) {
       final firstItinerary = itineraries.first;
       final firstSummary = _buildSummary(firstItinerary);
       final firstMapData = _buildRouteMapData(firstItinerary);
@@ -121,7 +123,9 @@ class DummyTable extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                               side: BorderSide(
-                                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                             ),
                             child: Padding(
@@ -137,7 +141,12 @@ class DummyTable extends StatelessWidget {
                                         }
                                       }
                                     : null,
-                                title: _buildBentoHeader(context, itinerary, summary, lineBadges),
+                                title: _buildBentoHeader(
+                                  context,
+                                  itinerary,
+                                  summary,
+                                  lineBadges,
+                                ),
                                 childrenPadding: const EdgeInsets.fromLTRB(
                                   0,
                                   12,
@@ -244,7 +253,7 @@ class DummyTable extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'UTAZÁSI IDŐ & MENETREND',
+            'MENETIDŐ, INDULÁS ÉS ÉRKEZÉS',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -312,11 +321,7 @@ class DummyTable extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           if (lineBadges.isNotEmpty)
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: lineBadges,
-            )
+            Wrap(spacing: 4, runSpacing: 4, children: lineBadges)
           else
             Text(
               'Gyalogos',
@@ -471,8 +476,10 @@ class DummyTable extends StatelessWidget {
         decoration: BoxDecoration(
           color: isWalkLeg
               ? (isDark
-                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4))
+                    ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
+                    : colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.4,
+                      ))
               : routeColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
@@ -506,7 +513,10 @@ class DummyTable extends StatelessWidget {
             else
               _containsSpanMarkup(lineNumber)
                   ? Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 0,
+                      ),
                       decoration: BoxDecoration(
                         color: routeColor,
                         borderRadius: BorderRadius.circular(7),
@@ -524,7 +534,10 @@ class DummyTable extends StatelessWidget {
                       ),
                     )
                   : Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: routeColor,
                         borderRadius: BorderRadius.circular(6),
@@ -545,7 +558,9 @@ class DummyTable extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: isWalkLeg ? colorScheme.onSurfaceVariant : colorScheme.onSurface,
+                color: isWalkLeg
+                    ? colorScheme.onSurfaceVariant
+                    : colorScheme.onSurface,
               ),
             ),
           ],
@@ -653,10 +668,10 @@ class DummyTable extends StatelessWidget {
           child: InkWell(
             onTap: canOpenTrip
                 ? () => _openTripDetails(
-                      context,
-                      tripId: tripId,
-                      serviceDay: serviceDay,
-                    )
+                    context,
+                    tripId: tripId,
+                    serviceDay: serviceDay,
+                  )
                 : null,
             borderRadius: BorderRadius.circular(12),
             child: IntrinsicHeight(
@@ -680,7 +695,8 @@ class DummyTable extends StatelessWidget {
     required String tripId,
     required String serviceDay,
   }) async {
-    final isDesktop = desktopInlineMapMode &&
+    final isDesktop =
+        desktopInlineMapMode &&
         MediaQuery.of(context).size.width > _desktopBreakpoint;
 
     if (isDesktop) {
@@ -688,7 +704,10 @@ class DummyTable extends StatelessWidget {
         context: context,
         builder: (_) => Dialog(
           clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
             child: TripDetailsScreen(

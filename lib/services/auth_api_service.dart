@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/account_api.dart';
+import 'graphql/graphql_client.dart';
 
 class AuthSession {
   final String token;
@@ -42,11 +43,7 @@ class AuthLoginResult {
   final String? error;
   final AuthSession? session;
 
-  const AuthLoginResult({
-    required this.ok,
-    this.error,
-    this.session,
-  });
+  const AuthLoginResult({required this.ok, this.error, this.session});
 }
 
 class AuthActionResult {
@@ -54,17 +51,15 @@ class AuthActionResult {
   final String? error;
   final String? message;
 
-  const AuthActionResult({
-    required this.ok,
-    this.error,
-    this.message,
-  });
+  const AuthActionResult({required this.ok, this.error, this.message});
 }
 
 class TicketItem {
   final int id;
   final String agencyId;
   final String agencyName;
+  final List<String>? agencyIds;
+  final List<String>? agencyNames;
   final String ticketType;
   final String? ticketStart;
   final String? ticketEnd;
@@ -74,6 +69,8 @@ class TicketItem {
     required this.id,
     required this.agencyId,
     required this.agencyName,
+    this.agencyIds,
+    this.agencyNames,
     required this.ticketType,
     this.ticketStart,
     this.ticketEnd,
@@ -81,17 +78,221 @@ class TicketItem {
   });
 
   factory TicketItem.fromJson(Map<String, dynamic> json) {
+    final List<String> ids = json['agency_ids'] != null
+        ? List<String>.from(json['agency_ids'])
+        : [];
+    final List<String> names = json['agency_names'] != null
+        ? List<String>.from(json['agency_names'])
+        : [];
+
+    final String fallbackId = (json['agency_id'] ?? '').toString();
+    final String fallbackName = (json['agency_name'] ?? '').toString();
+
     return TicketItem(
       id: (json['id'] as num?)?.toInt() ?? 0,
-      agencyId: (json['agency_id'] ?? '').toString(),
-      agencyName: (json['agency_name'] ?? '').toString(),
+      agencyId: fallbackId,
+      agencyName: fallbackName,
+      agencyIds: ids.isNotEmpty
+          ? ids
+          : (fallbackId.isNotEmpty ? [fallbackId] : []),
+      agencyNames: names.isNotEmpty
+          ? names
+          : (fallbackName.isNotEmpty ? [fallbackName] : []),
       ticketType: (json['ticket_type'] ?? '').toString(),
       ticketStart: json['ticket_start']?.toString(),
       ticketEnd: json['ticket_end']?.toString(),
       quantity: (json['quantity'] as num?)?.toInt(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'agency_id': (agencyIds != null && agencyIds!.isNotEmpty)
+        ? agencyIds!.first
+        : agencyId,
+    'agency_name': (agencyNames != null && agencyNames!.isNotEmpty)
+        ? agencyNames!.first
+        : agencyName,
+    'agency_ids': agencyIds,
+    'agency_names': agencyNames,
+    'ticket_type': ticketType,
+    'ticket_start': ticketStart,
+    'ticket_end': ticketEnd,
+    'quantity': quantity,
+  };
 }
+
+class AgencyGroup {
+  final String name;
+  final List<String> agencyIds;
+
+  const AgencyGroup({required this.name, required this.agencyIds});
+
+  factory AgencyGroup.fromJson(Map<String, dynamic> json) {
+    return AgencyGroup(
+      name: (json['name'] ?? '').toString(),
+      agencyIds: List<String>.from(json['agency_ids'] ?? []),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {'name': name, 'agency_ids': agencyIds};
+
+  static List<AgencyGroup> getPrebakedGroups() {
+    return const [
+      AgencyGroup(
+        name: 'Országbérlet',
+        agencyIds: [
+          'BKK:BKK',
+          '1:1164',
+          'hkir:hkir_V-30988',
+          'hkir:hkir_V-05111',
+          'hkir:hkir_V-23603',
+          'hkir:hkir_V-25131',
+          'hkir:hkir_V',
+          '1:198',
+          'debrecen:DKV',
+          'mvkzrt:MVK',
+          '1:134',
+        ],
+      ),
+      AgencyGroup(
+        name: 'Országbérlet + Szeged',
+        agencyIds: [
+          'BKK:BKK',
+          '1:1164',
+          'hkir:hkir_V-30988',
+          'hkir:hkir_V-05111',
+          'hkir:hkir_V-23603',
+          'hkir:hkir_V-25131',
+          'hkir:hkir_V',
+          '1:198',
+          'debrecen:DKV',
+          'mvkzrt:MVK',
+          'hkir:hkir_V-33367',
+          'szeged:hkir_V-33367',
+          'szeged:SZKT',
+          '1:134',
+        ],
+      ),
+      AgencyGroup(
+        name: 'Szeged',
+        agencyIds: ['hkir:hkir_V-33367', 'szeged:hkir_V-33367', 'szeged:SZKT'],
+      ),
+    ];
+  }
+}
+
+class PassType {
+  final String id;
+  final String name;
+  final List<String> agencyIds;
+  final List<String> agencyNames;
+  final String durationType; // 'month' or 'days'
+  final int? durationDays;
+
+  const PassType({
+    required this.id,
+    required this.name,
+    required this.agencyIds,
+    required this.agencyNames,
+    required this.durationType,
+    this.durationDays,
+  });
+
+  factory PassType.fromJson(Map<String, dynamic> json) {
+    return PassType(
+      id: (json['id'] ?? '').toString(),
+      name: (json['name'] ?? '').toString(),
+      agencyIds: List<String>.from(json['agency_ids'] ?? []),
+      agencyNames: List<String>.from(json['agency_names'] ?? []),
+      durationType: (json['duration_type'] ?? 'month').toString(),
+      durationDays: json['duration_days'] as int?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'agency_ids': agencyIds,
+        'agency_names': agencyNames,
+        'duration_type': durationType,
+        'duration_days': durationDays,
+      };
+
+  static List<PassType> getPrebakedPassTypes() {
+    return const [
+      PassType(
+        id: 'orszagberlet',
+        name: 'Országbérlet',
+        agencyIds: [
+          'BKK:BKK',
+          '1:1164',
+          'hkir:hkir_V-30988',
+          'hkir:hkir_V-05111',
+          'hkir:hkir_V-23603',
+          'hkir:hkir_V-25131',
+          'hkir:hkir_V',
+          '1:198',
+          'debrecen:DKV',
+          'mvkzrt:MVK',
+          '1:134',
+        ],
+        agencyNames: [
+          'BKK',
+          'MÁV Személyszállítási Zrt. (HÉV)',
+          'MÁV Személyszállítási Zrt. - Érd',
+          'MÁV Személyszállítási Zrt. - Csongrád',
+          'MÁV Személyszállítási Zrt. - Ercsi',
+          'MÁV Személyszállítási Zrt. - Esztergom',
+          'MÁV Személyszállítási Zrt. - Helyközi busz',
+          'MÁV Személyszállítási Zrt.',
+          'DKV Debreceni Közlekedési Zrt.',
+          'MVK Zrt.',
+          'GYSEV Zrt.',
+        ],
+        durationType: 'month',
+      ),
+      PassType(
+        id: 'orszagberlet_szeged',
+        name: 'Országbérlet + Szeged',
+        agencyIds: [
+          'BKK:BKK',
+          '1:1164',
+          'hkir:hkir_V-30988',
+          'hkir:hkir_V-05111',
+          'hkir:hkir_V-23603',
+          'hkir:hkir_V-25131',
+          'hkir:hkir_V',
+          '1:198',
+          'debrecen:DKV',
+          'mvkzrt:MVK',
+          'hkir:hkir_V-33367',
+          'szeged:hkir_V-33367',
+          'szeged:SZKT',
+          '1:134',
+        ],
+        agencyNames: [
+          'BKK',
+          'MÁV Személyszállítási Zrt. (HÉV)',
+          'MÁV Személyszállítási Zrt. - Érd',
+          'MÁV Személyszállítási Zrt. - Csongrád',
+          'MÁV Személyszállítási Zrt. - Ercsi',
+          'MÁV Személyszállítási Zrt. - Esztergom',
+          'MÁV Személyszállítási Zrt. - Helyközi busz',
+          'MÁV Személyszállítási Zrt.',
+          'DKV Debreceni Közlekedési Zrt.',
+          'MVK Zrt.',
+          'MÁV Személyszállítási Zrt. - Szeged',
+          'Szegedi Közlekedési Kft.',
+          'Szegedi Közlekedési Kft.',
+          'GYSEV Zrt.',
+        ],
+        durationType: 'month',
+      ),
+    ];
+  }
+}
+
 
 class TicketAgencyOption {
   final String id;
@@ -140,11 +341,7 @@ class TicketsResult {
   final String? error;
   final List<TicketItem> tickets;
 
-  const TicketsResult({
-    required this.ok,
-    this.error,
-    this.tickets = const [],
-  });
+  const TicketsResult({required this.ok, this.error, this.tickets = const []});
 }
 
 class AuthProfileUpdateResult {
@@ -175,11 +372,13 @@ class AuthApiService {
   }) async {
     late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.loginUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email.trim(), 'password': password}),
-      ).timeout(_requestTimeout);
+      response = await http
+          .post(
+            Uri.parse(AccountApi.loginUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email.trim(), 'password': password}),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       return AuthLoginResult(ok: false, error: _networkErrorMessage(e));
     }
@@ -194,7 +393,9 @@ class AuthApiService {
       json = null;
     }
 
-    if (response.statusCode < 200 || response.statusCode >= 300 || json == null) {
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        json == null) {
       final serverError = _extractServerError(json, response.body);
       return AuthLoginResult(
         ok: false,
@@ -246,16 +447,18 @@ class AuthApiService {
   }) async {
     late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.registerUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'username': username.trim(),
-          'email': email.trim(),
-          'password': password,
-          'confirm_password': confirmPassword,
-        }),
-      ).timeout(_requestTimeout);
+      response = await http
+          .post(
+            Uri.parse(AccountApi.registerUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': username.trim(),
+              'email': email.trim(),
+              'password': password,
+              'confirm_password': confirmPassword,
+            }),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       return AuthActionResult(ok: false, error: _networkErrorMessage(e));
     }
@@ -270,7 +473,8 @@ class AuthApiService {
       json = null;
     }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    final bool isHttpSuccess =
+        response.statusCode >= 200 && response.statusCode < 300;
     if (!isHttpSuccess || json == null) {
       final serverError = _extractServerError(json, response.body);
       return AuthActionResult(
@@ -295,16 +499,16 @@ class AuthApiService {
     );
   }
 
-  Future<AuthActionResult> activateAccount({
-    required String token,
-  }) async {
+  Future<AuthActionResult> activateAccount({required String token}) async {
     late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.activateUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': token.trim()}),
-      ).timeout(_requestTimeout);
+      response = await http
+          .post(
+            Uri.parse(AccountApi.activateUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'token': token.trim()}),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       return AuthActionResult(ok: false, error: _networkErrorMessage(e));
     }
@@ -319,7 +523,8 @@ class AuthApiService {
       json = null;
     }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    final bool isHttpSuccess =
+        response.statusCode >= 200 && response.statusCode < 300;
     if (!isHttpSuccess || json == null) {
       final serverError = _extractServerError(json, response.body);
       return AuthActionResult(
@@ -360,19 +565,21 @@ class AuthApiService {
 
     late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.updateProfileUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${currentSession.token}',
-        },
-        body: jsonEncode({
-          'username': username.trim(),
-          'current_password': currentPassword,
-          'new_password': newPassword,
-          'confirm_new_password': confirmNewPassword,
-        }),
-      ).timeout(_requestTimeout);
+      response = await http
+          .post(
+            Uri.parse(AccountApi.updateProfileUrl),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${currentSession.token}',
+            },
+            body: jsonEncode({
+              'username': username.trim(),
+              'current_password': currentPassword,
+              'new_password': newPassword,
+              'confirm_new_password': confirmNewPassword,
+            }),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       return AuthProfileUpdateResult(ok: false, error: _networkErrorMessage(e));
     }
@@ -387,7 +594,8 @@ class AuthApiService {
       json = null;
     }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    final bool isHttpSuccess =
+        response.statusCode >= 200 && response.statusCode < 300;
     if (!isHttpSuccess || json == null) {
       final serverError = _extractServerError(json, response.body);
       return AuthProfileUpdateResult(
@@ -438,11 +646,13 @@ class AuthApiService {
   }) async {
     late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.confirmPasswordChangeUrl),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'token': token.trim()}),
-      ).timeout(_requestTimeout);
+      response = await http
+          .post(
+            Uri.parse(AccountApi.confirmPasswordChangeUrl),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'token': token.trim()}),
+          )
+          .timeout(_requestTimeout);
     } catch (e) {
       return AuthActionResult(ok: false, error: _networkErrorMessage(e));
     }
@@ -457,7 +667,8 @@ class AuthApiService {
       json = null;
     }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
+    final bool isHttpSuccess =
+        response.statusCode >= 200 && response.statusCode < 300;
     if (!isHttpSuccess || json == null) {
       final serverError = _extractServerError(json, response.body);
       return AuthActionResult(
@@ -479,129 +690,117 @@ class AuthApiService {
     await clearSession();
     return AuthActionResult(
       ok: true,
-      message: (json['message'] ?? 'Jelszó módosítva, jelentkezz be újra.').toString(),
+      message: (json['message'] ?? 'Jelszó módosítva, jelentkezz be újra.')
+          .toString(),
     );
   }
 
   Future<TicketsResult> fetchTickets() async {
-    final currentSession = await loadSession();
-    if (currentSession == null) {
-      return const TicketsResult(ok: false, error: 'Nincs aktív munkamenet.');
-    }
-
-    late final http.Response response;
     try {
-      response = await http.get(
-        Uri.parse(AccountApi.ticketsUrl),
-        headers: {'Authorization': 'Bearer ${currentSession.token}'},
-      ).timeout(_requestTimeout);
-    } catch (e) {
-      return TicketsResult(ok: false, error: _networkErrorMessage(e));
-    }
-
-    Map<String, dynamic>? json;
-    try {
-      final dynamic parsed = jsonDecode(response.body);
-      if (parsed is Map) {
-        json = parsed.cast<String, dynamic>();
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('local_tickets_v1');
+      if (raw == null || raw.trim().isEmpty) {
+        return const TicketsResult(ok: true, tickets: []);
       }
-    } catch (_) {
-      json = null;
-    }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
-    if (!isHttpSuccess || json == null) {
-      return TicketsResult(
-        ok: false,
-        error: _extractServerError(json, response.body),
-      );
-    }
-
-    final bool ok = json['ok'] == true;
-    if (!ok) {
-      return TicketsResult(
-        ok: false,
-        error: _extractServerError(json, response.body),
-      );
-    }
-
-    final dynamic rawTickets = json['tickets'];
-    final tickets = <TicketItem>[];
-    if (rawTickets is List) {
-      for (final item in rawTickets) {
-        if (item is Map) {
-          tickets.add(TicketItem.fromJson(item.cast<String, dynamic>()));
+      final dynamic decoded = jsonDecode(raw);
+      final tickets = <TicketItem>[];
+      if (decoded is List) {
+        for (final item in decoded) {
+          if (item is Map) {
+            tickets.add(TicketItem.fromJson(item.cast<String, dynamic>()));
+          }
         }
       }
+      return TicketsResult(ok: true, tickets: tickets);
+    } catch (e) {
+      return TicketsResult(ok: false, error: 'Hiba a jegyek betöltésekor: $e');
     }
-
-    return TicketsResult(ok: true, tickets: tickets);
   }
 
   Future<TicketFormOptionsResult> fetchTicketFormOptions() async {
-    final currentSession = await loadSession();
-    if (currentSession == null) {
-      return const TicketFormOptionsResult(ok: false, error: 'Nincs aktív munkamenet.');
-    }
-
-    late final http.Response response;
-    try {
-      response = await http.get(
-        Uri.parse(AccountApi.ticketOptionsUrl),
-        headers: {'Authorization': 'Bearer ${currentSession.token}'},
-      ).timeout(_requestTimeout);
-    } catch (e) {
-      return TicketFormOptionsResult(ok: false, error: _networkErrorMessage(e));
-    }
-
-    Map<String, dynamic>? json;
-    try {
-      final dynamic parsed = jsonDecode(response.body);
-      if (parsed is Map) {
-        json = parsed.cast<String, dynamic>();
-      }
-    } catch (_) {
-      json = null;
-    }
-
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
-    if (!isHttpSuccess || json == null) {
-      return TicketFormOptionsResult(
-        ok: false,
-        error: _extractServerError(json, response.body),
-      );
-    }
-
-    final bool ok = json['ok'] == true;
-    if (!ok) {
-      return TicketFormOptionsResult(
-        ok: false,
-        error: _extractServerError(json, response.body),
-      );
-    }
-
-    final dynamic options = json['options'];
+    const String query = '{agencies {name gtfsId}}';
     final agencies = <TicketAgencyOption>[];
-    final ticketTypes = <TicketTypeOption>[];
-    if (options is Map) {
-      final rawAgencies = options['agencies'];
-      if (rawAgencies is List) {
-        for (final item in rawAgencies) {
-          if (item is Map) {
-            agencies.add(TicketAgencyOption.fromJson(item.cast<String, dynamic>()));
-          }
-        }
-      }
+    const ticketTypes = [
+      TicketTypeOption(value: 'vonaljegy', label: 'Vonaljegy'),
+      TicketTypeOption(value: 'bérlet', label: 'Bérlet'),
+    ];
 
-      final rawTypes = options['ticket_types'];
-      if (rawTypes is List) {
-        for (final item in rawTypes) {
-          if (item is Map) {
-            ticketTypes.add(TicketTypeOption.fromJson(item.cast<String, dynamic>()));
+    try {
+      final client = const GraphqlClient();
+      final response = await client
+          .execute(query: query)
+          .timeout(const Duration(seconds: 8));
+
+      if (response.isSuccess && response.json != null) {
+        final data = response.json!['data'];
+        if (data is Map) {
+          final rawAgencies = data['agencies'];
+          if (rawAgencies is List) {
+            for (final item in rawAgencies) {
+              if (item is Map) {
+                final gtfsId = (item['gtfsId'] ?? '').toString();
+                final name = (item['name'] ?? '').toString();
+                if (gtfsId.isNotEmpty && name.isNotEmpty) {
+                  agencies.add(TicketAgencyOption(id: gtfsId, name: name));
+                }
+              }
+            }
           }
         }
       }
+    } catch (e) {
+      // Fallback
     }
+
+    if (agencies.isEmpty) {
+      agencies.add(
+        const TicketAgencyOption(
+          id: '1:198',
+          name: 'MÁV Személyszállítási Zrt.',
+        ),
+      );
+      agencies.add(const TicketAgencyOption(id: 'BKK:BKK', name: 'BKK'));
+      agencies.add(const TicketAgencyOption(id: '1:134', name: 'GYSEV Zrt.'));
+    }
+
+    const Map<String, String> accents = {
+      'á': 'a',
+      'é': 'e',
+      'í': 'i',
+      'ó': 'o',
+      'ö': 'o',
+      'ő': 'o',
+      'ú': 'u',
+      'ü': 'u',
+      'ű': 'u',
+      'Á': 'a',
+      'É': 'e',
+      'Í': 'i',
+      'Ó': 'o',
+      'Ö': 'o',
+      'Ő': 'o',
+      'Ú': 'u',
+      'Ü': 'u',
+      'Ű': 'u',
+    };
+
+    String normalize(String s) {
+      final sb = StringBuffer();
+      for (int i = 0; i < s.length; i++) {
+        final char = s[i];
+        sb.write(accents[char] ?? char.toLowerCase());
+      }
+      return sb.toString();
+    }
+
+    agencies.sort((a, b) {
+      final normA = normalize(a.name);
+      final normB = normalize(b.name);
+      final cmp = normA.compareTo(normB);
+      if (cmp != 0) return cmp;
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
 
     return TicketFormOptionsResult(
       ok: true,
@@ -610,68 +809,274 @@ class AuthApiService {
     );
   }
 
+  Future<List<AgencyGroup>> fetchCustomAgencyGroups() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('local_agency_groups_v1');
+      if (raw == null || raw.trim().isEmpty) {
+        return [];
+      }
+      final dynamic decoded = jsonDecode(raw);
+      final groups = <AgencyGroup>[];
+      if (decoded is List) {
+        for (final item in decoded) {
+          if (item is Map) {
+            groups.add(AgencyGroup.fromJson(item.cast<String, dynamic>()));
+          }
+        }
+      }
+      return groups;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> saveCustomAgencyGroup(AgencyGroup group) async {
+    try {
+      final groups = await fetchCustomAgencyGroups();
+      final index = groups.indexWhere(
+        (g) => g.name.toLowerCase() == group.name.toLowerCase(),
+      );
+      if (index != -1) {
+        groups[index] = group;
+      } else {
+        groups.add(group);
+      }
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'local_agency_groups_v1',
+        jsonEncode(groups.map((g) => g.toJson()).toList()),
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<List<PassType>> fetchPassTypes() async {
+    final prebaked = PassType.getPrebakedPassTypes();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('local_pass_types_v1');
+      if (raw == null || raw.trim().isEmpty) {
+        return prebaked;
+      }
+      final dynamic decoded = jsonDecode(raw);
+      final list = <PassType>[];
+      if (decoded is List) {
+        for (final item in decoded) {
+          if (item is Map) {
+            list.add(PassType.fromJson(item.cast<String, dynamic>()));
+          }
+        }
+      }
+      return [...prebaked, ...list];
+    } catch (e) {
+      return prebaked;
+    }
+  }
+
+  Future<void> savePassType(PassType passType) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('local_pass_types_v1');
+      final list = <PassType>[];
+      if (raw != null && raw.trim().isNotEmpty) {
+        final dynamic decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) {
+              list.add(PassType.fromJson(item.cast<String, dynamic>()));
+            }
+          }
+        }
+      }
+
+      final index = list.indexWhere((p) => p.id == passType.id);
+      if (index != -1) {
+        list[index] = passType;
+      } else {
+        list.add(passType);
+      }
+
+      await prefs.setString(
+        'local_pass_types_v1',
+        jsonEncode(list.map((p) => p.toJson()).toList()),
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  Future<void> deletePassType(String id) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('local_pass_types_v1');
+      final list = <PassType>[];
+      if (raw != null && raw.trim().isNotEmpty) {
+        final dynamic decoded = jsonDecode(raw);
+        if (decoded is List) {
+          for (final item in decoded) {
+            if (item is Map) {
+              list.add(PassType.fromJson(item.cast<String, dynamic>()));
+            }
+          }
+        }
+      }
+
+      list.removeWhere((p) => p.id == id);
+
+      await prefs.setString(
+        'local_pass_types_v1',
+        jsonEncode(list.map((p) => p.toJson()).toList()),
+      );
+    } catch (e) {
+      // ignore
+    }
+  }
+
   Future<AuthActionResult> addTicket({
     required String agency,
     required String ticketType,
     String? ticketStart,
     String? ticketEnd,
     int? quantity,
+    List<String>? agencyIds,
   }) async {
-    final currentSession = await loadSession();
-    if (currentSession == null) {
-      return const AuthActionResult(ok: false, error: 'Nincs aktív munkamenet.');
-    }
-
-    late final http.Response response;
     try {
-      response = await http.post(
-        Uri.parse(AccountApi.addTicketUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${currentSession.token}',
-        },
-        body: jsonEncode({
-          'agency': agency,
-          'ticket_type': ticketType,
-          'ticket_start': ticketStart,
-          'ticket_end': ticketEnd,
-          'quantity': quantity,
-        }),
-      ).timeout(_requestTimeout);
-    } catch (e) {
-      return AuthActionResult(ok: false, error: _networkErrorMessage(e));
-    }
+      final ticketsResult = await fetchTickets();
+      final tickets = List<TicketItem>.from(ticketsResult.tickets);
 
-    Map<String, dynamic>? json;
-    try {
-      final dynamic parsed = jsonDecode(response.body);
-      if (parsed is Map) {
-        json = parsed.cast<String, dynamic>();
+      final optionsResult = await fetchTicketFormOptions();
+      final List<String> finalAgencyIds = agencyIds ?? [agency];
+      final List<String> finalAgencyNames = [];
+
+      for (final id in finalAgencyIds) {
+        final agencyObj = optionsResult.agencies.firstWhere(
+          (a) => a.id == id,
+          orElse: () => TicketAgencyOption(id: id, name: id),
+        );
+        finalAgencyNames.add(agencyObj.name);
       }
-    } catch (_) {
-      json = null;
-    }
 
-    final bool isHttpSuccess = response.statusCode >= 200 && response.statusCode < 300;
-    if (!isHttpSuccess || json == null) {
+      int nextId = 1;
+      if (tickets.isNotEmpty) {
+        nextId = tickets.map((t) => t.id).reduce((a, b) => a > b ? a : b) + 1;
+      }
+
+      final newTicket = TicketItem(
+        id: nextId,
+        agencyId: finalAgencyIds.isNotEmpty ? finalAgencyIds.first : agency,
+        agencyName: finalAgencyNames.isNotEmpty
+            ? finalAgencyNames.first
+            : agency,
+        agencyIds: finalAgencyIds,
+        agencyNames: finalAgencyNames,
+        ticketType: ticketType,
+        ticketStart: ticketStart,
+        ticketEnd: ticketEnd,
+        quantity: quantity,
+      );
+
+      tickets.add(newTicket);
+
+      final prefs = await SharedPreferences.getInstance();
+      final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
+      await prefs.setString('local_tickets_v1', serialized);
+
+      return const AuthActionResult(
+        ok: true,
+        message: 'Jegy sikeresen hozzáadva!',
+      );
+    } catch (e) {
       return AuthActionResult(
         ok: false,
-        error: _extractServerError(json, response.body),
+        error: 'Hiba a jegy hozzáadásakor: $e',
       );
     }
+  }
 
-    final bool ok = json['ok'] == true;
-    if (!ok) {
+  Future<AuthActionResult> updateTicket(TicketItem updatedTicket) async {
+    try {
+      final ticketsResult = await fetchTickets();
+      final tickets = List<TicketItem>.from(ticketsResult.tickets);
+
+      final index = tickets.indexWhere((t) => t.id == updatedTicket.id);
+      if (index == -1) {
+        return const AuthActionResult(
+          ok: false,
+          error: 'A jegy nem található.',
+        );
+      }
+
+      final optionsResult = await fetchTicketFormOptions();
+      final List<String> finalAgencyIds = updatedTicket.agencyIds ?? [updatedTicket.agencyId];
+      final List<String> finalAgencyNames = [];
+
+      for (final id in finalAgencyIds) {
+        final agencyObj = optionsResult.agencies.firstWhere(
+          (a) => a.id == id,
+          orElse: () => TicketAgencyOption(id: id, name: id),
+        );
+        finalAgencyNames.add(agencyObj.name);
+      }
+
+      tickets[index] = TicketItem(
+        id: updatedTicket.id,
+        agencyId: finalAgencyIds.isNotEmpty ? finalAgencyIds.first : updatedTicket.agencyId,
+        agencyName: finalAgencyNames.isNotEmpty ? finalAgencyNames.first : updatedTicket.agencyName,
+        agencyIds: finalAgencyIds,
+        agencyNames: finalAgencyNames,
+        ticketType: updatedTicket.ticketType,
+        ticketStart: updatedTicket.ticketStart,
+        ticketEnd: updatedTicket.ticketEnd,
+        quantity: updatedTicket.quantity,
+      );
+
+      final prefs = await SharedPreferences.getInstance();
+      final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
+      await prefs.setString('local_tickets_v1', serialized);
+
+      return const AuthActionResult(
+        ok: true,
+        message: 'Jegy sikeresen módosítva!',
+      );
+    } catch (e) {
       return AuthActionResult(
         ok: false,
-        error: _extractServerError(json, response.body),
+        error: 'Hiba a jegy módosításakor: $e',
       );
     }
+  }
 
-    return AuthActionResult(
-      ok: true,
-      message: (json['message'] ?? 'Jegy hozzáadva!').toString(),
-    );
+  Future<AuthActionResult> deleteTicket(int ticketId) async {
+    try {
+      final ticketsResult = await fetchTickets();
+      final tickets = List<TicketItem>.from(ticketsResult.tickets);
+
+      final index = tickets.indexWhere((t) => t.id == ticketId);
+      if (index == -1) {
+        return const AuthActionResult(
+          ok: false,
+          error: 'A jegy nem található.',
+        );
+      }
+
+      tickets.removeAt(index);
+
+      final prefs = await SharedPreferences.getInstance();
+      final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
+      await prefs.setString('local_tickets_v1', serialized);
+
+      return const AuthActionResult(
+        ok: true,
+        message: 'Jegy sikeresen törölve!',
+      );
+    } catch (e) {
+      return AuthActionResult(
+        ok: false,
+        error: 'Hiba a jegy törlésekor: $e',
+      );
+    }
   }
 
   Future<void> saveSession(AuthSession session) async {

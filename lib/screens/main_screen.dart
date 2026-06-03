@@ -295,9 +295,9 @@ class _MainScreenState extends State<MainScreen> {
   String _currentMobileSectionTitle() {
     switch (_currentMobileTab()) {
       case _MobileTab.home:
-        return 'Tervezés';
+        return 'Útvonaltervezés';
       case _MobileTab.news:
-        return 'Hírek';
+        return 'MÁV Hírek';
       case _MobileTab.map:
         return 'Térkép';
       case _MobileTab.profile:
@@ -689,14 +689,18 @@ class _SelectedMapResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
-        boxShadow: isDark ? [] : [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: isDark
+            ? Border.all(color: Colors.white.withOpacity(0.08))
+            : null,
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -706,42 +710,42 @@ class _SelectedMapResultCard extends StatelessWidget {
             current.title,
             style: Theme.of(context).textTheme.titleMedium,
           ),
-        subtitle: Text(
-          current.subtitle,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        children: [
-          SizedBox(
-            height:
-                (current.legDetails.length > _maxVisibleLegs
-                    ? _maxVisibleLegs
-                    : current.legDetails.length) *
-                _legTileExtent,
-            child: ListView.builder(
-              itemCount: current.legDetails.length,
-              itemBuilder: (context, index) {
-                final detail = current.legDetails[index];
-                return ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  leading: Icon(detail.icon),
-                  title: Text('${detail.fromName} → ${detail.toName}'),
-                  subtitle: Text(detail.subtitle),
-                );
-              },
-            ),
+          subtitle: Text(
+            current.subtitle,
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Vissza'),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          children: [
+            SizedBox(
+              height:
+                  (current.legDetails.length > _maxVisibleLegs
+                      ? _maxVisibleLegs
+                      : current.legDetails.length) *
+                  _legTileExtent,
+              child: ListView.builder(
+                itemCount: current.legDetails.length,
+                itemBuilder: (context, index) {
+                  final detail = current.legDetails[index];
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    leading: Icon(detail.icon),
+                    title: Text('${detail.fromName} → ${detail.toName}'),
+                    subtitle: Text(detail.subtitle),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Vissza'),
+              ),
+            ),
+          ],
         ),
       ),
     );

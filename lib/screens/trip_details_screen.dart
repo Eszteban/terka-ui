@@ -78,6 +78,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
   final GraphqlClient _graphqlClient = const GraphqlClient();
 
   bool _isLoading = true;
+  bool _isFetching = false;
   bool _showMap = false;
   String? _error;
   Map<String, dynamic>? _trip;
@@ -102,11 +103,40 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadTrip() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadTrip({bool forceFullScreenLoading = false}) async {
+    if (_isFetching) {
+      return;
+    }
+    _isFetching = true;
+
+    final isFirstLoad = _trip == null;
+
+    if (isFirstLoad || forceFullScreenLoading) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _error = null;
+      });
+    }
+
+    void handleError(String message) {
+      if (isFirstLoad || forceFullScreenLoading) {
+        setState(() {
+          _error = message;
+          _isLoading = false;
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Nem sikerült a frissítés: $message')),
+          );
+        }
+      }
+      _isFetching = false;
+    }
 
     try {
       final response = await _graphqlClient.execute(
@@ -115,29 +145,20 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       );
 
       if (!response.isSuccess) {
-        setState(() {
-          _error = 'Trip lekérdezés hiba: HTTP ${response.statusCode}';
-          _isLoading = false;
-        });
+        handleError('HTTP ${response.statusCode}');
         return;
       }
 
       final decoded = response.json;
       if (decoded == null) {
-        setState(() {
-          _error = 'Érvénytelen válasz formátum.';
-          _isLoading = false;
-        });
+        handleError('Érvénytelen válasz formátum.');
         return;
       }
 
       final data = decoded['data'];
       final trip = data is Map ? data['trip'] : null;
       if (trip is! Map) {
-        setState(() {
-          _error = 'A járat adatai nem érhetők el.';
-          _isLoading = false;
-        });
+        handleError('A járat adatai nem érhetők el.');
         return;
       }
 
@@ -145,6 +166,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         _trip = trip.cast<String, dynamic>();
         _isLoading = false;
       });
+      _isFetching = false;
 
       if (_isDesktopBackgroundMapMode && widget.onShowOnBackgroundMap != null) {
         final loadedTrip = trip.cast<String, dynamic>();
@@ -156,10 +178,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Nem sikerült a járat adatait lekérni: $e';
-        _isLoading = false;
-      });
+      handleError('$e');
     }
   }
 
@@ -336,23 +355,75 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           return DataRow(
             cells: [
               DataCell(
-                SizedBox(
-                  width: 180,
-                  child: stopId.isNotEmpty
-                      ? InkWell(
-                          onTap: () => _openStopDetails(
-                            stopId: stopId,
-                            stopName: stopName,
-                            initialStopPoint: point,
-                          ),
-                          child: Text(
-                            stopName,
-                            style: const TextStyle(
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        )
-                      : Text(stopName),
+                Builder(
+                  builder: (context) {
+                    final bearing = stop is Map ? stop['bearing'] : null;
+                    return SizedBox(
+                      width: 180,
+                      child: stopId.isNotEmpty
+                          ? InkWell(
+                              onTap: () => _openStopDetails(
+                                stopId: stopId,
+                                stopName: stopName,
+                                initialStopPoint: point,
+                              ),
+                              child: bearing != null
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            stopName,
+                                            style: const TextStyle(
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Transform.rotate(
+                                          angle: (bearing as num).toDouble() *
+                                              (3.141592653589793 / 180),
+                                          child: const Icon(
+                                            Icons.navigation,
+                                            size: 11,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : Text(
+                                      stopName,
+                                      style: const TextStyle(
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                            )
+                          : (bearing != null
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        stopName,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Transform.rotate(
+                                      angle: (bearing as num).toDouble() *
+                                          (3.141592653589793 / 180),
+                                      child: const Icon(
+                                        Icons.navigation,
+                                        size: 11,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Text(stopName)),
+                    );
+                  },
                 ),
               ),
               DataCell(
@@ -618,7 +689,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                 stop.label,
                 textAlign: TextAlign.center,
                 softWrap: true,
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 6),
               if (_isLoadingSelectedStopQuickInfo && stopId.isNotEmpty)
@@ -1182,10 +1256,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     return const {};
   }
 
-  List<({LatLng point, String label, String? stopId})> _stopPoints(
+  List<({LatLng point, String label, String? stopId, double? bearing})> _stopPoints(
     Map<String, dynamic> trip,
   ) {
-    final result = <({LatLng point, String label, String? stopId})>[];
+    final result = <({LatLng point, String label, String? stopId, double? bearing})>[];
     for (final stopTime in _stopTimes(trip)) {
       final stop = stopTime['stop'];
       if (stop is! Map) {
@@ -1194,11 +1268,13 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       final lat = stop['lat'];
       final lon = stop['lon'];
       final name = stop['name']?.toString() ?? '';
+      final bearing = stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
       if (lat is num && lon is num) {
         result.add((
           point: LatLng(lat.toDouble(), lon.toDouble()),
           label: _plainText(name),
           stopId: stop['id']?.toString().trim(),
+          bearing: bearing,
         ));
       }
     }
@@ -1297,6 +1373,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
           label: item.label,
           type: type,
           stopId: item.stopId,
+          bearing: item.bearing,
         ),
       );
     }

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../services/auth_api_service.dart';
 import '../theme/app_tokens.dart';
 import 'add_ticket_screen.dart';
 import 'about_screen.dart';
-import 'edit_profile_screen.dart';
-import 'login_screen.dart';
 import 'tickets_screen.dart';
+import 'manage_pass_types_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final ThemeMode selectedThemeMode;
@@ -23,103 +21,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthApiService _authApiService = const AuthApiService();
   static const _desktopBreakpoint = 700.0;
 
-  AuthSession? _session;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSession();
-  }
-
-  Future<void> _loadSession() async {
-    final session = await _authApiService.loadSession();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _session = session;
-    });
-  }
-
-  Future<void> _openLogin() async {
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
-    final result = isDesktop
-        ? await _showDesktopSurface<AuthSession>(
-            child: const LoginScreen(),
-            maxWidth: 560,
-            maxHeight: 760,
-          )
-        : await Navigator.of(context).push<AuthSession>(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (result == null) {
-      return;
-    }
-
-    setState(() {
-      _session = result;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Sikeres bejelentkezés: ${result.email}')),
-    );
-  }
-
-  Future<void> _logout() async {
-    await _authApiService.clearSession();
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      _session = null;
-    });
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Kijelentkeztél.')));
-  }
-
-  Future<void> _openEditProfile() async {
-    if (_session == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A szerkesztéshez előbb jelentkezz be.')),
-      );
-      return;
-    }
-
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
-    final changed = isDesktop
-        ? await _showDesktopSurface<bool>(
-            child: EditProfileScreen(session: _session!),
-            maxWidth: 620,
-            maxHeight: 840,
-          )
-        : await Navigator.of(context).push<bool>(
-            MaterialPageRoute(
-              builder: (_) => EditProfileScreen(session: _session!),
-            ),
-          );
-
-    if (changed == true) {
-      await _loadSession();
-    }
-  }
-
   Future<void> _openTickets() async {
-    if (_session == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A jegyekhez előbb jelentkezz be.')),
-      );
-      return;
-    }
-
     final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
     if (isDesktop) {
       await _showDesktopSurface<void>(
@@ -136,28 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openAddTicket() async {
-    if (_session == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Jegy hozzáadásához előbb jelentkezz be.'),
-        ),
-      );
-      return;
-    }
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const AddTicketScreen()),
+    );
+  }
 
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
-    if (isDesktop) {
-      await _showDesktopSurface<void>(
-        child: const AddTicketScreen(),
-        maxWidth: 660,
-        maxHeight: 860,
-      );
-      return;
-    }
-
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (_) => const AddTicketScreen()));
+  Future<void> _openManagePassTypes() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ManagePassTypesScreen()),
+    );
   }
 
   Future<void> _openAbout() async {
@@ -267,32 +158,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
               children: [
-                if (_session != null)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Bejelentkezve: ${_session!.email}\nFelhasználónév: ${_session!.username}',
-                      style: textTheme.titleSmall,
-                    ),
-                  ),
-                const SizedBox(height: AppSpacing.sm),
-                _ProfileActionButton(
-                  icon: _session == null ? Icons.login : Icons.logout,
-                  label: _session == null ? 'Bejelentkezés' : 'Kijelentkezés',
-                  onTap: _session == null ? _openLogin : _logout,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _ProfileActionButton(
-                  icon: Icons.edit,
-                  label: 'Saját adatok szerkesztése',
-                  onTap: _openEditProfile,
-                ),
-                const SizedBox(height: AppSpacing.sm),
                 _ProfileActionButton(
                   icon: Icons.confirmation_num,
                   label: 'Jegyeim',
@@ -303,6 +168,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   icon: Icons.add_card,
                   label: 'Jegy hozzáadása',
                   onTap: _openAddTicket,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _ProfileActionButton(
+                  icon: Icons.card_membership,
+                  label: 'Bérlettípusok kezelése',
+                  onTap: _openManagePassTypes,
                 ),
               ],
             ),

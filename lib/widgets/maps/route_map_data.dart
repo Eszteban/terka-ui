@@ -33,12 +33,14 @@ class RouteStopMarker {
   final String label;
   final RouteStopType type;
   final String? stopId;
+  final double? bearing;
 
   const RouteStopMarker({
     required this.point,
     required this.label,
     required this.type,
     this.stopId,
+    this.bearing,
   });
 
   @override
@@ -49,10 +51,11 @@ class RouteStopMarker {
           point == other.point &&
           label == other.label &&
           type == other.type &&
-          stopId == other.stopId;
+          stopId == other.stopId &&
+          bearing == other.bearing;
 
   @override
-  int get hashCode => Object.hash(point, label, type, stopId);
+  int get hashCode => Object.hash(point, label, type, stopId, bearing);
 }
 
 class RouteVehicleMarker {

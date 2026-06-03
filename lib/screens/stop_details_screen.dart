@@ -48,6 +48,8 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   static const double _mobileStopFocusZoom = 16;
 
   bool _isLoading = true;
+  bool _isUpdating = false;
+  bool _isFetching = false;
   bool _showPastDepartures = false;
   int _mobileSelectedTabIndex = 1;
   DateTime _selectedDate = DateTime.now();
@@ -69,11 +71,45 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     super.dispose();
   }
 
-  Future<void> _loadStopDetails() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _loadStopDetails({bool forceFullScreenLoading = false}) async {
+    if (_isFetching) {
+      return;
+    }
+    _isFetching = true;
+
+    final isFirstLoad = _stop == null;
+
+    if (isFirstLoad || forceFullScreenLoading) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    } else {
+      setState(() {
+        _isUpdating = true;
+        _error = null;
+      });
+    }
+
+    void handleError(String message) {
+      if (isFirstLoad || forceFullScreenLoading) {
+        setState(() {
+          _error = message;
+          _isLoading = false;
+          _isUpdating = false;
+        });
+      } else {
+        setState(() {
+          _isUpdating = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Nem sikerült a frissítés: $message')),
+          );
+        }
+      }
+      _isFetching = false;
+    }
 
     final selectedDayStart = DateTime(
       _selectedDate.year,
@@ -115,28 +151,19 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       );
 
       if (!response.isSuccess) {
-        setState(() {
-          _error = 'Megálló lekérdezés hiba: HTTP ${response.statusCode}';
-          _isLoading = false;
-        });
+        handleError('HTTP ${response.statusCode}');
         return;
       }
 
       final decoded = response.json;
       if (decoded == null) {
-        setState(() {
-          _error = 'Érvénytelen válasz formátum.';
-          _isLoading = false;
-        });
+        handleError('Érvénytelen válasz formátum.');
         return;
       }
 
       final data = decoded['data'];
       if (data is! Map) {
-        setState(() {
-          _error = 'A megálló adatai nem érhetők el.';
-          _isLoading = false;
-        });
+        handleError('A megálló adatai nem érhetők el.');
         return;
       }
 
@@ -149,10 +176,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       }
 
       if (stops.isEmpty) {
-        setState(() {
-          _error = 'A megálló adatai nem érhetők el.';
-          _isLoading = false;
-        });
+        handleError('A megálló adatai nem érhetők el.');
         return;
       }
 
@@ -168,12 +192,11 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       setState(() {
         _stop = selectedStop;
         _isLoading = false;
+        _isUpdating = false;
       });
+      _isFetching = false;
     } catch (e) {
-      setState(() {
-        _error = 'Nem sikerült a megálló adatait lekérni: $e';
-        _isLoading = false;
-      });
+      handleError('$e');
     }
   }
 
@@ -310,8 +333,9 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     setState(() {
       _selectedDate = normalized;
       _showPastDepartures = false;
+      _stop = null;
     });
-    await _loadStopDetails();
+    await _loadStopDetails(forceFullScreenLoading: true);
   }
 
   Future<void> _stepSelectedDate(int dayDelta) async {
@@ -354,10 +378,23 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadStopDetails,
-          ),
+          if (_isUpdating)
+            const SizedBox(
+              width: 48,
+              height: 48,
+              child: Center(
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _loadStopDetails,
+            ),
         ],
       ),
       body: _buildBody(),
@@ -536,6 +573,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     }
 
     final rawStopName = stop['name']?.toString() ?? widget.initialStopName ?? 'Megálló';
+    final bearing = stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
     return RouteMapData(
       segments: const [],
       stops: [
@@ -543,6 +581,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
           point: point,
           label: _plainText(rawStopName),
           type: RouteStopType.start,
+          bearing: bearing,
         ),
       ],
     );

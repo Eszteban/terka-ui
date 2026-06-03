@@ -13,13 +13,13 @@ extension _MapViewVehicleLayers on _MapViewState {
                 (stop) => Marker(
                   key: ValueKey(stop.stopId),
                   point: stop.point,
-                  width: 22,
-                  height: 22,
+                  width: 38,
+                  height: 38,
                   alignment: Alignment.center,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _toggleStopLabel(stop),
-                    child: _buildMapStopDot(),
+                    child: _buildMapStopDot(stop.bearing),
                   ),
                 ),
               )
@@ -115,7 +115,7 @@ extension _MapViewVehicleLayers on _MapViewState {
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () => _toggleStopLabel(stop),
-                        child: _buildMapStopDot(),
+                        child: _buildMapStopDot(stop.bearing),
                       ),
                     ],
                   ),

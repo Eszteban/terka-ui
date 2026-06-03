@@ -250,6 +250,9 @@ extension _MapViewInteractions on _MapViewState {
                   if (lat is! num || lon is! num) {
                     continue;
                   }
+                  final bearing = item['bearing'] is num
+                      ? (item['bearing'] as num).toDouble()
+                      : null;
                   final stopId = item['gtfsId']?.toString().trim().isNotEmpty == true
                       ? item['gtfsId'].toString().trim()
                       : '${lat.toStringAsFixed(6)}:${lon.toStringAsFixed(6)}';
@@ -261,6 +264,7 @@ extension _MapViewInteractions on _MapViewState {
                       stopId: stopId,
                       name: stopName,
                       point: LatLng(lat.toDouble(), lon.toDouble()),
+                      bearing: bearing,
                     ),
                   );
                 }

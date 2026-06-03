@@ -87,6 +87,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   static const bool _deduplicateSuggestions = false;
 
   bool _showAdvancedFields = false;
+  bool _planForNow = true;
   final FocusNode _fromFocusNode = FocusNode();
   final FocusNode _toFocusNode = FocusNode();
   Timer? _debounce;
@@ -131,6 +132,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   void initState() {
     super.initState();
     _fromFocusNode.addListener(() {
+      setState(() {});
       if (_fromFocusNode.hasFocus) {
         setState(() {
           _activeSearchField = _ActiveSearchField.from;
@@ -139,6 +141,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       }
     });
     _toFocusNode.addListener(() {
+      setState(() {});
       if (_toFocusNode.hasFocus) {
         setState(() {
           _activeSearchField = _ActiveSearchField.to;
@@ -176,6 +179,28 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     setState(() {
       _arrivalTime = null;
       _departureTime = const TimeOfDay(hour: 0, minute: 0);
+      _planForNow = false;
+    });
+  }
+
+  void _swapStartAndDestination() {
+    setState(() {
+      final tempText = widget.fromController.text;
+      widget.fromController.text = widget.toController.text;
+      widget.toController.text = tempText;
+
+      final tempToken = _selectedFromPlaceToken;
+      _selectedFromPlaceToken = _selectedToPlaceToken;
+      _selectedToPlaceToken = tempToken;
+
+      final tempCoordinates = _selectedFromCoordinates;
+      _selectedFromCoordinates = _selectedToCoordinates;
+      _selectedToCoordinates = tempCoordinates;
+
+      _suggestions = const [];
+      _suggestionIcons = const [];
+      _suggestionEntries = const [];
+      _isLoadingSuggestions = false;
     });
   }
 
@@ -374,10 +399,12 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   Future<PlanSearchResult> _fetchPlanResponse() async {
     try {
       final now = DateTime.now();
-      final selectedDate = widget.selectedDate ?? now;
+      final selectedDate = _planForNow ? now : (widget.selectedDate ?? now);
       final fallbackTime = TimeOfDay.fromDateTime(now);
-      final effectiveTime = _arrivalTime ?? _departureTime ?? fallbackTime;
-      final arriveBy = _arrivalTime != null;
+      final effectiveTime = _planForNow
+          ? fallbackTime
+          : (_arrivalTime ?? _departureTime ?? fallbackTime);
+      final arriveBy = !_planForNow && _arrivalTime != null;
       final dateString =
           '${_twoDigits(selectedDate.year, padTo: 4)}-${_twoDigits(selectedDate.month)}-${_twoDigits(selectedDate.day)}';
       final timeString =
@@ -524,6 +551,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     }
 
     setState(() {
+      _planForNow = false;
       if (isArrival) {
         _arrivalTime = picked;
       } else {
@@ -620,217 +648,472 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppSpacing.formMaxWidth),
-        child: Card(
-          elevation: isDark ? 0 : 2,
-          shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: BorderSide(
-              color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
-              width: 1,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSpacing.md,
+              horizontal: 4,
             ),
-          ),
-          color: isDark ? const Color(0xFF1A1615) : Colors.white,
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            children: [
-              Text(
-                'Útvonaltervezés',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: Theme.of(context).brightness == Brightness.dark
-                            ? 0.15
-                            : 0.04,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: widget.fromController,
-                  focusNode: _fromFocusNode,
-                  key: const Key('search1'),
-                  decoration: InputDecoration(
-                    labelText: 'Indulás',
-                    hintText: 'Írj be legalább 3 karaktert...',
-                    filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1615) : Colors.white,
-                    prefixIcon: Icon(Icons.my_location_rounded, color: colorScheme.primary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.primary,
-                        width: 1.6,
-                      ),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    _selectedFromPlaceToken = null;
-                    _selectedFromCoordinates = null;
-                    _onQueryChanged(value);
-                  },
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: Theme.of(context).brightness == Brightness.dark
-                            ? 0.15
-                            : 0.04,
-                      ),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: widget.toController,
-                  focusNode: _toFocusNode,
-                  key: const Key('search2'),
-                  decoration: InputDecoration(
-                    labelText: 'Érkezés',
-                    hintText: 'Írj be legalább 3 karaktert...',
-                    filled: true,
-                    fillColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1A1615) : Colors.white,
-                    prefixIcon: Icon(Icons.location_on_rounded, color: colorScheme.primary),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                      ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: colorScheme.primary,
-                        width: 1.6,
-                      ),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    _selectedToPlaceToken = null;
-                    _selectedToCoordinates = null;
-                    _onQueryChanged(value);
-                  },
-                ),
-              ),
-              if (_isLoadingSuggestions)
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.md),
-                  child: LinearProgressIndicator(),
-                ),
-              if (_suggestions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.md),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 220),
-                    child: Card(
-                      child: ListView.separated(
-                        itemCount: _suggestions.length,
-                        separatorBuilder: (context, index) =>
-                            const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final suggestion = _suggestions[index];
-                          final vehicleTypes = index < _suggestionIcons.length
-                              ? _suggestionIcons[index]
-                              : const [Icons.directions_bus];
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppSpacing.md),
+                Stack(
+                  alignment: Alignment.center,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF1A1615)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color:
+                              (_fromFocusNode.hasFocus ||
+                                  _toFocusNode.hasFocus)
+                              ? colorScheme.primary
+                              : colorScheme.outlineVariant.withValues(
+                                  alpha: isDark ? 0.3 : 0.4,
+                                ),
+                          width:
+                              (_fromFocusNode.hasFocus ||
+                                  _toFocusNode.hasFocus)
+                              ? 1.6
+                              : 1.0,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(
+                              alpha: isDark ? 0.15 : 0.04,
                             ),
-                            title: Row(
-                              children: [
-                                ...vehicleTypes.map(
-                                  (iconData) => Padding(
-                                    padding: const EdgeInsets.only(right: 4),
-                                    child: Icon(iconData, size: 24),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          TextField(
+                            controller: widget.fromController,
+                            focusNode: _fromFocusNode,
+                            key: const Key('search1'),
+                            decoration: InputDecoration(
+                              labelText: 'Indulás',
+                              hintText: 'Írj be legalább 3 karaktert...',
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              prefixIcon: Icon(
+                                Icons.my_location_rounded,
+                                color: colorScheme.primary,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                            ),
+                            onChanged: (value) {
+                              _selectedFromPlaceToken = null;
+                              _selectedFromCoordinates = null;
+                              _onQueryChanged(value);
+                            },
+                          ),
+                          Divider(
+                            height: 1,
+                            thickness: 1,
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: isDark ? 0.25 : 0.3,
+                            ),
+                            indent: 48,
+                            endIndent: 48,
+                          ),
+                          TextField(
+                            controller: widget.toController,
+                            focusNode: _toFocusNode,
+                            key: const Key('search2'),
+                            decoration: InputDecoration(
+                              labelText: 'Érkezés',
+                              hintText: 'Írj be legalább 3 karaktert...',
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              prefixIcon: Icon(
+                                Icons.location_on_rounded,
+                                color: colorScheme.primary,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                            ),
+                            onChanged: (value) {
+                              _selectedToPlaceToken = null;
+                              _selectedToCoordinates = null;
+                              _onQueryChanged(value);
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      right: 12,
+                      child: Material(
+                        type: MaterialType.circle,
+                        color: isDark
+                            ? const Color(0xFF1E1A19)
+                            : Colors.white,
+                        elevation: 3,
+                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: colorScheme.outlineVariant.withValues(
+                                alpha: isDark ? 0.4 : 0.5,
+                              ),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.swap_vert,
+                              color: colorScheme.primary,
+                              size: 20,
+                            ),
+                            onPressed: _swapStartAndDestination,
+                            tooltip: 'Megfordítás',
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment<bool>(
+                      value: true,
+                      icon: Icon(Icons.bolt),
+                      label: Text('Indulás most'),
+                    ),
+                    ButtonSegment<bool>(
+                      value: false,
+                      icon: Icon(Icons.calendar_today),
+                      label: Text('Indulás később'),
+                    ),
+                  ],
+                  selected: {_planForNow},
+                  onSelectionChanged: (selection) {
+                    if (selection.isNotEmpty) {
+                      setState(() {
+                        _planForNow = selection.first;
+                      });
+                    }
+                  },
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: !_planForNow
+                      ? Column(
+                          children: [
+                            const SizedBox(height: AppSpacing.lg),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(
+                                      alpha: isDark ? 0.15 : 0.04,
+                                    ),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Material(
+                                color: isDark
+                                    ? const Color(0xFF1A1615)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                child: InkWell(
+                                  onTap: widget.onPickDate,
+                                  child: InputDecorator(
+                                    decoration: InputDecoration(
+                                      labelText: 'Dátum',
+                                      suffixIcon: const Icon(
+                                        Icons.calendar_today,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.transparent,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          14,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: colorScheme.outlineVariant
+                                              .withValues(alpha: 0.4),
+                                        ),
+                                      ),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          14,
+                                        ),
+                                        borderSide: BorderSide(
+                                          color: colorScheme.outlineVariant
+                                              .withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.selectedDate == null
+                                          ? 'Válassz dátumot'
+                                          : '${widget.selectedDate!.toLocal()}'
+                                                .split(' ')[0],
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodyMedium,
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(child: Text(suggestion)),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.lg),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: isDark ? 0.15 : 0.04,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Material(
+                                      color: isDark
+                                          ? const Color(0xFF1A1615)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: InkWell(
+                                        onTap: () =>
+                                            _pickTime(isArrival: false),
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'Indulás (idő)',
+                                            suffixIcon: const Icon(
+                                              Icons.access_time,
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.transparent,
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              borderSide: BorderSide(
+                                                color: colorScheme
+                                                    .outlineVariant
+                                                    .withValues(alpha: 0.4),
+                                              ),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              borderSide: BorderSide(
+                                                color: colorScheme
+                                                    .outlineVariant
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _formatTimeLabel(_departureTime),
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
-                            onTap: () => _onSuggestionTap(index),
-                          );
-                        },
+                            const SizedBox(height: AppSpacing.lg),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(14),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: isDark ? 0.15 : 0.04,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Material(
+                                      color: isDark
+                                          ? const Color(0xFF1A1615)
+                                          : Colors.white,
+                                      borderRadius: BorderRadius.circular(14),
+                                      child: InkWell(
+                                        onTap: () =>
+                                            _pickTime(isArrival: true),
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'Érkezés (idő)',
+                                            suffixIcon: const Icon(
+                                              Icons.access_time,
+                                            ),
+                                            filled: true,
+                                            fillColor: Colors.transparent,
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              borderSide: BorderSide(
+                                                color: colorScheme
+                                                    .outlineVariant
+                                                    .withValues(alpha: 0.4),
+                                              ),
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              borderSide: BorderSide(
+                                                color: colorScheme
+                                                    .outlineVariant
+                                                    .withValues(alpha: 0.3),
+                                              ),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _formatTimeLabel(_arrivalTime),
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        )
+                      : const SizedBox.shrink(),
+                ),
+                if (_isLoadingSuggestions)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppSpacing.md),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (_suggestions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: Card(
+                        child: ListView.separated(
+                          itemCount: _suggestions.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final suggestion = _suggestions[index];
+                            final vehicleTypes =
+                                index < _suggestionIcons.length
+                                ? _suggestionIcons[index]
+                                : const [Icons.directions_bus];
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              title: Row(
+                                children: [
+                                  ...vehicleTypes.map(
+                                    (iconData) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 4,
+                                      ),
+                                      child: Icon(iconData, size: 24),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(suggestion)),
+                                ],
+                              ),
+                              onTap: () => _onSuggestionTap(index),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.xl),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _isLoadingPlan ? null : _submitPlanSearch,
+                    icon: const Icon(Icons.search),
+                    label: const Text('Keresés'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(
+                        AppSpacing.touchTarget,
+                        AppSpacing.touchTarget,
                       ),
                     ),
                   ),
                 ),
-              const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: _isLoadingPlan ? null : _submitPlanSearch,
-                  icon: const Icon(Icons.search),
-                  label: const Text('Keresés'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(
-                      AppSpacing.touchTarget,
-                      AppSpacing.touchTarget,
+                const SizedBox(height: AppSpacing.xl),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _showAdvancedFields = !_showAdvancedFields;
+                      });
+                    },
+                    icon: Icon(
+                      _showAdvancedFields
+                          ? Icons.expand_less
+                          : Icons.expand_more,
+                    ),
+                    label: Text(
+                      _showAdvancedFields
+                          ? 'További beállítások elrejtése'
+                          : 'További beállítások',
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAdvancedFields = !_showAdvancedFields;
-                    });
-                  },
-                  icon: Icon(
-                    _showAdvancedFields ? Icons.expand_less : Icons.expand_more,
-                  ),
-                  label: Text(
-                    _showAdvancedFields
-                        ? 'További beállítások elrejtése'
-                        : 'További beállítások',
-                  ),
-                ),
-              ),
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: _showAdvancedFields
-                    ? Column(
-                        children: [
-                          const SizedBox(height: AppSpacing.lg),
-                           Container(
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                  child: _showAdvancedFields
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: AppSpacing.lg),
+                          child: Container(
                             decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF1A1615)
+                                  : Colors.white,
                               borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant.withValues(
+                                  alpha: isDark ? 0.3 : 0.4,
+                                ),
+                                width: 1.0,
+                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withValues(
@@ -841,253 +1124,147 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                 ),
                               ],
                             ),
-                            child: Material(
-                              color: isDark ? const Color(0xFF1A1615) : Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              child: InkWell(
-                                onTap: widget.onPickDate,
-                                child: InputDecorator(
-                                  decoration: InputDecoration(
-                                    labelText: 'Dátum',
-                                    suffixIcon: const Icon(Icons.calendar_today),
-                                    filled: true,
-                                    fillColor: Colors.transparent,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+                            child: Padding(
+                              padding: const EdgeInsets.all(AppSpacing.lg),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Átszállások',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall,
+                                        ),
                                       ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(14),
-                                      borderSide: BorderSide(
-                                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                                      Expanded(
+                                        child: Slider(
+                                          value: widget.transfers,
+                                          min: 0,
+                                          max: 5,
+                                          divisions: 5,
+                                          label: '${widget.transfers.toInt()}',
+                                          onChanged: widget.onTransfersChanged,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  child: Text(
-                                    widget.selectedDate == null
-                                        ? 'Válassz dátumot'
-                                        : '${widget.selectedDate!.toLocal()}'.split(
-                                            ' ',
-                                          )[0],
-                                    style: Theme.of(context).textTheme.bodyMedium,
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          'Gyaloglás',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.titleSmall,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Slider(
+                                          value: widget.maxWalk,
+                                          min: 0,
+                                          max: 5000,
+                                          divisions: 15,
+                                          label: '${widget.maxWalk.toInt()}',
+                                          onChanged: widget.onMaxWalkChanged,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Közlekedési módok',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleSmall,
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      Wrap(
+                                        spacing: AppSpacing.sm,
+                                        runSpacing: AppSpacing.sm,
+                                        children: _buildTransportChips(),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: AppSpacing.lg),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Jegyfigyelés',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.titleSmall,
+                                      ),
+                                      const SizedBox(height: AppSpacing.sm),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          minWidth: 48,
+                                          minHeight: 48,
+                                        ),
+                                        child: FilterChip(
+                                          label: const Text('Jegyfigyelés'),
+                                          selected: widget.ticketWatch,
+                                          backgroundColor: isDark
+                                              ? const Color(0xFF1A1615)
+                                              : Colors.white,
+                                          selectedColor: isDark
+                                              ? colorScheme.primaryContainer
+                                                    .withValues(alpha: 0.3)
+                                              : colorScheme.primaryContainer
+                                                    .withValues(alpha: 0.6),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          side: widget.ticketWatch
+                                              ? BorderSide(
+                                                  color: colorScheme.primary,
+                                                  width: 1.2,
+                                                )
+                                              : BorderSide(
+                                                  color: colorScheme
+                                                      .outlineVariant
+                                                      .withValues(
+                                                        alpha: isDark
+                                                            ? 0.4
+                                                            : 0.3,
+                                                      ),
+                                                ),
+                                          elevation: 1.5,
+                                          pressElevation: 3,
+                                          shadowColor:
+                                              Colors.black.withValues(
+                                            alpha: isDark ? 0.3 : 0.12,
+                                          ),
+                                          selectedShadowColor:
+                                              Colors.black.withValues(
+                                            alpha: isDark ? 0.3 : 0.12,
+                                          ),
+                                          materialTapTargetSize:
+                                              MaterialTapTargetSize.padded,
+                                          onSelected:
+                                              widget.onTicketWatchChanged,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: isDark ? 0.15 : 0.04,
-                                        ),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: InkWell(
-                                      onTap: () => _pickTime(isArrival: false),
-                                      child: InputDecorator(
-                                        decoration: InputDecoration(
-                                          labelText: 'Indulás (idő)',
-                                          suffixIcon: const Icon(Icons.access_time),
-                                          filled: true,
-                                          fillColor: Colors.transparent,
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(14),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                                            ),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(14),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                                            ),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _formatTimeLabel(_departureTime),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(14),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: isDark ? 0.15 : 0.04,
-                                        ),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Material(
-                                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: InkWell(
-                                      onTap: () => _pickTime(isArrival: true),
-                                      child: InputDecorator(
-                                        decoration: InputDecoration(
-                                          labelText: 'Érkezés (idő)',
-                                          suffixIcon: const Icon(Icons.access_time),
-                                          filled: true,
-                                          fillColor: Colors.transparent,
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(14),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                                            ),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(14),
-                                            borderSide: BorderSide(
-                                              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-                                            ),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _formatTimeLabel(_arrivalTime),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Átszállások',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                              ),
-                              Expanded(
-                                child: Slider(
-                                  value: widget.transfers,
-                                  min: 0,
-                                  max: 5,
-                                  divisions: 5,
-                                  label: '${widget.transfers.toInt()}',
-                                  onChanged: widget.onTransfersChanged,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Gyaloglás',
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                              ),
-                              Expanded(
-                                child: Slider(
-                                  value: widget.maxWalk,
-                                  min: 0,
-                                  max: 5000,
-                                  divisions: 15,
-                                  label: '${widget.maxWalk.toInt()}',
-                                  onChanged: widget.onMaxWalkChanged,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Közlekedési módok',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Wrap(
-                                spacing: AppSpacing.sm,
-                                runSpacing: AppSpacing.sm,
-                                children: _buildTransportChips(),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.lg),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Jegyfigyelés',
-                                style: Theme.of(context).textTheme.titleSmall,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minWidth: 48,
-                                  minHeight: 48,
-                                ),
-                                child: FilterChip(
-                                  label: const Text('Jegyfigyelés'),
-                                  selected: widget.ticketWatch,
-                                  backgroundColor: isDark ? const Color(0xFF1A1615) : Colors.white,
-                                  selectedColor: isDark
-                                      ? colorScheme.primaryContainer.withValues(alpha: 0.3)
-                                      : colorScheme.primaryContainer.withValues(alpha: 0.6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  side: widget.ticketWatch
-                                      ? BorderSide(color: colorScheme.primary, width: 1.2)
-                                      : BorderSide(
-                                          color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.4 : 0.3),
-                                        ),
-                                  elevation: 1.5,
-                                  pressElevation: 3,
-                                  shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-                                  selectedShadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.padded,
-                                  onSelected: widget.onTicketWatchChanged,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
+                        )
+                      : const SizedBox.shrink(),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1097,7 +1274,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   List<Widget> _buildTransportChips() {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     final unselectedBg = isDark ? const Color(0xFF1A1615) : Colors.white;
     final selectedBg = isDark
         ? colorScheme.primaryContainer.withValues(alpha: 0.3)
@@ -1113,36 +1290,36 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       'Hajó',
     ];
 
-    return labels
-        .map(
-          (label) {
-            final selected = widget.selectedTransportModes.contains(label);
-            return ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              child: FilterChip(
-                label: Text(label),
-                selected: selected,
-                backgroundColor: unselectedBg,
-                selectedColor: selectedBg,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+    return labels.map((label) {
+      final selected = widget.selectedTransportModes.contains(label);
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        child: FilterChip(
+          label: Text(label),
+          selected: selected,
+          backgroundColor: unselectedBg,
+          selectedColor: selectedBg,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          side: selected
+              ? BorderSide(color: colorScheme.primary, width: 1.2)
+              : BorderSide(
+                  color: colorScheme.outlineVariant.withValues(
+                    alpha: isDark ? 0.4 : 0.3,
+                  ),
                 ),
-                side: selected
-                    ? BorderSide(color: colorScheme.primary, width: 1.2)
-                    : BorderSide(
-                        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.4 : 0.3),
-                      ),
-                elevation: 1.5,
-                pressElevation: 3,
-                shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-                selectedShadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-                materialTapTargetSize: MaterialTapTargetSize.padded,
-                onSelected: (_) => widget.onTransportModeToggle(label),
-              ),
-            );
-          },
-        )
-        .toList();
+          elevation: 1.5,
+          pressElevation: 3,
+          shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+          selectedShadowColor: Colors.black.withValues(
+            alpha: isDark ? 0.3 : 0.12,
+          ),
+          materialTapTargetSize: MaterialTapTargetSize.padded,
+          onSelected: (_) => widget.onTransportModeToggle(label),
+        ),
+      );
+    }).toList();
   }
 
   List<IconData> _iconsForModes(List<String> modes) {

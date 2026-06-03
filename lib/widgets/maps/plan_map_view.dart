@@ -23,7 +23,7 @@ class PlanMapView extends StatefulWidget {
   final WidgetBuilder? vehicleInfoCardBuilder;
   final bool enableStopInfoLabelTap;
   final Widget Function(BuildContext context, RouteStopMarker stop)?
-      stopInfoCardBuilder;
+  stopInfoCardBuilder;
 
   const PlanMapView({
     super.key,
@@ -233,7 +233,10 @@ class _PlanMapViewState extends State<PlanMapView> {
     final targetZoom = camera.zoom < widget.singlePointZoom
         ? widget.singlePointZoom
         : camera.zoom;
-    _mapController.move(LatLng(position.latitude, position.longitude), targetZoom);
+    _mapController.move(
+      LatLng(position.latitude, position.longitude),
+      targetZoom,
+    );
   }
 
   void _resetNorth() {
@@ -360,7 +363,7 @@ class _PlanMapViewState extends State<PlanMapView> {
             : (widget.routeData.stops.isNotEmpty
                   ? widget.routeData.stops.first.point
                   : (widget.vehicleMarker?.point ??
-                        const LatLng(46.248167, 20.14817)));
+                        const LatLng(47.497913, 19.040236)));
         final initialFit = _initialCameraFit(widget.routeData);
 
         return Stack(
@@ -425,163 +428,157 @@ class _PlanMapViewState extends State<PlanMapView> {
                   MarkerLayer(
                     markers: () {
                       final stops = widget.routeData.stops.toList();
-                      if (_isStopLabelVisible && _selectedStopSelectionKey != null) {
-                        final selectedIndex = stops.indexWhere((s) => _stopSelectionKey(s) == _selectedStopSelectionKey);
+                      if (_isStopLabelVisible &&
+                          _selectedStopSelectionKey != null) {
+                        final selectedIndex = stops.indexWhere(
+                          (s) =>
+                              _stopSelectionKey(s) == _selectedStopSelectionKey,
+                        );
                         if (selectedIndex != -1) {
                           final selected = stops.removeAt(selectedIndex);
                           stops.add(selected);
                         }
                       }
                       return stops.map((stop) {
-                            final isPopupVisible = widget.enableStopInfoLabelTap &&
-                                _isStopLabelVisible &&
-                                _selectedStopSelectionKey == _stopSelectionKey(stop);
-                            return Marker(
-                              point: stop.point,
-                              width: isPopupVisible ? 320 : 34,
-                              height: isPopupVisible ? 220 : 34,
-                              alignment: Alignment.center,
-                              child: widget.enableStopInfoLabelTap &&
-                                      widget.stopInfoCardBuilder != null
-                                  ? Stack(
-                                      clipBehavior: Clip.none,
-                                      alignment: Alignment.center,
-                                      children: [
-                                        if (isPopupVisible)
-                                          Positioned(
-                                            bottom: 122,
-                                            child: GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: _consumeNextMapTapClose,
-                                              child: widget.stopInfoCardBuilder!(
-                                                context,
-                                                stop,
-                                              ),
-                                            ),
-                                          ),
-                                        GestureDetector(
+                        final isPopupVisible =
+                            widget.enableStopInfoLabelTap &&
+                            _isStopLabelVisible &&
+                            _selectedStopSelectionKey ==
+                                _stopSelectionKey(stop);
+                        return Marker(
+                          point: stop.point,
+                          width: isPopupVisible ? 320 : 38,
+                          height: isPopupVisible ? 220 : 38,
+                          alignment: Alignment.center,
+                          child:
+                              widget.enableStopInfoLabelTap &&
+                                  widget.stopInfoCardBuilder != null
+                              ? Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.center,
+                                  children: [
+                                    if (isPopupVisible)
+                                      Positioned(
+                                        bottom: 122,
+                                        child: GestureDetector(
                                           behavior: HitTestBehavior.opaque,
-                                          onTap: () => _toggleStopLabel(stop),
-                                          child: Stack(
-                                            clipBehavior: Clip.none,
-                                            alignment: widget.useBaseMapStopIcon
-                                                ? Alignment.center
-                                                : Alignment.bottomCenter,
-                                            children: [
-                                              if (widget.showStopLabels)
-                                                Positioned(
-                                                  bottom: 30,
-                                                  child: Builder(
-                                                    builder: (context) {
-                                                      final isDark =
-                                                          Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark;
-                                                      final bgColor = isDark
-                                                          ? Colors.grey[900]!
-                                                              .withOpacity(0.92)
-                                                          : Colors.white
-                                                              .withOpacity(0.92);
-                                                      return Container(
-                                                        constraints:
-                                                            const BoxConstraints(
+                                          onTap: _consumeNextMapTapClose,
+                                          child: widget.stopInfoCardBuilder!(
+                                            context,
+                                            stop,
+                                          ),
+                                        ),
+                                      ),
+                                    GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () => _toggleStopLabel(stop),
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        alignment: widget.useBaseMapStopIcon
+                                            ? Alignment.center
+                                            : Alignment.bottomCenter,
+                                        children: [
+                                          if (widget.showStopLabels)
+                                            Positioned(
+                                              bottom: 30,
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final isDark =
+                                                      Theme.of(
+                                                        context,
+                                                      ).brightness ==
+                                                      Brightness.dark;
+                                                  final bgColor = isDark
+                                                      ? Colors.grey[900]!
+                                                            .withOpacity(0.92)
+                                                      : Colors.white
+                                                            .withOpacity(0.92);
+                                                  return Container(
+                                                    constraints:
+                                                        const BoxConstraints(
                                                           maxWidth: 180,
                                                         ),
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .symmetric(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
                                                           horizontal: 6,
                                                           vertical: 2,
                                                         ),
-                                                        decoration: BoxDecoration(
-                                                          color: bgColor,
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(6),
-                                                        ),
-                                                        child: Text(
-                                                          stop.label,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                          style: const TextStyle(
-                                                            fontSize: 11,
+                                                    decoration: BoxDecoration(
+                                                      color: bgColor,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
                                                           ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                ),
-                                              widget.useBaseMapStopIcon
-                                                  ? _buildBaseMapStopDot()
-                                                  : Icon(
-                                                      Icons.location_on,
-                                                      color:
-                                                          _markerColor(stop.type),
-                                                      size: 30,
                                                     ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Stack(
-                                      clipBehavior: Clip.none,
-                                      alignment: widget.useBaseMapStopIcon
-                                          ? Alignment.center
-                                          : Alignment.bottomCenter,
-                                      children: [
-                                        if (widget.showStopLabels)
-                                          Positioned(
-                                            bottom: 30,
-                                            child: Builder(
-                                              builder: (context) {
-                                                final isDark =
-                                                    Theme.of(context).brightness ==
-                                                    Brightness.dark;
-                                                final bgColor = isDark
-                                                    ? Colors.grey[900]!
-                                                        .withOpacity(0.92)
-                                                    : Colors.white
-                                                        .withOpacity(0.92);
-                                                return Container(
-                                                  constraints: const BoxConstraints(
-                                                    maxWidth: 180,
-                                                  ),
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
+                                                    child: Text(
+                                                      stop.label,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          _buildStopMarkerChild(stop),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: widget.useBaseMapStopIcon
+                                      ? Alignment.center
+                                      : Alignment.bottomCenter,
+                                  children: [
+                                    if (widget.showStopLabels)
+                                      Positioned(
+                                        bottom: 30,
+                                        child: Builder(
+                                          builder: (context) {
+                                            final isDark =
+                                                Theme.of(context).brightness ==
+                                                Brightness.dark;
+                                            final bgColor = isDark
+                                                ? Colors.grey[900]!.withValues(
+                                                    alpha: 0.92,
+                                                  )
+                                                : Colors.white.withValues(
+                                                    alpha: 0.92,
+                                                  );
+                                            return Container(
+                                              constraints: const BoxConstraints(
+                                                maxWidth: 180,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                     horizontal: 6,
                                                     vertical: 2,
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    color: bgColor,
-                                                    borderRadius:
-                                                        BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    stop.label,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 11,
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        widget.useBaseMapStopIcon
-                                            ? _buildBaseMapStopDot()
-                                            : Icon(
-                                                Icons.location_on,
-                                                color: _markerColor(stop.type),
-                                                size: 30,
+                                              decoration: BoxDecoration(
+                                                color: bgColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
                                               ),
-                                      ],
-                                    ),
-                            );
-                          },
-                        )
-                        .toList();
+                                              child: Text(
+                                                stop.label,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    _buildStopMarkerChild(stop),
+                                  ],
+                                ),
+                        );
+                      }).toList();
                     }(),
                   ),
                 if (widget.vehicleMarker != null)
@@ -692,26 +689,91 @@ class _PlanMapViewState extends State<PlanMapView> {
     );
   }
 
-  Widget _buildBaseMapStopDot() {
+  Widget _buildBaseMapStopDot(double? bearing) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final circleColor = isDark ? Colors.black : Colors.white;
+    final contentColor = isDark ? Colors.white : Colors.black;
+
     return SizedBox(
-      width: 22,
-      height: 22,
+      width: 38,
+      height: 38,
       child: Stack(
         alignment: Alignment.center,
+        clipBehavior: Clip.none,
         children: [
           Container(
             width: 22,
             height: 22,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: Colors.black, width: 2),
+              color: circleColor,
+              border: Border.all(color: contentColor, width: 2),
             ),
+            child: Icon(Icons.apartment, size: 12, color: contentColor),
           ),
-          const Icon(Icons.apartment, size: 12, color: Colors.black),
+          if (bearing != null)
+            Positioned.fill(
+              child: Transform.rotate(
+                angle: bearing * (3.141592653589793 / 180),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.translate(
+                    offset: const Offset(0, -3),
+                    child: Icon(
+                      Icons.arrow_drop_up,
+                      size: 22,
+                      color: contentColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Widget _buildPinStopDot(RouteStopMarker stop) {
+    final baseIcon = Icon(
+      Icons.location_on,
+      color: _markerColor(stop.type),
+      size: 30,
+    );
+
+    if (stop.bearing == null) {
+      return baseIcon;
+    }
+
+    final angle = stop.bearing! * (3.141592653589793 / 180);
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          baseIcon,
+          Positioned(
+            top: 4,
+            child: Transform.rotate(
+              angle: angle,
+              child: const Icon(
+                Icons.arrow_upward,
+                size: 11,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopMarkerChild(RouteStopMarker stop) {
+    if (widget.useBaseMapStopIcon) {
+      return _buildBaseMapStopDot(stop.bearing);
+    } else {
+      return _buildPinStopDot(stop);
+    }
   }
 
   Widget _buildVehicleDot(RouteVehicleMarker vehicle) {

@@ -29,10 +29,7 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Névjegy'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Névjegy'), centerTitle: true),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -54,7 +51,9 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                _appName.isNotEmpty ? "$_appName - Teljesen Részletes Közlekedési Adatbázis" : 'Alkalmazás',
+                _appName.isNotEmpty
+                    ? "$_appName - Teljesen Részletes Közlekedési Adatbázis"
+                    : 'Alkalmazás',
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
@@ -66,7 +65,7 @@ class _AboutScreenState extends State<AboutScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'Készítette: Baranyai Brúnó (R150)\n\n',
+                'Készítette: Baranyai Brúnó (R150)\n\nProbléma esetén írj ide: info.railway150@gmail.com',
                 style: TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),

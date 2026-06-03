@@ -72,23 +72,45 @@ extension _MapViewOverlays on _MapViewState {
     );
   }
 
-  Widget _buildMapStopDot() {
+  Widget _buildMapStopDot(double? bearing) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final circleColor = isDark ? Colors.black : Colors.white;
+    final contentColor = isDark ? Colors.white : Colors.black;
+
     return SizedBox(
-      width: 22,
-      height: 22,
+      width: 38,
+      height: 38,
       child: Stack(
         alignment: Alignment.center,
+        clipBehavior: Clip.none,
         children: [
           Container(
             width: 22,
             height: 22,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: Colors.black, width: 2),
+              color: circleColor,
+              border: Border.all(color: contentColor, width: 2),
             ),
+            child: Icon(Icons.apartment, size: 12, color: contentColor),
           ),
-          const Icon(Icons.apartment, size: 12, color: Colors.black),
+          if (bearing != null)
+            Positioned.fill(
+              child: Transform.rotate(
+                angle: bearing * (3.141592653589793 / 180),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.translate(
+                    offset: const Offset(0, -3),
+                    child: Icon(
+                      Icons.arrow_drop_up,
+                      size: 22,
+                      color: contentColor,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

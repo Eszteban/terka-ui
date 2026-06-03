@@ -50,11 +50,13 @@ class _MapStopData {
   final String stopId;
   final String name;
   final LatLng point;
+  final double? bearing;
 
   const _MapStopData({
     required this.stopId,
     required this.name,
     required this.point,
+    this.bearing,
   });
 }
 

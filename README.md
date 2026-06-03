@@ -1,3 +1,3 @@
-# terka_mobile_ui
+# TERKA - Teljesen Részletes Közlekedési Adatbázis
 
 A new Flutter project.
