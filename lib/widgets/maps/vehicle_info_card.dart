@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
 class VehicleInfoCard extends StatelessWidget {
@@ -33,11 +34,12 @@ class VehicleInfoCard extends StatelessWidget {
   });
 
   String _formatDelayValue(int? delaySeconds) {
-    if (delaySeconds == null) return 'n/a';
-    if (delaySeconds.abs() < 60) return '0p';
+    if (delaySeconds == null) return AppTexts.delayNa;
+    if (delaySeconds.abs() < 60) return AppTexts.delayZero;
     final minutes = (delaySeconds / 60).round();
-    if (minutes > 0) return '+$minutes' 'p';
-    return '${minutes}p';
+    final unit = AppTexts.delayMinutesUnit;
+    if (minutes > 0) return '+$minutes$unit';
+    return '$minutes$unit';
   }
 
   Color _delayColor(int? delaySeconds) {
@@ -52,7 +54,9 @@ class VehicleInfoCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     final nextStop = (nextStopName ?? tripHeadsignLabel).trim();
-    final nextStopPart = nextStop.isNotEmpty ? 'köv: $nextStop' : 'köv: -';
+    final nextStopPart = nextStop.isNotEmpty 
+        ? '${AppTexts.tripNextStopPrefix}$nextStop' 
+        : '${AppTexts.tripNextStopPrefix}-';
     
     final delayString = _formatDelayValue(arrivalDelaySeconds);
     final delayColor = _delayColor(arrivalDelaySeconds);
@@ -147,7 +151,10 @@ class VehicleInfoCard extends StatelessWidget {
 
           Row(
             children: [
-              Text('késés: ', style: TextStyle(color: colorScheme.onSurface)),
+              Text(
+                AppTexts.delayPrefix,
+                style: TextStyle(color: colorScheme.onSurface),
+              ),
               Text(
                 delayString,
                 style: TextStyle(color: delayColor, fontWeight: FontWeight.bold),

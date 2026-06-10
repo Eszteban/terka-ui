@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants/account_api.dart';
+import '../theme/app_texts.dart';
 import 'graphql/graphql_client.dart';
 
 class AuthSession {
@@ -120,6 +121,183 @@ class TicketItem {
     'ticket_end': ticketEnd,
     'quantity': quantity,
   };
+
+  String getDisplayName(List<PassType> passTypes) {
+    if (ticketType == 'bérlet') {
+      final ticketIds = Set<String>.from(agencyIds ?? []);
+      if (ticketIds.isNotEmpty) {
+        for (final pt in passTypes) {
+          final ptIds = Set<String>.from(pt.agencyIds);
+          if (ticketIds.length == ptIds.length && ticketIds.containsAll(ptIds)) {
+            return pt.name;
+          }
+        }
+      }
+    }
+    return (agencyNames != null && agencyNames!.isNotEmpty)
+        ? agencyNames!.join(', ')
+        : agencyName;
+  }
+
+  static bool hasValidTicketsForItinerary(Map<String, dynamic> itinerary, List<TicketItem> tickets) {
+    return getMissingTicketAgencies(itinerary, tickets).isEmpty;
+  }
+
+  static List<String> getMissingTicketAgencies(Map<String, dynamic> itinerary, List<TicketItem> tickets) {
+    final legs = itinerary['legs'];
+    if (legs is! List) return const [];
+
+    final transitLegs = legs.whereType<Map>().where((leg) {
+      final mode = leg['mode']?.toString() ?? '';
+      final isWalk = mode.toUpperCase().trim() == 'WALK';
+      final hasAgency = leg['agency'] != null && leg['agency']['id'] != null;
+      return !isWalk && hasAgency;
+    }).toList();
+
+    if (transitLegs.isEmpty) return const [];
+
+    final now = DateTime.now();
+    final validPasses = tickets.where((t) {
+      if (t.ticketType != 'bérlet') return false;
+      final start = t.ticketStart != null ? DateTime.tryParse(t.ticketStart!) : null;
+      final end = t.ticketEnd != null ? DateTime.tryParse(t.ticketEnd!) : null;
+      if (start != null && now.isBefore(start)) return false;
+      if (end != null && now.isAfter(end)) return false;
+      return true;
+    }).toList();
+
+    final legsRequiringSingleTickets = <String, int>{};
+    final agencyNamesById = <String, String>{};
+
+    for (final leg in transitLegs) {
+      final agencyId = leg['agency']['id'].toString();
+      final agencyName = leg['agency']['name']?.toString() ?? agencyId;
+      agencyNamesById[agencyId] = agencyName;
+      
+      bool coveredByPass = false;
+      for (final pass in validPasses) {
+        if (_agencyMatches(legAgencyId: agencyId, legAgencyName: agencyName, ticket: pass)) {
+          coveredByPass = true;
+          break;
+        }
+      }
+
+      if (!coveredByPass) {
+        legsRequiringSingleTickets[agencyId] = (legsRequiringSingleTickets[agencyId] ?? 0) + 1;
+      }
+    }
+
+    final missingAgencies = <String>[];
+
+    for (final entry in legsRequiringSingleTickets.entries) {
+      final agencyId = entry.key;
+      final requiredCount = entry.value;
+      final agencyName = agencyNamesById[agencyId] ?? agencyId;
+
+      int availableCount = 0;
+      for (final ticket in tickets) {
+        if (ticket.ticketType == 'vonaljegy') {
+          if (_agencyMatches(legAgencyId: agencyId, legAgencyName: agencyName, ticket: ticket)) {
+            availableCount += ticket.quantity ?? 0;
+          }
+        }
+      }
+
+      if (availableCount < requiredCount) {
+        final displayName = agencyNamesById[agencyId] ?? agencyId;
+        if (!missingAgencies.contains(displayName)) {
+          missingAgencies.add(displayName);
+        }
+      }
+    }
+
+    return missingAgencies;
+  }
+
+  static bool _agencyMatches({
+    required String legAgencyId,
+    required String legAgencyName,
+    required TicketItem ticket,
+  }) {
+    final ticketAgencyId = ticket.agencyId;
+    final ticketAgencyName = ticket.agencyName;
+    final ticketAgencyIds = ticket.agencyIds ?? const <String>[];
+    final ticketAgencyNames = ticket.agencyNames ?? const <String>[];
+
+    // 1. Exact ID match (case-insensitive)
+    final cleanLegId = legAgencyId.trim().toLowerCase();
+    final cleanTicketId = ticketAgencyId.trim().toLowerCase();
+    if (cleanLegId == cleanTicketId) return true;
+
+    // 2. Check in ticketAgencyIds list (case-insensitive)
+    for (final id in ticketAgencyIds) {
+      if (id.trim().toLowerCase() == cleanLegId) return true;
+    }
+
+    // 3. Extract the last segment (after the colon) and compare
+    // This handles cases like "1:198" matching "198" or "BKK:BKK" matching "BKK"
+    final legIdLast = cleanLegId.split(':').last;
+    final ticketIdLast = cleanTicketId.split(':').last;
+    if (legIdLast == ticketIdLast && legIdLast.isNotEmpty) return true;
+
+    for (final id in ticketAgencyIds) {
+      final cleanId = id.trim().toLowerCase();
+      final idLast = cleanId.split(':').last;
+      if (legIdLast == idLast && legIdLast.isNotEmpty) return true;
+    }
+
+    // 4. Name-based match (case-insensitive, ignoring common suffixes/punc)
+    final cleanLegName = _normalizeAgencyName(legAgencyName);
+    final cleanTicketName = _normalizeAgencyName(ticketAgencyName);
+    if (cleanLegName == cleanTicketName && cleanLegName.isNotEmpty) return true;
+
+    for (final name in ticketAgencyNames) {
+      final cleanName = _normalizeAgencyName(name);
+      if (cleanLegName == cleanName && cleanLegName.isNotEmpty) return true;
+    }
+
+    // 5. Check if one name contains the other (for substrings like "MÁV" matching "MÁV Személyszállítási Zrt.")
+    if (cleanLegName.isNotEmpty && cleanTicketName.isNotEmpty) {
+      if (cleanLegName.contains(cleanTicketName) || cleanTicketName.contains(cleanLegName)) {
+        return true;
+      }
+    }
+    for (final name in ticketAgencyNames) {
+      final cleanName = _normalizeAgencyName(name);
+      if (cleanLegName.isNotEmpty && cleanName.isNotEmpty) {
+        if (cleanLegName.contains(cleanName) || cleanName.contains(cleanLegName)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  static String _normalizeAgencyName(String name) {
+    const accents = {
+      'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ö': 'o', 'ő': 'o', 'ú': 'u', 'ü': 'u', 'ű': 'u',
+      'Á': 'a', 'É': 'e', 'Í': 'i', 'Ó': 'o', 'Ö': 'o', 'Ő': 'o', 'Ú': 'u', 'Ü': 'u', 'Ű': 'u'
+    };
+    
+    // Replace accents
+    final sb = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      final char = name[i];
+      sb.write(accents[char] ?? char.toLowerCase());
+    }
+    
+    return sb.toString()
+        .replaceAll(RegExp(r'szemelyszallitasi\s+zrt\.?'), '')
+        .replaceAll(RegExp(r'zrt\.?'), '')
+        .replaceAll(RegExp(r'kft\.?'), '')
+        .replaceAll(RegExp(r'kozlekedesi\s+zrt\.?'), '')
+        .replaceAll(RegExp(r'szemelyszallitasi'), '')
+        .replaceAll(RegExp(r'start'), '')
+        .replaceAll(RegExp(r'-'), '')
+        .replaceAll(RegExp(r'\s+'), '')
+        .trim();
+  }
 }
 
 class AgencyGroup {
@@ -400,7 +578,7 @@ class AuthApiService {
       return AuthLoginResult(
         ok: false,
         error: serverError.isEmpty
-            ? 'Sikertelen bejelentkezés (HTTP ${response.statusCode}).'
+            ? AppTexts.authLoginFailedHttp('${response.statusCode}')
             : serverError,
       );
     }
@@ -409,15 +587,15 @@ class AuthApiService {
     if (!ok) {
       return AuthLoginResult(
         ok: false,
-        error: (json['error'] ?? 'Sikertelen bejelentkezés.').toString(),
+        error: (json['error'] ?? AppTexts.authLoginFailed).toString(),
       );
     }
 
     final dynamic userData = json['user'];
     if (userData is! Map) {
-      return const AuthLoginResult(
+      return AuthLoginResult(
         ok: false,
-        error: 'A szerver válasza hiányos.',
+        error: AppTexts.authServerResponseIncomplete,
       );
     }
 
@@ -429,9 +607,9 @@ class AuthApiService {
     );
 
     if (session.token.isEmpty || session.userId == 0 || session.email.isEmpty) {
-      return const AuthLoginResult(
+      return AuthLoginResult(
         ok: false,
-        error: 'A szerver válasza érvénytelen.',
+        error: AppTexts.authServerResponseInvalid,
       );
     }
 
@@ -480,7 +658,7 @@ class AuthApiService {
       return AuthActionResult(
         ok: false,
         error: serverError.isEmpty
-            ? 'Sikertelen regisztráció (HTTP ${response.statusCode}).'
+            ? AppTexts.authRegistrationFailedHttp('${response.statusCode}')
             : serverError,
       );
     }
@@ -495,7 +673,7 @@ class AuthApiService {
 
     return AuthActionResult(
       ok: true,
-      message: (json['message'] ?? 'Sikeres regisztráció.').toString(),
+      message: (json['message'] ?? AppTexts.authRegistrationSuccess).toString(),
     );
   }
 
@@ -530,7 +708,7 @@ class AuthApiService {
       return AuthActionResult(
         ok: false,
         error: serverError.isEmpty
-            ? 'Sikertelen aktiválás (HTTP ${response.statusCode}).'
+            ? AppTexts.authActivationFailedHttp('${response.statusCode}')
             : serverError,
       );
     }
@@ -545,7 +723,7 @@ class AuthApiService {
 
     return AuthActionResult(
       ok: true,
-      message: (json['message'] ?? 'A fiók sikeresen aktiválva.').toString(),
+      message: (json['message'] ?? AppTexts.authActivationSuccess).toString(),
     );
   }
 
@@ -557,9 +735,9 @@ class AuthApiService {
   }) async {
     final currentSession = await loadSession();
     if (currentSession == null) {
-      return const AuthProfileUpdateResult(
+      return AuthProfileUpdateResult(
         ok: false,
-        error: 'Nincs aktív munkamenet. Jelentkezz be újra.',
+        error: AppTexts.authSessionExpired,
       );
     }
 
@@ -601,7 +779,7 @@ class AuthApiService {
       return AuthProfileUpdateResult(
         ok: false,
         error: serverError.isEmpty
-            ? 'Sikertelen profilmódosítás (HTTP ${response.statusCode}).'
+            ? AppTexts.authProfileUpdateFailedHttp('${response.statusCode}')
             : serverError,
       );
     }
@@ -630,14 +808,14 @@ class AuthApiService {
         ok: true,
         passwordChangeConfirmationRequired: passwordChangeConfirmationRequired,
         updatedSession: updated,
-        message: (json['message'] ?? 'Profil sikeresen frissítve.').toString(),
+        message: (json['message'] ?? AppTexts.authProfileUpdateSuccess).toString(),
       );
     }
 
     return AuthProfileUpdateResult(
       ok: true,
       passwordChangeConfirmationRequired: passwordChangeConfirmationRequired,
-      message: (json['message'] ?? 'Profil sikeresen frissítve.').toString(),
+      message: (json['message'] ?? AppTexts.authProfileUpdateSuccess).toString(),
     );
   }
 
@@ -674,7 +852,7 @@ class AuthApiService {
       return AuthActionResult(
         ok: false,
         error: serverError.isEmpty
-            ? 'Sikertelen jelszó-megerősítés (HTTP ${response.statusCode}).'
+            ? AppTexts.authPasswordConfirmFailedHttp('${response.statusCode}')
             : serverError,
       );
     }
@@ -690,7 +868,7 @@ class AuthApiService {
     await clearSession();
     return AuthActionResult(
       ok: true,
-      message: (json['message'] ?? 'Jelszó módosítva, jelentkezz be újra.')
+      message: (json['message'] ?? AppTexts.authPasswordConfirmSuccess)
           .toString(),
     );
   }
@@ -714,16 +892,16 @@ class AuthApiService {
       }
       return TicketsResult(ok: true, tickets: tickets);
     } catch (e) {
-      return TicketsResult(ok: false, error: 'Hiba a jegyek betöltésekor: $e');
+      return TicketsResult(ok: false, error: AppTexts.authLoadTicketsFailed('$e'));
     }
   }
 
   Future<TicketFormOptionsResult> fetchTicketFormOptions() async {
     const String query = '{agencies {name gtfsId}}';
     final agencies = <TicketAgencyOption>[];
-    const ticketTypes = [
-      TicketTypeOption(value: 'vonaljegy', label: 'Vonaljegy'),
-      TicketTypeOption(value: 'bérlet', label: 'Bérlet'),
+    final ticketTypes = [
+      TicketTypeOption(value: 'vonaljegy', label: AppTexts.addTicketTypeSingle),
+      TicketTypeOption(value: 'bérlet', label: AppTexts.addTicketTypePass),
     ];
 
     try {
@@ -983,14 +1161,14 @@ class AuthApiService {
       final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
       await prefs.setString('local_tickets_v1', serialized);
 
-      return const AuthActionResult(
+      return AuthActionResult(
         ok: true,
-        message: 'Jegy sikeresen hozzáadva!',
+        message: AppTexts.authAddTicketSuccess,
       );
     } catch (e) {
       return AuthActionResult(
         ok: false,
-        error: 'Hiba a jegy hozzáadásakor: $e',
+        error: AppTexts.authAddTicketError('$e'),
       );
     }
   }
@@ -1002,9 +1180,9 @@ class AuthApiService {
 
       final index = tickets.indexWhere((t) => t.id == updatedTicket.id);
       if (index == -1) {
-        return const AuthActionResult(
+        return AuthActionResult(
           ok: false,
-          error: 'A jegy nem található.',
+          error: AppTexts.authTicketNotFound,
         );
       }
 
@@ -1036,14 +1214,14 @@ class AuthApiService {
       final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
       await prefs.setString('local_tickets_v1', serialized);
 
-      return const AuthActionResult(
+      return AuthActionResult(
         ok: true,
-        message: 'Jegy sikeresen módosítva!',
+        message: AppTexts.authUpdateTicketSuccess,
       );
     } catch (e) {
       return AuthActionResult(
         ok: false,
-        error: 'Hiba a jegy módosításakor: $e',
+        error: AppTexts.authUpdateTicketError('$e'),
       );
     }
   }
@@ -1055,9 +1233,9 @@ class AuthApiService {
 
       final index = tickets.indexWhere((t) => t.id == ticketId);
       if (index == -1) {
-        return const AuthActionResult(
+        return AuthActionResult(
           ok: false,
-          error: 'A jegy nem található.',
+          error: AppTexts.authTicketNotFound,
         );
       }
 
@@ -1067,14 +1245,14 @@ class AuthApiService {
       final serialized = jsonEncode(tickets.map((t) => t.toJson()).toList());
       await prefs.setString('local_tickets_v1', serialized);
 
-      return const AuthActionResult(
+      return AuthActionResult(
         ok: true,
-        message: 'Jegy sikeresen törölve!',
+        message: AppTexts.authDeleteTicketSuccess,
       );
     } catch (e) {
       return AuthActionResult(
         ok: false,
-        error: 'Hiba a jegy törlésekor: $e',
+        error: AppTexts.authDeleteTicketError('$e'),
       );
     }
   }
@@ -1109,12 +1287,12 @@ class AuthApiService {
 
   String _networkErrorMessage(Object error) {
     if (error is TimeoutException) {
-      return 'A szerver nem válaszol időben. Ellenőrizd az internetet vagy próbáld újra később.';
+      return AppTexts.authNetworkTimeout;
     }
     if (error is SocketException || error is http.ClientException) {
-      return 'Nem érhető el a backend. Ellenőrizd az internetkapcsolatot és hogy fut-e a szerver.';
+      return AppTexts.authNetworkBackendUnavailable;
     }
-    return 'Hálózati hiba történt. Kérlek, próbáld újra.';
+    return AppTexts.authNetworkGeneralError;
   }
 
   String _extractServerError(Map<String, dynamic>? json, String rawBody) {

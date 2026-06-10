@@ -221,6 +221,28 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
     id: gtfsId
     tripShortName
     tripHeadsign
+    alerts {
+      id
+      alertCause
+      alertHeaderText
+      alertDescriptionText
+      alertSeverityLevel
+      alertUrl
+      effectiveStartDate
+      effectiveEndDate
+      alertHeaderTextTranslations {
+        language
+        text
+      }
+      alertDescriptionTextTranslations {
+        language
+        text
+      }
+      alertUrlTranslations {
+        language
+        text
+      }
+    }
     route {
       id: gtfsId
       mode
@@ -382,6 +404,28 @@ String buildStopDetailsQuery(List<String> expandedIds) {
     routes {
       gtfsId
       shortName
+    }
+    alerts {
+      id
+      alertCause
+      alertHeaderText
+      alertDescriptionText
+      alertSeverityLevel
+      alertUrl
+      effectiveStartDate
+      effectiveEndDate
+      alertHeaderTextTranslations {
+        language
+        text
+      }
+      alertDescriptionTextTranslations {
+        language
+        text
+      }
+      alertUrlTranslations {
+        language
+        text
+      }
     }
     stoptimesForPatterns(startTime: \$startTime, numberOfDepartures: \$number, timeRange: \$timeRange) {
     times: stoptimes {

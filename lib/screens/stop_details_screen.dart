@@ -9,6 +9,8 @@ import '../services/graphql/graphql_queries.dart';
 import '../utils/markup_text_utils.dart';
 import '../widgets/maps/plan_map_view.dart';
 import '../widgets/maps/route_map_data.dart';
+import '../theme/app_texts.dart';
+import '../widgets/alerts_section.dart';
 import 'trip_details_screen.dart';
 
 class StopDetailsScreen extends StatefulWidget {
@@ -104,7 +106,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Nem sikerült a frissítés: $message')),
+            SnackBar(content: Text(AppTexts.stopErrorUpdate(message))),
           );
         }
       }
@@ -157,13 +159,13 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
 
       final decoded = response.json;
       if (decoded == null) {
-        handleError('Érvénytelen válasz formátum.');
+        handleError(AppTexts.stopInvalidResponse);
         return;
       }
 
       final data = decoded['data'];
       if (data is! Map) {
-        handleError('A megálló adatai nem érhetők el.');
+        handleError(AppTexts.stopDetailsNotAvailable);
         return;
       }
 
@@ -176,7 +178,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       }
 
       if (stops.isEmpty) {
-        handleError('A megálló adatai nem érhetők el.');
+        handleError(AppTexts.stopDetailsNotAvailable);
         return;
       }
 
@@ -361,7 +363,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         ? _stop!['name'].toString()
         : (widget.initialStopName?.trim().isNotEmpty == true
               ? widget.initialStopName!.trim()
-              : 'Megálló adatai');
+              : AppTexts.stopDetailsLabel);
     final stopName = _plainText(rawStopName);
     final stopNameUsesSpanFont = _containsSpanMarkup(rawStopName);
 
@@ -417,7 +419,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: _loadStopDetails,
-                child: const Text('Újrapróbálás'),
+                child: Text(AppTexts.retry),
               ),
             ],
           ),
@@ -427,7 +429,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
 
     final stop = _stop;
     if (stop == null) {
-      return const Center(child: Text('Nincs megjeleníthető adat.'));
+      return Center(child: Text(AppTexts.stopNoData));
     }
 
     final now = DateTime.now();
@@ -486,19 +488,19 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
               children: [
                 IconButton(
                   onPressed: () => _stepSelectedDate(-1),
-                  tooltip: 'Előző nap',
+                  tooltip: AppTexts.stopPrevDay,
                   icon: const Icon(Icons.chevron_left),
                 ),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _pickDate,
                     icon: const Icon(Icons.calendar_today),
-                    label: Text('Dátum: ${_formatSelectedDate(_selectedDate)}'),
+                    label: Text(AppTexts.stopDateLabel(_formatSelectedDate(_selectedDate))),
                   ),
                 ),
                 IconButton(
                   onPressed: () => _stepSelectedDate(1),
-                  tooltip: 'Következő nap',
+                  tooltip: AppTexts.stopNextDay,
                   icon: const Icon(Icons.chevron_right),
                 ),
                 const SizedBox(width: 8),
@@ -511,7 +513,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
                             DateTime(nowDate.year, nowDate.month, nowDate.day),
                           );
                         },
-                  child: const Text('Ma'),
+                  child: Text(AppTexts.stopToday),
                 ),
               ],
             ),
@@ -529,16 +531,20 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
                   },
                   child: Text(
                     _showPastDepartures
-                        ? 'Korábbi járatok elrejtése'
-                        : 'Korábbi járatok mutatása',
+                        ? AppTexts.stopHidePast
+                        : AppTexts.stopShowPast,
                   ),
                 ),
               ),
             ),
-          const TabBar(
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: AlertsSection(alerts: _stop?['alerts']),
+          ),
+          TabBar(
             tabs: [
-              Tab(text: 'Érkezik'),
-              Tab(text: 'Indul'),
+              Tab(text: AppTexts.stopArrivals),
+              Tab(text: AppTexts.stopDepartures),
             ],
           ),
           Expanded(
@@ -547,12 +553,12 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
                 _buildStopTimesList(
                   items: visibleArrivals,
                   now: now,
-                  emptyMessage: 'Nincs megjeleníthető érkezés.',
+                  emptyMessage: AppTexts.stopNoArrivals,
                 ),
                 _buildStopTimesList(
                   items: visibleDepartures,
                   now: now,
-                  emptyMessage: 'Nincs megjeleníthető indulás.',
+                  emptyMessage: AppTexts.stopNoDepartures,
                 ),
               ],
             ),
@@ -572,7 +578,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       return const RouteMapData(segments: [], stops: []);
     }
 
-    final rawStopName = stop['name']?.toString() ?? widget.initialStopName ?? 'Megálló';
+    final rawStopName = stop['name']?.toString() ?? widget.initialStopName ?? AppTexts.stops;
     final bearing = stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
     return RouteMapData(
       segments: const [],
@@ -678,8 +684,8 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     final showingArrivals = _mobileSelectedTabIndex == 0;
     final selectedItems = showingArrivals ? visibleArrivals : visibleDepartures;
     final emptyMessage = showingArrivals
-        ? 'Nincs megjeleníthető érkezés.'
-        : 'Nincs megjeleníthető indulás.';
+        ? AppTexts.stopNoArrivals
+        : AppTexts.stopNoDepartures;
 
     return ListView(
       controller: sheetScrollController,
@@ -697,7 +703,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Pöccintsd fel a részletes indulásokhoz',
+          AppTexts.stopSwipeInstruction,
           style: Theme.of(context).textTheme.labelLarge,
           textAlign: TextAlign.center,
         ),
@@ -706,19 +712,19 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
           children: [
             IconButton(
               onPressed: () => _stepSelectedDate(-1),
-              tooltip: 'Előző nap',
+              tooltip: AppTexts.stopPrevDay,
               icon: const Icon(Icons.chevron_left),
             ),
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today),
-                label: Text('Dátum: ${_formatSelectedDate(_selectedDate)}'),
+                label: Text(AppTexts.stopDateLabel(_formatSelectedDate(_selectedDate))),
               ),
             ),
             IconButton(
               onPressed: () => _stepSelectedDate(1),
-              tooltip: 'Következő nap',
+              tooltip: AppTexts.stopNextDay,
               icon: const Icon(Icons.chevron_right),
             ),
             const SizedBox(width: 8),
@@ -731,7 +737,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
                         DateTime(nowDate.year, nowDate.month, nowDate.day),
                       );
                     },
-              child: const Text('Ma'),
+              child: Text(AppTexts.stopToday),
             ),
           ],
         ),
@@ -746,17 +752,19 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
               },
               child: Text(
                 _showPastDepartures
-                    ? 'Korábbi járatok elrejtése'
-                    : 'Korábbi járatok mutatása',
+                    ? AppTexts.stopHidePast
+                    : AppTexts.stopShowPast,
               ),
             ),
           ),
+        const SizedBox(height: 8),
+        AlertsSection(alerts: _stop?['alerts']),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           children: [
             ChoiceChip(
-              label: const Text('Érkezik'),
+              label: Text(AppTexts.stopArrivals),
               selected: showingArrivals,
               onSelected: (_) {
                 setState(() {
@@ -765,7 +773,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
               },
             ),
             ChoiceChip(
-              label: const Text('Indul'),
+              label: Text(AppTexts.stopDepartures),
               selected: !showingArrivals,
               onSelected: (_) {
                 setState(() {
@@ -849,12 +857,12 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     final isArrivalByType = _isArrivalEntry(departure);
     final isDepartureByType = _isDepartureEntry(departure);
     final eventLabel = isArrivalByType && isDepartureByType
-        ? 'Érkezik/Indul'
+        ? AppTexts.stopArrivalsAndDepartures
         : isArrivalByType
-            ? 'Érkezik'
+            ? AppTexts.stopArrivals
             : isDepartureByType
-                ? 'Indul'
-                : 'Időpont';
+                ? AppTexts.stopDepartures
+                : AppTexts.stopTimeLabel;
 
     final hasDeparture =
         _asNum(departure['scheduledDeparture']) != null ||
@@ -877,6 +885,35 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
             : isOnTime
                 ? Colors.green
                 : (delay ?? 0) < 0
+                    ? Colors.blue
+                    : Colors.red;
+
+    final scheduledArrivalSecs = _asNum(departure['scheduledArrival']);
+    final scheduledDepartureSecs = _asNum(departure['scheduledDeparture']);
+    final hasBothScheduledTimes = scheduledArrivalSecs != null && scheduledDepartureSecs != null;
+    final scheduledTimesDiffer = hasBothScheduledTimes && scheduledArrivalSecs != scheduledDepartureSecs;
+
+    final arrDelay = _asNum(departure['arrivalDelay']);
+    final isArrivalOnTime = (arrDelay ?? 0) == 0;
+    final realtimeArrivalColor = isPast
+        ? Colors.grey
+        : !isRealtime
+            ? (isDark ? Colors.white : Colors.black)
+            : isArrivalOnTime
+                ? Colors.green
+                : (arrDelay ?? 0) < 0
+                    ? Colors.blue
+                    : Colors.red;
+
+    final depDelay = _asNum(departure['departureDelay']);
+    final isDepartureOnTime = (depDelay ?? 0) == 0;
+    final realtimeDepartureColor = isPast
+        ? Colors.grey
+        : !isRealtime
+            ? (isDark ? Colors.white : Colors.black)
+            : isDepartureOnTime
+                ? Colors.green
+                : (depDelay ?? 0) < 0
                     ? Colors.blue
                     : Colors.red;
 
@@ -980,34 +1017,96 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
                     ),
                     if (hasPlatformCode)
                       Text(
-                        'Kocsiállás: $platformCode',
+                        AppTexts.stopPlatform(platformCode),
                         style: TextStyle(
                           color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black87),
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                    Row(
-                      children: [
-                        Text(
-                          _formatTime(scheduled),
-                          style: TextStyle(
-                            color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
-                            decoration: (scheduled != null && realtime != null &&
-                                    scheduled != realtime)
-                                ? TextDecoration.lineThrough
-                                : TextDecoration.none,
+                    if (scheduledTimesDiffer) ...[
+                      Row(
+                        children: [
+                          Text(
+                            '${AppTexts.tripArrivalColumn} ',
+                            style: TextStyle(
+                              color: isPast ? Colors.grey : (isDark ? Colors.white70 : Colors.black54),
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          _formatTime(realtime),
-                          style: TextStyle(
-                            color: realtimeColor,
-                            fontWeight: FontWeight.w700,
+                          Text(
+                            _formatTime(scheduledArrival),
+                            style: TextStyle(
+                              color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
+                              decoration: (scheduledArrival != null && realtimeArrival != null &&
+                                      scheduledArrival != realtimeArrival)
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(realtimeArrival),
+                            style: TextStyle(
+                              color: realtimeArrivalColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Text(
+                            '${AppTexts.tripDepartureColumn} ',
+                            style: TextStyle(
+                              color: isPast ? Colors.grey : (isDark ? Colors.white70 : Colors.black54),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            _formatTime(scheduledDeparture),
+                            style: TextStyle(
+                              color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
+                              decoration: (scheduledDeparture != null && realtimeDeparture != null &&
+                                      scheduledDeparture != realtimeDeparture)
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(realtimeDeparture),
+                            style: TextStyle(
+                              color: realtimeDepartureColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      Row(
+                        children: [
+                          Text(
+                            _formatTime(scheduled),
+                            style: TextStyle(
+                              color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
+                              decoration: (scheduled != null && realtime != null &&
+                                      scheduled != realtime)
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _formatTime(realtime),
+                            style: TextStyle(
+                              color: realtimeColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

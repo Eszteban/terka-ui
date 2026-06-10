@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
 class MainMobileDrawer extends StatelessWidget {
@@ -26,7 +27,7 @@ class MainMobileDrawer extends StatelessWidget {
             DrawerHeader(
               decoration: const BoxDecoration(color: Colors.transparent),
               child: Text(
-                'Menü',
+                AppTexts.menu,
                 style: TextStyle(
                   color: colorScheme.onSurface,
                   fontSize: AppFontSizes.drawerHeader,
@@ -36,14 +37,14 @@ class MainMobileDrawer extends StatelessWidget {
             ListTile(
               leading: Icon(Icons.home, color: colorScheme.onSurface),
               title: Text(
-                'Főoldal',
+                AppTexts.home,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               onTap: onHomeTap,
             ),
             ExpansionTile(
               title: Text(
-                'Listázások',
+                AppTexts.lists,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               iconColor: colorScheme.onSurface,
@@ -51,14 +52,14 @@ class MainMobileDrawer extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(
-                    '  Megállók',
+                    '  ${AppTexts.stops}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
                   onTap: onStationsTap,
                 ),
                 ListTile(
                   title: Text(
-                    '  Vonalak',
+                    '  ${AppTexts.lines}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.pop(context),
@@ -67,21 +68,21 @@ class MainMobileDrawer extends StatelessWidget {
             ),
             ListTile(
               title: Text(
-                'MÁV Hírek',
+                AppTexts.mavNews,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               title: Text(
-                'Térkép',
+                AppTexts.map,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               onTap: onMapTap,
             ),
             ExpansionTile(
               title: Text(
-                'Profil',
+                AppTexts.profile,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               iconColor: colorScheme.onSurface,
@@ -89,35 +90,14 @@ class MainMobileDrawer extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(
-                    '  Admin felület',
+                    '  ${AppTexts.myTickets}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.pop(context),
                 ),
                 ListTile(
                   title: Text(
-                    '  Kézi frissítés',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  onTap: () => Navigator.pop(context),
-                ),
-                ListTile(
-                  title: Text(
-                    '  Saját adatok szerkesztése',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  onTap: () => Navigator.pop(context),
-                ),
-                ListTile(
-                  title: Text(
-                    '  Jegyeim',
-                    style: TextStyle(color: colorScheme.onSurface),
-                  ),
-                  onTap: () => Navigator.pop(context),
-                ),
-                ListTile(
-                  title: Text(
-                    '  Jegy hozzáadása',
+                    '  ${AppTexts.addTicket}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
                   onTap: () => Navigator.pop(context),
@@ -126,14 +106,14 @@ class MainMobileDrawer extends StatelessWidget {
             ),
             ListTile(
               title: Text(
-                'Kijelentkezés',
+                AppTexts.logout,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               title: Text(
-                'Bejelentkezés',
+                AppTexts.login,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
               onTap: () => Navigator.pop(context),

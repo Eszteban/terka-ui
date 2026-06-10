@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
 class TopNavbar extends StatelessWidget {
@@ -16,7 +17,7 @@ class TopNavbar extends StatelessWidget {
     required this.onNewsTap,
     required this.onProfileTap,
     this.selectedDesktopTabIndex = 0,
-    this.mobileCurrentSectionTitle = 'Tervezés',
+    this.mobileCurrentSectionTitle = '',
   });
 
   Widget _buildDesktopNavButton({
@@ -47,9 +48,9 @@ class TopNavbar extends StatelessWidget {
 
     if (isDesktop) {
       final navItems = <({String label, IconData icon, VoidCallback onTap})>[
-        (label: 'Főoldal', icon: Icons.home, onTap: onHomeTap),
-        (label: 'MÁV Hírek', icon: Icons.newspaper, onTap: onNewsTap),
-        (label: 'Profil', icon: Icons.person, onTap: onProfileTap),
+        (label: AppTexts.home, icon: Icons.home, onTap: onHomeTap),
+        (label: AppTexts.mavNews, icon: Icons.newspaper, onTap: onNewsTap),
+        (label: AppTexts.profile, icon: Icons.person, onTap: onProfileTap),
       ];
 
       return ColoredBox(

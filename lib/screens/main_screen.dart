@@ -6,21 +6,27 @@ import 'profile_screen.dart';
 import '../controllers/plan_response_controller.dart';
 import '../services/graphql/graphql_client.dart';
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
 import '../widgets/forms/route_plan_form.dart';
 import '../widgets/maps/map_view.dart';
 import '../widgets/maps/plan_map_view.dart';
 import '../widgets/maps/route_map_data.dart';
 import '../widgets/navigation/top_navbar.dart';
 import '../widgets/tables/dummy_table.dart';
+import '../services/auth_api_service.dart';
 
 class MainScreen extends StatefulWidget {
   final ThemeMode selectedThemeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final AppLanguage selectedLanguage;
+  final ValueChanged<AppLanguage> onLanguageChanged;
 
   const MainScreen({
     super.key,
     required this.selectedThemeMode,
     required this.onThemeModeChanged,
+    required this.selectedLanguage,
+    required this.onLanguageChanged,
   });
 
   @override
@@ -28,7 +34,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  static const String _defaultPlanResponseText = 'Még nincs lekérdezés.';
   static const RouteMapData _emptyRouteMapData = RouteMapData(
     segments: [],
     stops: [],
@@ -46,7 +51,7 @@ class _MainScreenState extends State<MainScreen> {
   bool _isPlanLoading = false;
   bool _isLoadingMorePlans = false;
   bool _hasMeaningfulPlanResponse = false;
-  String _planResponseText = _defaultPlanResponseText;
+  String _planResponseText = '';
   Map<String, dynamic>? _planResponseJson;
   String _lastPlanQuery = '';
   Map<String, dynamic>? _lastPlanVariables;
@@ -68,11 +73,27 @@ class _MainScreenState extends State<MainScreen> {
     'Hajó',
   };
   bool _jegyfigyeles = false;
+  List<TicketItem> _tickets = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTickets();
+  }
+
+  Future<void> _loadTickets() async {
+    final result = await const AuthApiService().fetchTickets();
+    if (mounted) {
+      setState(() {
+        _tickets = result.tickets;
+      });
+    }
+  }
 
   bool get _hasPlannerResultsPayload =>
       _planResponseJson != null ||
       _hasMeaningfulPlanResponse ||
-      _planResponseText.trim() != _defaultPlanResponseText;
+      _planResponseText.isNotEmpty;
 
   void _navigateTo(_MainSection section, {bool addToHistory = true}) {
     setState(() {
@@ -90,6 +111,7 @@ class _MainScreenState extends State<MainScreen> {
         }
       }
     });
+    _loadTickets();
   }
 
   bool _handleBackNavigation() {
@@ -131,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
       _searchController1.clear();
       _searchController2.clear();
       _hasMeaningfulPlanResponse = false;
-      _planResponseText = _defaultPlanResponseText;
+      _planResponseText = '';
       _planResponseJson = null;
       _lastPlanQuery = '';
       _lastPlanVariables = null;
@@ -194,7 +216,7 @@ class _MainScreenState extends State<MainScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'További betöltés sikertelen (HTTP ${response.statusCode}).',
+              AppTexts.mainLoadMoreHttpFailed(response.statusCode.toString()),
             ),
           ),
         );
@@ -225,8 +247,8 @@ class _MainScreenState extends State<MainScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nem sikerült további találatokat betölteni.'),
+        SnackBar(
+          content: Text(AppTexts.mainLoadMoreFailed),
         ),
       );
     } finally {
@@ -295,13 +317,13 @@ class _MainScreenState extends State<MainScreen> {
   String _currentMobileSectionTitle() {
     switch (_currentMobileTab()) {
       case _MobileTab.home:
-        return 'Útvonaltervezés';
+        return AppTexts.mainRoutePlanning;
       case _MobileTab.news:
-        return 'MÁV Hírek';
+        return AppTexts.mainMavNews;
       case _MobileTab.map:
-        return 'Térkép';
+        return AppTexts.mainMap;
       case _MobileTab.profile:
-        return 'Profil';
+        return AppTexts.mainProfile;
     }
   }
 
@@ -345,7 +367,7 @@ class _MainScreenState extends State<MainScreen> {
 
     if (_showTable && _hasPlannerResultsPayload) {
       return DummyTable(
-        responseText: _planResponseText,
+        responseText: _planResponseText.isEmpty ? AppTexts.mainDefaultPlanResponse : _planResponseText,
         desktopInlineMapMode: isDesktop,
         hasDesktopMapSelection:
             _desktopRouteOverlayData.hasContent ||
@@ -354,6 +376,8 @@ class _MainScreenState extends State<MainScreen> {
         canLoadMore: (_nextPageCursor?.trim().isNotEmpty ?? false),
         isLoadingMore: _isLoadingMorePlans,
         onLoadMore: _loadMorePlans,
+        ticketWatch: _jegyfigyeles,
+        tickets: _tickets,
         onShowOnMap: (payload) {
           if (isDesktop) {
             _showDesktopRouteOnBackgroundMap(
@@ -492,6 +516,8 @@ class _MainScreenState extends State<MainScreen> {
                         ? ProfileScreen(
                             selectedThemeMode: widget.selectedThemeMode,
                             onThemeModeChanged: widget.onThemeModeChanged,
+                            selectedLanguage: widget.selectedLanguage,
+                            onLanguageChanged: widget.onLanguageChanged,
                           )
                         : _showNews
                         ? const NewsScreen()
@@ -593,6 +619,8 @@ class _MainScreenState extends State<MainScreen> {
                               ? ProfileScreen(
                                   selectedThemeMode: widget.selectedThemeMode,
                                   onThemeModeChanged: widget.onThemeModeChanged,
+                                  selectedLanguage: widget.selectedLanguage,
+                                  onLanguageChanged: widget.onLanguageChanged,
                                 )
                               : _showNews
                               ? const NewsScreen()
@@ -625,26 +653,26 @@ class _MainScreenState extends State<MainScreen> {
                         break;
                     }
                   },
-                  destinations: const [
+                  destinations: [
                     NavigationDestination(
-                      icon: Icon(Icons.home_outlined),
-                      selectedIcon: Icon(Icons.home),
-                      label: 'Főoldal',
+                      icon: const Icon(Icons.home_outlined),
+                      selectedIcon: const Icon(Icons.home),
+                      label: AppTexts.mainHome,
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.newspaper_outlined),
-                      selectedIcon: Icon(Icons.newspaper),
-                      label: 'Hírek',
+                      icon: const Icon(Icons.newspaper_outlined),
+                      selectedIcon: const Icon(Icons.newspaper),
+                      label: AppTexts.mainNews,
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.map_outlined),
-                      selectedIcon: Icon(Icons.map),
-                      label: 'Térkép',
+                      icon: const Icon(Icons.map_outlined),
+                      selectedIcon: const Icon(Icons.map),
+                      label: AppTexts.mainMap,
                     ),
                     NavigationDestination(
-                      icon: Icon(Icons.person_outline),
-                      selectedIcon: Icon(Icons.person),
-                      label: 'Profil',
+                      icon: const Icon(Icons.person_outline),
+                      selectedIcon: const Icon(Icons.person),
+                      label: AppTexts.mainProfile,
                     ),
                   ],
                 ),
@@ -742,7 +770,7 @@ class _SelectedMapResultCard extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Vissza'),
+                label: Text(AppTexts.back),
               ),
             ),
           ],
@@ -760,7 +788,7 @@ class _SelectedItineraryMapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Útvonal térképen')),
+      appBar: AppBar(title: Text(AppTexts.mainRouteOnMap)),
       body: Stack(
         children: [
           Positioned.fill(

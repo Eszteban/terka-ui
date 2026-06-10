@@ -3,11 +3,10 @@ import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:xml/xml.dart';
 import 'package:html_unescape/html_unescape.dart';
-
+import '../theme/app_texts.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
-  
 
   @override
   State<NewsScreen> createState() => _NewsScreenState();
@@ -21,7 +20,7 @@ class _NewsScreenState extends State<NewsScreen> {
   Future<List<_NewsItem>> _fetchNews() async {
     final response = await http.get(Uri.parse(_rssUrl));
     if (response.statusCode != 200) {
-      throw Exception('Nem sikerült betölteni a híreket.');
+      throw Exception(AppTexts.newsLoadFailed);
     }
 
     final document = XmlDocument.parse(response.body);
@@ -49,7 +48,7 @@ class _NewsScreenState extends State<NewsScreen> {
     final isLaunched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!isLaunched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A hír linkje nem nyitható meg.')),
+        SnackBar(content: Text(AppTexts.newsLinkOpenFailed)),
       );
     }
   }
@@ -72,11 +71,11 @@ class _NewsScreenState extends State<NewsScreen> {
         if (isLoading) {
           content = const _NewsLoadingView();
         } else if (hasError) {
-          content = const Center(
-            child: Text('Hiba történt a hírek betöltése közben.'),
+          content = Center(
+            child: Text(AppTexts.newsLoadError),
           );
         } else if (items.isEmpty) {
-          content = const Center(child: Text('Nincsenek elérhető hírek.'));
+          content = Center(child: Text(AppTexts.newsEmpty));
         } else {
           content = ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -144,15 +143,15 @@ class _NewsScreenState extends State<NewsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'MÁV Hírek',
-              style: TextStyle(
+            Text(
+              AppTexts.newsTitle,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 6),
-            const Text('Kattints egy címre a cikk megnyitásához.'),
+            Text(AppTexts.newsInstruction),
             const SizedBox(height: 16),
             Expanded(
               child: Center(

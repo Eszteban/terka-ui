@@ -4,7 +4,9 @@ import 'package:latlong2/latlong.dart';
 
 import '../maps/route_map_data.dart';
 import '../../screens/trip_details_screen.dart';
+import '../../theme/app_texts.dart';
 import '../../utils/markup_text_utils.dart';
+import '../../services/auth_api_service.dart';
 
 class SelectedItineraryMapPayload {
   final RouteMapData routeData;
@@ -46,6 +48,8 @@ class DummyTable extends StatelessWidget {
   final bool canLoadMore;
   final bool isLoadingMore;
   final Future<void> Function()? onLoadMore;
+  final bool ticketWatch;
+  final List<TicketItem> tickets;
 
   const DummyTable({
     super.key,
@@ -57,6 +61,8 @@ class DummyTable extends StatelessWidget {
     this.canLoadMore = false,
     this.isLoadingMore = false,
     this.onLoadMore,
+    this.ticketWatch = false,
+    this.tickets = const [],
   });
 
   @override
@@ -117,36 +123,47 @@ class DummyTable extends StatelessWidget {
                           );
 
                           final colorScheme = Theme.of(context).colorScheme;
-                          return Card(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            clipBehavior: Clip.antiAlias,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: colorScheme.outlineVariant.withValues(
-                                  alpha: 0.3,
-                                ),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: ExpansionTile(
-                                shape: const Border(),
-                                collapsedShape: const Border(),
-                                tilePadding: EdgeInsets.zero,
-                                onExpansionChanged: desktopInlineMapMode
-                                    ? (expanded) {
-                                        if (expanded && mapData.hasContent) {
-                                          onShowOnMap(mapPayload);
-                                        }
-                                      }
-                                    : null,
-                                title: _buildBentoHeader(
-                                  context,
-                                  itinerary,
-                                  summary,
-                                  lineBadges,
-                                ),
+                          final isDark = Theme.of(context).brightness == Brightness.dark;
+
+                          final missingAgencies = ticketWatch
+                               ? TicketItem.getMissingTicketAgencies(itinerary, tickets)
+                               : const <String>[];
+                           final hasTickets = ticketWatch ? missingAgencies.isEmpty : false;
+                           final borderSideColor = ticketWatch
+                               ? (hasTickets ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)))
+                               : colorScheme.outlineVariant.withValues(alpha: 0.3);
+                           final borderSideWidth = ticketWatch ? 2.0 : 1.0;
+
+                           return Card(
+                             margin: const EdgeInsets.symmetric(vertical: 6),
+                             clipBehavior: Clip.antiAlias,
+                             shape: RoundedRectangleBorder(
+                               borderRadius: BorderRadius.circular(16),
+                               side: BorderSide(
+                                 color: borderSideColor,
+                                 width: borderSideWidth,
+                               ),
+                             ),
+                             child: Padding(
+                               padding: const EdgeInsets.all(12),
+                               child: ExpansionTile(
+                                 shape: const Border(),
+                                 collapsedShape: const Border(),
+                                 tilePadding: EdgeInsets.zero,
+                                 onExpansionChanged: desktopInlineMapMode
+                                     ? (expanded) {
+                                         if (expanded && mapData.hasContent) {
+                                           onShowOnMap(mapPayload);
+                                         }
+                                       }
+                                     : null,
+                                 title: _buildBentoHeader(
+                                   context,
+                                   itinerary,
+                                   summary,
+                                   lineBadges,
+                                   missingAgencies,
+                                 ),
                                 childrenPadding: const EdgeInsets.fromLTRB(
                                   0,
                                   12,
@@ -160,14 +177,14 @@ class DummyTable extends StatelessWidget {
                                     SizedBox(
                                       width: double.infinity,
                                       child: FilledButton.icon(
-                                        onPressed: mapData.hasContent
-                                            ? () => onShowOnMap(mapPayload)
-                                            : null,
-                                        icon: const Icon(Icons.map),
-                                        label: const Text('Mutasd térképen!'),
+                                          onPressed: mapData.hasContent
+                                              ? () => onShowOnMap(mapPayload)
+                                              : null,
+                                          icon: const Icon(Icons.map),
+                                          label: Text(AppTexts.tableShowOnMap),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
                                 ],
                               ),
                             ),
@@ -192,7 +209,7 @@ class DummyTable extends StatelessWidget {
                                       strokeWidth: 2,
                                     ),
                                   )
-                                : const Text('További járatok betöltése'),
+                                : Text(AppTexts.tableLoadMore),
                           ),
                         ),
                       ),
@@ -208,6 +225,7 @@ class DummyTable extends StatelessWidget {
     Map<String, dynamic> itinerary,
     Map<String, String> summary,
     List<Widget> lineBadges,
+    List<String> missingAgencies,
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -221,8 +239,8 @@ class DummyTable extends StatelessWidget {
         : colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
 
     final legs = itinerary['legs'];
-    String fromName = 'Ismeretlen';
-    String toName = 'Ismeretlen';
+    String fromName = AppTexts.unknown;
+    String toName = AppTexts.unknown;
 
     if (legs is List && legs.isNotEmpty) {
       final legMaps = legs
@@ -231,10 +249,10 @@ class DummyTable extends StatelessWidget {
           .toList();
       if (legMaps.isNotEmpty) {
         fromName = _plainTextFromHtml(
-          _nestedString(legMaps.first, ['from', 'name']) ?? 'Ismeretlen',
+          _nestedString(legMaps.first, ['from', 'name']) ?? AppTexts.unknown,
         ).trim();
         toName = _plainTextFromHtml(
-          _nestedString(legMaps.last, ['to', 'name']) ?? 'Ismeretlen',
+          _nestedString(legMaps.last, ['to', 'name']) ?? AppTexts.unknown,
         ).trim();
       }
     }
@@ -253,7 +271,7 @@ class DummyTable extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'MENETIDŐ, INDULÁS ÉS ÉRKEZÉS',
+            AppTexts.tableDurationHeader,
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -294,8 +312,8 @@ class DummyTable extends StatelessWidget {
     );
 
     final transferText = summary['transfers'] == '0'
-        ? 'Közvetlen'
-        : '${summary['transfers']} átszállás';
+        ? AppTexts.tableDirect
+        : AppTexts.tableTransfersCount(summary['transfers']!);
 
     final linesTile = Container(
       padding: const EdgeInsets.all(12),
@@ -311,7 +329,7 @@ class DummyTable extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'JÁRATOK • ${transferText.toUpperCase()}',
+            '${AppTexts.tableTransitHeader} • ${transferText.toUpperCase()}',
             style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -324,7 +342,7 @@ class DummyTable extends StatelessWidget {
             Wrap(spacing: 4, runSpacing: 4, children: lineBadges)
           else
             Text(
-              'Gyalogos',
+              AppTexts.tableWalkMode,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -370,6 +388,39 @@ class DummyTable extends StatelessWidget {
         durationTimeTile,
         const SizedBox(height: 6),
         linesTile,
+        if (missingAgencies.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF2C1E1D) : const Color(0xFFFDE8E8),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark ? const Color(0xFFEF5350).withOpacity(0.3) : const Color(0xFFE57373).withOpacity(0.5),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 16,
+                  color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    AppTexts.ticketsMissingFor(missingAgencies.join(", ")),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -429,8 +480,8 @@ class DummyTable extends StatelessWidget {
 
     final legs = itinerary['legs'];
     if (legs is! List) {
-      return const [
-        ListTile(dense: true, title: Text('Szakasz adatok nem elérhetők.')),
+      return [
+        ListTile(dense: true, title: Text(AppTexts.tableSegmentNotAvailable)),
       ];
     }
 
@@ -441,8 +492,8 @@ class DummyTable extends StatelessWidget {
     return List<Widget>.generate(legMaps.length, (index) {
       final leg = legMaps[index];
       final nextLeg = index + 1 < legMaps.length ? legMaps[index + 1] : null;
-      final fromName = _nestedString(leg, ['from', 'name']) ?? 'Ismeretlen';
-      final toName = _nestedString(leg, ['to', 'name']) ?? 'Ismeretlen';
+      final fromName = _nestedString(leg, ['from', 'name']) ?? AppTexts.unknown;
+      final toName = _nestedString(leg, ['to', 'name']) ?? AppTexts.unknown;
       final mode = leg['mode']?.toString() ?? '-';
       final duration = _formatDuration(leg['duration']);
       final startTime = _formatEpochMillis(leg['startTime']);
@@ -457,7 +508,7 @@ class DummyTable extends StatelessWidget {
         fallback: _idealTextColor(routeColor),
       );
 
-      final isWalkLeg = mode == 'WALK';
+      final isWalkLeg = mode.toUpperCase().trim() == 'WALK';
       final waitMinutes = isWalkLeg
           ? _waitingMinutesUntilNextTransit(leg, nextLeg)
           : null;
@@ -493,7 +544,7 @@ class DummyTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              isWalkLeg ? 'SÉTA' : 'JÁRAT',
+              isWalkLeg ? AppTexts.tableWalk : AppTexts.tableTransit,
               style: TextStyle(
                 fontSize: 8,
                 fontWeight: FontWeight.w800,
@@ -583,7 +634,7 @@ class DummyTable extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              isWalkLeg ? 'GYALOGLÁS RÉSZLETEI' : 'UTAZÁS RÉSZLETEI',
+              isWalkLeg ? AppTexts.tableWalkDetails : AppTexts.tableTransitDetails,
               style: TextStyle(
                 fontSize: 8,
                 fontWeight: FontWeight.w800,
@@ -642,8 +693,8 @@ class DummyTable extends StatelessWidget {
             if (isWalkLeg)
               Text(
                 waitMinutes != null && waitMinutes > 0
-                    ? 'majd $waitMinutes perc várakozás'
-                    : 'gyaloglás',
+                    ? AppTexts.tableWaitThen('$waitMinutes')
+                    : AppTexts.tableWalkSubtitle,
                 style: subtitleStyle?.copyWith(
                   fontSize: 11,
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
@@ -651,7 +702,7 @@ class DummyTable extends StatelessWidget {
               )
             else
               Text(
-                'Járat azonosító: $tripNumber',
+                AppTexts.tableTripId(tripNumber),
                 style: subtitleStyle?.copyWith(
                   fontSize: 11,
                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
@@ -755,7 +806,7 @@ class DummyTable extends StatelessWidget {
     }
 
     final nextMode = nextLeg['mode']?.toString() ?? '';
-    if (nextMode == 'WALK') {
+    if (nextMode.toUpperCase().trim() == 'WALK') {
       return null;
     }
 
@@ -865,7 +916,7 @@ class DummyTable extends StatelessWidget {
           RouteSegment(
             points: legPoints,
             color: _parseRouteColorForMap(leg),
-            isWalk: mode == 'WALK',
+            isWalk: mode.toUpperCase().trim() == 'WALK',
           ),
         );
       }
@@ -873,7 +924,7 @@ class DummyTable extends StatelessWidget {
 
     final firstFromPoint = _extractPoint(legMaps.first['from']);
     final firstFromName =
-        _nestedString(legMaps.first, ['from', 'name']) ?? 'Indulás';
+        _nestedString(legMaps.first, ['from', 'name']) ?? AppTexts.formDeparture;
     if (firstFromPoint != null) {
       stops.add(
         RouteStopMarker(
@@ -887,7 +938,7 @@ class DummyTable extends StatelessWidget {
     for (var i = 0; i < legMaps.length - 1; i++) {
       final transferPoint = _extractPoint(legMaps[i]['to']);
       final transferName =
-          _nestedString(legMaps[i], ['to', 'name']) ?? 'Átszállás';
+          _nestedString(legMaps[i], ['to', 'name']) ?? AppTexts.formTransfers;
       if (transferPoint != null) {
         stops.add(
           RouteStopMarker(
@@ -900,7 +951,7 @@ class DummyTable extends StatelessWidget {
     }
 
     final lastToPoint = _extractPoint(legMaps.last['to']);
-    final lastToName = _nestedString(legMaps.last, ['to', 'name']) ?? 'Érkezés';
+    final lastToName = _nestedString(legMaps.last, ['to', 'name']) ?? AppTexts.formArrival;
     if (lastToPoint != null) {
       stops.add(
         RouteStopMarker(
@@ -920,8 +971,8 @@ class DummyTable extends StatelessWidget {
     RouteMapData routeData,
   ) {
     final legs = itinerary['legs'];
-    String fromName = 'Ismeretlen';
-    String toName = 'Ismeretlen';
+    String fromName = AppTexts.unknown;
+    String toName = AppTexts.unknown;
 
     if (legs is List && legs.isNotEmpty) {
       final legMaps = legs
@@ -937,21 +988,25 @@ class DummyTable extends StatelessWidget {
     return SelectedItineraryMapPayload(
       routeData: routeData,
       title: '$fromName → $toName',
-      subtitle:
-          'Időtartam: ${summary['duration']} • Átszállás: ${summary['transfers']} • ${summary['start']}–${summary['end']}',
+      subtitle: AppTexts.tableSubtitle(
+        summary['duration']!,
+        summary['transfers']!,
+        summary['start']!,
+        summary['end']!,
+      ),
       legDetails: _buildLegDetails(itinerary),
     );
   }
 
   String _buildResultsHeader(List<Map<String, dynamic>> itineraries) {
     if (itineraries.isEmpty) {
-      return 'Találatok';
+      return AppTexts.tableResults;
     }
 
     final firstItinerary = itineraries.first;
     final legs = firstItinerary['legs'];
     if (legs is! List || legs.isEmpty) {
-      return 'Találatok';
+      return AppTexts.tableResults;
     }
 
     final legMaps = legs
@@ -959,21 +1014,21 @@ class DummyTable extends StatelessWidget {
         .map((e) => e.cast<String, dynamic>())
         .toList();
     if (legMaps.isEmpty) {
-      return 'Találatok';
+      return AppTexts.tableResults;
     }
 
     final from = _plainTextFromHtml(
-      _nestedString(legMaps.first, ['from', 'name']) ?? 'Ismeretlen',
+      _nestedString(legMaps.first, ['from', 'name']) ?? AppTexts.unknown,
     ).trim();
     final to = _plainTextFromHtml(
-      _nestedString(legMaps.last, ['to', 'name']) ?? 'Ismeretlen',
+      _nestedString(legMaps.last, ['to', 'name']) ?? AppTexts.unknown,
     ).trim();
 
     if (from.isEmpty || to.isEmpty) {
-      return 'Találatok';
+      return AppTexts.tableResults;
     }
 
-    return 'Találatok: $from ▶ $to';
+    return AppTexts.tableResultsHeader(from, to);
   }
 
   List<SelectedItineraryLegDetail> _buildLegDetails(
@@ -993,24 +1048,24 @@ class DummyTable extends StatelessWidget {
       final leg = legMaps[index];
       final nextLeg = index + 1 < legMaps.length ? legMaps[index + 1] : null;
       final fromName = _plainTextFromHtml(
-        _nestedString(leg, ['from', 'name']) ?? 'Ismeretlen',
+        _nestedString(leg, ['from', 'name']) ?? AppTexts.unknown,
       ).trim();
       final toName = _plainTextFromHtml(
-        _nestedString(leg, ['to', 'name']) ?? 'Ismeretlen',
+        _nestedString(leg, ['to', 'name']) ?? AppTexts.unknown,
       ).trim();
       final mode = leg['mode']?.toString() ?? '-';
       final duration = _formatDuration(leg['duration']);
       final tripNumber = _plainTextFromHtml(_legTripDisplayNumber(leg)).trim();
 
-      final isWalkLeg = mode == 'WALK';
+      final isWalkLeg = mode.toUpperCase().trim() == 'WALK';
       final walkMinutes = _durationMinutes(leg['duration']);
       final waitMinutes = isWalkLeg
           ? _waitingMinutesUntilNextTransit(leg, nextLeg)
           : null;
 
       final subtitle = isWalkLeg
-          ? '${walkMinutes ?? 0} perc séta${waitMinutes != null && waitMinutes > 0 ? ', majd $waitMinutes perc várakozás' : ''}'
-          : 'Járat: $tripNumber • $duration';
+          ? '${AppTexts.tableMinutes('${walkMinutes ?? 0}')} ${AppTexts.tableWalkSubtitle}${waitMinutes != null && waitMinutes > 0 ? ', ${AppTexts.tableWaitThen('$waitMinutes')}' : ''}'
+          : '${AppTexts.trip}: $tripNumber • $duration';
 
       return SelectedItineraryLegDetail(
         icon: _iconForMode(mode),
@@ -1148,7 +1203,7 @@ class DummyTable extends StatelessWidget {
   }
 
   IconData _iconForMode(String mode) {
-    switch (mode) {
+    switch (mode.toUpperCase().trim()) {
       case 'RAIL':
       case 'SUBURBAN_RAILWAY':
         return Icons.train;
@@ -1216,9 +1271,9 @@ class DummyTable extends StatelessWidget {
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
     if (hours == 0) {
-      return '$minutes perc';
+      return AppTexts.tableMinutes('$minutes');
     }
-    return '$hours ó $minutes perc';
+    return AppTexts.tableHoursMinutes('$hours', '$minutes');
   }
 
   String _formatEpochMillis(dynamic millisValue) {

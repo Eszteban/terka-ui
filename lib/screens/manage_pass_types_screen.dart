@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_api_service.dart';
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
 
 class ManagePassTypesScreen extends StatefulWidget {
   const ManagePassTypesScreen({super.key});
@@ -35,9 +36,10 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
   }
 
   Future<void> _addOrEditPassType([PassType? passType]) async {
-    final bool? result = await showDialog<bool>(
-      context: context,
-      builder: (context) => _AddEditPassTypeDialog(passType: passType),
+    final bool? result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => AddEditPassTypeScreen(passType: passType),
+      ),
     );
     if (result == true) {
       _loadPassTypes();
@@ -48,12 +50,12 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bérlettípus törlése'),
-        content: Text('Biztosan törölni szeretnéd a(z) "${passType.name}" bérlettípust?'),
+        title: Text(AppTexts.managePassTypesDeleteTitle),
+        content: Text(AppTexts.managePassTypesDeleteContent(passType.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Mégse'),
+            child: Text(AppTexts.ticketsCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -61,7 +63,7 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            child: const Text('Törlés'),
+            child: Text(AppTexts.managePassTypesDeleteButton),
           ),
         ],
       ),
@@ -95,20 +97,13 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bérlettípusok kezelése'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Új bérlettípus',
-            onPressed: () => _addOrEditPassType(),
-          ),
-        ],
+        title: Text(AppTexts.managePassTypesTitle),
       ),
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _passTypes.isEmpty
-                ? const Center(child: Text('Nincsenek bérlettípusok.'))
+                ? Center(child: Text(AppTexts.managePassTypesEmpty))
                 : ListView.separated(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: _passTypes.length,
@@ -117,8 +112,8 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
                       final p = _passTypes[index];
                       final isPrebaked = p.id == 'orszagberlet' || p.id == 'orszagberlet_szeged';
                       final durationStr = p.durationType == 'month'
-                          ? '1 hónap'
-                          : '${p.durationDays ?? 30} nap';
+                          ? AppTexts.authPassTypeMonth
+                          : AppTexts.authPassTypeDays(p.durationDays?.toString() ?? '30');
 
                       return Card(
                         elevation: cardElevation,
@@ -151,7 +146,7 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
-                                        'Rendszer',
+                                        AppTexts.system,
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: colorScheme.onPrimaryContainer,
@@ -175,10 +170,10 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
                                 ],
                               ),
                               const SizedBox(height: AppSpacing.xs),
-                              Text('Érvényesség: $durationStr'),
+                              Text(AppTexts.managePassTypesDuration(durationStr)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(
-                                'Érvényes szolgáltatók: ${p.agencyNames.join(", ")}',
+                                AppTexts.managePassTypesAgencies(p.agencyNames),
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -190,19 +185,24 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
                     },
                   ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addOrEditPassType(),
+        tooltip: AppTexts.managePassTypesNew,
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
 
-class _AddEditPassTypeDialog extends StatefulWidget {
+class AddEditPassTypeScreen extends StatefulWidget {
   final PassType? passType;
-  const _AddEditPassTypeDialog({this.passType});
+  const AddEditPassTypeScreen({super.key, this.passType});
 
   @override
-  State<_AddEditPassTypeDialog> createState() => _AddEditPassTypeDialogState();
+  State<AddEditPassTypeScreen> createState() => _AddEditPassTypeScreenState();
 }
 
-class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
+class _AddEditPassTypeScreenState extends State<AddEditPassTypeScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _daysController = TextEditingController();
@@ -256,7 +256,7 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
         });
       } else {
         setState(() {
-          _error = result.error ?? 'Nem sikerült betölteni a szolgáltatókat.';
+          _error = result.error ?? AppTexts.managePassTypesLoadAgenciesFailed;
           _isLoading = false;
         });
       }
@@ -283,7 +283,7 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
 
     if (_selectedAgencies.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Válassz legalább egy szolgáltatót.')),
+        SnackBar(content: Text(AppTexts.managePassTypesSelectMinOneAgency)),
       );
       return;
     }
@@ -346,39 +346,37 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
         child: Center(child: Text(_error!)),
       );
     } else {
-      content = SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Form(
-          key: _formKey,
+      content = Form(
+        key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Bérlet neve',
-                  prefixIcon: Icon(Icons.badge_outlined),
+                decoration: InputDecoration(
+                  labelText: AppTexts.managePassTypesNameLabel,
+                  prefixIcon: const Icon(Icons.badge_outlined),
                 ),
                 validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Add meg a bérlet nevét.' : null,
+                    val == null || val.trim().isEmpty ? AppTexts.managePassTypesNameValidator : null,
               ),
               const SizedBox(height: AppSpacing.lg),
-              const Text(
-                'Érvényesség időtartama:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Text(
+                AppTexts.managePassTypesDurationTypeLabel,
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: AppSpacing.xs),
               SegmentedButton<String>(
-                segments: const [
+                segments: [
                   ButtonSegment<String>(
                     value: 'month',
-                    icon: Icon(Icons.calendar_month_outlined),
-                    label: Text('1 hónap'),
+                    icon: const Icon(Icons.calendar_month_outlined),
+                    label: Text(AppTexts.managePassTypesDurationMonth),
                   ),
                   ButtonSegment<String>(
                     value: 'days',
-                    icon: Icon(Icons.today_outlined),
-                    label: Text('Egyéni (nap)'),
+                    icon: const Icon(Icons.today_outlined),
+                    label: Text(AppTexts.managePassTypesDurationCustom),
                   ),
                 ],
                 selected: {_durationType},
@@ -395,17 +393,17 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
                 TextFormField(
                   controller: _daysController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Érvényes napok száma',
-                    prefixIcon: Icon(Icons.numbers),
+                  decoration: InputDecoration(
+                    labelText: AppTexts.managePassTypesCustomDaysLabel,
+                    prefixIcon: const Icon(Icons.numbers),
                   ),
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) {
-                      return 'Add meg a napok számát.';
+                      return AppTexts.managePassTypesCustomDaysEmpty;
                     }
                     final parsed = int.tryParse(val.trim());
                     if (parsed == null || parsed <= 0) {
-                      return 'Pozitív egész számot adj meg.';
+                      return AppTexts.managePassTypesCustomDaysPositive;
                     }
                     return null;
                   },
@@ -413,9 +411,9 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
               ],
               const SizedBox(height: AppSpacing.lg),
               if (_selectedAgencies.isNotEmpty) ...[
-                const Text(
-                  'Kiválasztott szolgáltatók:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Text(
+                  AppTexts.managePassTypesSelectedAgencies,
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 SingleChildScrollView(
@@ -446,7 +444,7 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
               TextFormField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  labelText: 'Szolgáltató keresése...',
+                  labelText: AppTexts.managePassTypesSearchAgency,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
@@ -459,9 +457,9 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
-              const Text(
-                'Szolgáltatók listája:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              Text(
+                AppTexts.managePassTypesAgenciesList,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               const SizedBox(height: AppSpacing.xs),
               Container(
@@ -481,12 +479,12 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
                     }).toList();
 
                     if (filtered.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Padding(
-                          padding: EdgeInsets.all(AppSpacing.md),
+                          padding: const EdgeInsets.all(AppSpacing.md),
                           child: Text(
-                            'Nincs találat',
-                            style: TextStyle(fontStyle: FontStyle.italic),
+                            AppTexts.managePassTypesNoAgenciesFound,
+                            style: const TextStyle(fontStyle: FontStyle.italic),
                           ),
                         ),
                       );
@@ -531,37 +529,47 @@ class _AddEditPassTypeDialogState extends State<_AddEditPassTypeDialog> {
               FilledButton.icon(
                 onPressed: _save,
                 icon: const Icon(Icons.save),
-                label: const Text('Bérlettípus mentése'),
+                label: Text(AppTexts.managePassTypesSavePassType),
               ),
             ],
-          ),
         ),
       );
     }
 
-    return Dialog(
-      shape: bentoShape,
-      backgroundColor: cardColor,
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 580, maxHeight: 820),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppBar(
-              title: Text(widget.passType != null ? 'Bérlettípus módosítása' : 'Új bérlettípus'),
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-            Expanded(child: content),
-          ],
+    final cardElevation = isDark ? 0.0 : 2.0;
+    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.passType != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => Navigator.of(context).pop(),
         ),
+      ),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 580),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        child: Card(
+                          elevation: cardElevation,
+                          shadowColor: cardShadowColor,
+                          shape: bentoShape,
+                          color: cardColor,
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: content,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
       ),
     );
   }

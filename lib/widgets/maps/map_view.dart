@@ -6,10 +6,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
+import '../../theme/app_texts.dart';
 
 import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 import '../../utils/markup_text_utils.dart';
+import '../../utils/vehicle_type_lookup.dart';
 import '../../screens/stop_details_screen.dart';
 import '../../screens/trip_details_screen.dart';
 import 'map_initialization_utils.dart';
@@ -353,7 +355,7 @@ class _MapViewState extends State<MapView> {
         }
 
         if (snapshot.data != true) {
-          return const Center(child: Text('A térképet nem sikerült betölteni'));
+          return Center(child: Text(AppTexts.mapLoadFailed));
         }
 
         final routeData = widget.routeOverlayData;
@@ -444,7 +446,7 @@ class _MapViewState extends State<MapView> {
                           (segment) => Polyline(
                             points: segment.points,
                             color: segment.isWalk
-                                ? Colors.black
+                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
                                 : segment.color,
                             strokeWidth: 5,
                             pattern: segment.isWalk
@@ -635,7 +637,7 @@ class _MapViewState extends State<MapView> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ehhez a járathoz nincs trip azonosító.')),
+        SnackBar(content: Text(AppTexts.mapNoTripId)),
       );
       return;
     }

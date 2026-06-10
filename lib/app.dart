@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/main_screen.dart';
 import 'theme/app_tokens.dart';
+import 'theme/app_texts.dart';
 
 class TerkaApp extends StatefulWidget {
   const TerkaApp({super.key});
@@ -12,13 +13,44 @@ class TerkaApp extends StatefulWidget {
 
 class _TerkaAppState extends State<TerkaApp> {
   static const String _themeModePreferenceKey = 'theme_mode';
+  static const String _languagePreferenceKey = 'language';
 
   ThemeMode _themeMode = ThemeMode.system;
+  AppLanguage _language = AppLanguage.hu;
 
   @override
   void initState() {
     super.initState();
     _loadThemeMode();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawLang = prefs.getString(_languagePreferenceKey);
+    if (rawLang == 'en') {
+      setState(() {
+        _language = AppLanguage.en;
+        AppTexts.setLanguage(AppLanguage.en);
+      });
+    } else {
+      setState(() {
+        _language = AppLanguage.hu;
+        AppTexts.setLanguage(AppLanguage.hu);
+      });
+    }
+  }
+
+  Future<void> _setLanguage(AppLanguage lang) async {
+    if (_language == lang) {
+      return;
+    }
+    setState(() {
+      _language = lang;
+      AppTexts.setLanguage(lang);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languagePreferenceKey, lang == AppLanguage.en ? 'en' : 'hu');
   }
 
   Future<void> _loadThemeMode() async {
@@ -189,6 +221,8 @@ class _TerkaAppState extends State<TerkaApp> {
       home: MainScreen(
         selectedThemeMode: _themeMode,
         onThemeModeChanged: _setThemeMode,
+        selectedLanguage: _language,
+        onLanguageChanged: _setLanguage,
       ),
     );
   }

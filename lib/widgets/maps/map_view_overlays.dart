@@ -14,11 +14,11 @@ extension _MapViewOverlays on _MapViewState {
         
     final service = vehicle.serviceLabel.trim().isNotEmpty
         ? vehicle.serviceLabel.trim()
-        : 'ismeretlen';
+        : AppTexts.unknown.toLowerCase();
         
     final fallbackModel = vehicle.mode == 'RAIL_REPLACEMENT_BUS'
-        ? 'vonatpótló busz'
-        : 'Ismeretlen';
+        ? AppTexts.railReplacementBus
+        : AppTexts.unknown;
         
     final model = vehicle.vehicleModel.trim().isNotEmpty
         ? vehicle.vehicleModel.trim()

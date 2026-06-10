@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import '../../constants/search_api.dart';
 import '../../controllers/plan_response_controller.dart';
 import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 
+import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
 enum _ActiveSearchField { none, from, to }
@@ -208,6 +210,24 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     _debounce?.cancel();
 
     final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      final name = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
+      setState(() {
+        _suggestions = [name];
+        _suggestionIcons = [[Icons.my_location]];
+        _suggestionEntries = [
+          _SuggestionEntry(
+            name: name,
+            id: 'CURRENT_LOCATION',
+            coordinates: null,
+            icons: const [Icons.my_location],
+          )
+        ];
+        _isLoadingSuggestions = false;
+      });
+      return;
+    }
+
     if (trimmedQuery.length < 3) {
       setState(() {
         _suggestions = [];
@@ -255,79 +275,118 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     }
 
     try {
-      final uri = Uri.parse(
-        searchApiUrl,
-      ).replace(queryParameters: {'q': query, 'limit': '10', 'lang': 'hu'});
+      final stationUri = Uri.parse(searchApiUrl).replace(queryParameters: {'q': query, 'limit': '10', 'lang': 'hu'});
+      final photonUri = Uri.parse('https://mavplusz.hu//photon/api').replace(queryParameters: {
+        'limit': '10',
+        'q': query,
+        'location_bias_scale': '0.1',
+        'osm_tag': '!place:region',
+        'zoom': '12',
+        'bbox': '16,45.273,23,48.7',
+        'lang': 'hu',
+      });
 
-      final response = await http
-          .get(uri, headers: apiRequestHeaders)
-          .timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) {
-        debugPrint(
-          'API error: status ${response.statusCode}, body: ${response.body}',
-        );
-        setState(() {
-          _suggestions = [];
-          _suggestionIcons = [];
-          _suggestionEntries = [];
-          _isLoadingSuggestions = false;
-        });
-        return;
-      }
+      final results = await Future.wait([
+        http
+            .get(stationUri, headers: apiRequestHeaders)
+            .timeout(const Duration(seconds: 5))
+            .catchError((_) => http.Response('{"features":[]}', 500)),
+        http
+            .get(photonUri, headers: apiRequestHeaders)
+            .timeout(const Duration(seconds: 5))
+            .catchError((_) => http.Response('{"features":[]}', 500)),
+      ]);
 
-      final dynamic body = jsonDecode(response.body);
-      List features = [];
-      if (body is Map && body['features'] is List) {
-        features = body['features'] as List;
-      } else {
-        debugPrint(
-          'API error: response JSON does not contain features list. Body: ${response.body}',
-        );
-        setState(() {
-          _suggestions = [];
-          _suggestionIcons = [];
-          _suggestionEntries = [];
-          _isLoadingSuggestions = false;
-        });
-        return;
-      }
+      final stationResponse = results[0];
+      final photonResponse = results[1];
 
       final entries = <_SuggestionEntry>[];
-      for (final item in features) {
-        if (item is Map) {
-          final properties = item['properties'];
-          final geometry = item['geometry'];
-          String? id;
-          String? name;
-          List<double>? coord;
-          List<String> modes = const [];
-          final rawId = item['id'];
-          if (rawId is String) {
-            id = rawId;
-          }
-          if (properties is Map) {
-            final n = properties['name'];
-            if (n is String) name = n;
-            final m = properties['modes'];
-            if (m is List) {
-              modes = m.whereType<String>().toList();
+
+      // Prepend current location option
+      final currentLocName = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
+      entries.add(
+        _SuggestionEntry(
+          name: currentLocName,
+          id: 'CURRENT_LOCATION',
+          coordinates: null,
+          icons: const [Icons.my_location],
+        ),
+      );
+
+      // 1. Parse station suggestions
+      if (stationResponse.statusCode == 200) {
+        final dynamic body = jsonDecode(stationResponse.body);
+        if (body is Map && body['features'] is List) {
+          for (final item in body['features']) {
+            if (item is Map) {
+              final properties = item['properties'];
+              final geometry = item['geometry'];
+              String? id;
+              String? name;
+              List<double>? coord;
+              List<String> modes = const [];
+              final rawId = item['id'];
+              if (rawId is String) {
+                id = rawId;
+              }
+              if (properties is Map) {
+                final n = properties['name'];
+                if (n is String) name = n;
+                final m = properties['modes'];
+                if (m is List) {
+                  modes = m.whereType<String>().toList();
+                }
+              }
+              if (geometry is Map && geometry['coordinates'] is List) {
+                final c = geometry['coordinates'];
+                if (c.length == 2 && c[0] is num && c[1] is num) {
+                  coord = [c[0].toDouble(), c[1].toDouble()];
+                }
+              }
+              if (name != null) {
+                entries.add(
+                  _SuggestionEntry(
+                    name: name,
+                    id: id,
+                    coordinates: coord,
+                    icons: _iconsForModes(modes),
+                  ),
+                );
+              }
             }
           }
-          if (geometry is Map && geometry['coordinates'] is List) {
-            final c = geometry['coordinates'];
-            if (c.length == 2 && c[0] is num && c[1] is num) {
-              coord = [c[0].toDouble(), c[1].toDouble()];
+        }
+      }
+
+      // 2. Parse Photon address suggestions
+      if (photonResponse.statusCode == 200) {
+        final dynamic body = jsonDecode(photonResponse.body);
+        if (body is Map && body['features'] is List) {
+          for (final item in body['features']) {
+            if (item is Map) {
+              final properties = item['properties'];
+              final geometry = item['geometry'];
+              List<double>? coord;
+              if (geometry is Map && geometry['coordinates'] is List) {
+                final c = geometry['coordinates'];
+                if (c.length == 2 && c[0] is num && c[1] is num) {
+                  coord = [c[0].toDouble(), c[1].toDouble()];
+                }
+              }
+              if (properties is Map && coord != null) {
+                final formattedName = _formatPhotonName(properties.cast<String, dynamic>());
+                final lat = coord[1];
+                final lon = coord[0];
+                entries.add(
+                  _SuggestionEntry(
+                    name: formattedName,
+                    id: '$lat,$lon',
+                    coordinates: coord,
+                    icons: const [Icons.place],
+                  ),
+                );
+              }
             }
-          }
-          if (name != null) {
-            entries.add(
-              _SuggestionEntry(
-                name: name,
-                id: id,
-                coordinates: coord,
-                icons: _iconsForModes(modes),
-              ),
-            );
           }
         }
       }
@@ -359,10 +418,12 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         finalEntries = dedupEntries;
       }
 
+      final limitedEntries = finalEntries.take(12).toList();
+
       setState(() {
-        _suggestions = finalEntries.map((entry) => entry.name).toList();
-        _suggestionIcons = finalEntries.map((entry) => entry.icons).toList();
-        _suggestionEntries = finalEntries;
+        _suggestions = limitedEntries.map((entry) => entry.name).toList();
+        _suggestionIcons = limitedEntries.map((entry) => entry.icons).toList();
+        _suggestionEntries = limitedEntries;
         _isLoadingSuggestions = false;
       });
     } catch (e) {
@@ -459,7 +520,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           query: planQuery,
           requestVariables: Map<String, dynamic>.from(variables),
           responseText:
-              'HTTP ${response.statusCode}\n${response.rawBody.isNotEmpty ? response.rawBody : 'Nincs válasz törzs.'}',
+              'HTTP ${response.statusCode}\n${response.rawBody.isNotEmpty ? response.rawBody : AppTexts.apiNoResponseBody}',
         );
       }
 
@@ -467,7 +528,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       if (bodyMap == null) {
         return PlanSearchResult(
           hasMeaningfulResponse: false,
-          responseText: 'A válasz nem JSON objektum.',
+          responseText: AppTexts.apiResponseNotJson,
           query: planQuery,
           requestVariables: Map<String, dynamic>.from(variables),
         );
@@ -511,7 +572,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       debugPrint('Plan API exception: $e');
       return PlanSearchResult(
         hasMeaningfulResponse: false,
-        responseText: 'Plan API kivétel: $e',
+        responseText: AppTexts.apiException(e.toString()),
         query: planQuery,
       );
     }
@@ -531,7 +592,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
 
   String _formatTimeLabel(TimeOfDay? time) {
     if (time == null) {
-      return 'Válassz időt';
+      return AppTexts.formPickTime;
     }
     return '${_twoDigits(time.hour)}:${_twoDigits(time.minute)}';
   }
@@ -612,6 +673,10 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       return;
     }
     final entry = _suggestionEntries[index];
+    if (entry.id == 'CURRENT_LOCATION') {
+      _setCurrentLocation(_activeSearchField == _ActiveSearchField.from);
+      return;
+    }
     final token = entry.id == null ? entry.name : '${entry.name}::${entry.id}';
 
     if (_activeSearchField == _ActiveSearchField.from) {
@@ -701,13 +766,19 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                             focusNode: _fromFocusNode,
                             key: const Key('search1'),
                             decoration: InputDecoration(
-                              labelText: 'Indulás',
-                              hintText: 'Írj be legalább 3 karaktert...',
+                              labelText: AppTexts.formDeparture,
+                              hintText: AppTexts.formHintCharCount,
                               filled: true,
                               fillColor: Colors.transparent,
-                              prefixIcon: Icon(
-                                Icons.my_location_rounded,
-                                color: colorScheme.primary,
+                              prefixIcon: IconButton(
+                                icon: Icon(
+                                  Icons.my_location_rounded,
+                                  color: colorScheme.primary,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                onPressed: () => _setCurrentLocation(true),
+                                tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -733,13 +804,19 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                             focusNode: _toFocusNode,
                             key: const Key('search2'),
                             decoration: InputDecoration(
-                              labelText: 'Érkezés',
-                              hintText: 'Írj be legalább 3 karaktert...',
+                              labelText: AppTexts.formArrival,
+                              hintText: AppTexts.formHintCharCount,
                               filled: true,
                               fillColor: Colors.transparent,
-                              prefixIcon: Icon(
-                                Icons.location_on_rounded,
-                                color: colorScheme.primary,
+                              prefixIcon: IconButton(
+                                icon: Icon(
+                                  Icons.location_on_rounded,
+                                  color: colorScheme.primary,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                padding: EdgeInsets.zero,
+                                onPressed: () => _setCurrentLocation(false),
+                                tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
                               ),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -780,7 +857,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               size: 20,
                             ),
                             onPressed: _swapStartAndDestination,
-                            tooltip: 'Megfordítás',
+                            tooltip: AppTexts.formSwap,
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.all(6),
                             constraints: const BoxConstraints(),
@@ -790,18 +867,119 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                     ),
                   ],
                 ),
+                if (_isLoadingSuggestions)
+                  const Padding(
+                    padding: EdgeInsets.only(top: AppSpacing.md),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (_suggestions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 220),
+                      child: Card(
+                        child: ListView.separated(
+                          itemCount: _suggestions.length,
+                          separatorBuilder: (context, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final entry = _suggestionEntries[index];
+                            final suggestion = _suggestions[index];
+                            final vehicleTypes =
+                                index < _suggestionIcons.length
+                                ? _suggestionIcons[index]
+                                : const [Icons.directions_bus];
+
+                            final isCurrentLocation = entry.id == 'CURRENT_LOCATION';
+
+                            if (isCurrentLocation) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.15 : 0.25),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.4),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    leading: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary.withValues(alpha: 0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.my_location_rounded,
+                                        color: colorScheme.primary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    title: Text(
+                                      suggestion,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      AppTexts.isHungarian
+                                          ? 'Pozíció meghatározása GPS-szel'
+                                          : 'Determine position using GPS',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
+                                      ),
+                                    ),
+                                    onTap: () => _onSuggestionTap(index),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              title: Row(
+                                children: [
+                                  ...vehicleTypes.map(
+                                    (iconData) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        right: 4,
+                                      ),
+                                      child: Icon(iconData, size: 24),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(child: Text(suggestion)),
+                                ],
+                              ),
+                              onTap: () => _onSuggestionTap(index),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: AppSpacing.lg),
                 SegmentedButton<bool>(
-                  segments: const [
+                  segments: [
                     ButtonSegment<bool>(
                       value: true,
-                      icon: Icon(Icons.bolt),
-                      label: Text('Indulás most'),
+                      icon: const Icon(Icons.bolt),
+                      label: Text(AppTexts.formDepartNow),
                     ),
                     ButtonSegment<bool>(
                       value: false,
-                      icon: Icon(Icons.calendar_today),
-                      label: Text('Indulás később'),
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(AppTexts.formDepartLater),
                     ),
                   ],
                   selected: {_planForNow},
@@ -842,7 +1020,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                   onTap: widget.onPickDate,
                                   child: InputDecorator(
                                     decoration: InputDecoration(
-                                      labelText: 'Dátum',
+                                      labelText: AppTexts.formDate,
                                       suffixIcon: const Icon(
                                         Icons.calendar_today,
                                       ),
@@ -869,7 +1047,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                     ),
                                     child: Text(
                                       widget.selectedDate == null
-                                          ? 'Válassz dátumot'
+                                          ? AppTexts.formPickDate
                                           : '${widget.selectedDate!.toLocal()}'
                                                 .split(' ')[0],
                                       style: Theme.of(
@@ -907,7 +1085,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                             _pickTime(isArrival: false),
                                         child: InputDecorator(
                                           decoration: InputDecoration(
-                                            labelText: 'Indulás (idő)',
+                                            labelText: AppTexts.formDepartureTime,
                                             suffixIcon: const Icon(
                                               Icons.access_time,
                                             ),
@@ -972,7 +1150,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                             _pickTime(isArrival: true),
                                         child: InputDecorator(
                                           decoration: InputDecoration(
-                                            labelText: 'Érkezés (idő)',
+                                            labelText: AppTexts.formArrivalTime,
                                             suffixIcon: const Icon(
                                               Icons.access_time,
                                             ),
@@ -1014,59 +1192,13 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                         )
                       : const SizedBox.shrink(),
                 ),
-                if (_isLoadingSuggestions)
-                  const Padding(
-                    padding: EdgeInsets.only(top: AppSpacing.md),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (_suggestions.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.md),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 220),
-                      child: Card(
-                        child: ListView.separated(
-                          itemCount: _suggestions.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final suggestion = _suggestions[index];
-                            final vehicleTypes =
-                                index < _suggestionIcons.length
-                                ? _suggestionIcons[index]
-                                : const [Icons.directions_bus];
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              title: Row(
-                                children: [
-                                  ...vehicleTypes.map(
-                                    (iconData) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 4,
-                                      ),
-                                      child: Icon(iconData, size: 24),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(suggestion)),
-                                ],
-                              ),
-                              onTap: () => _onSuggestionTap(index),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: AppSpacing.xl),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _isLoadingPlan ? null : _submitPlanSearch,
                     icon: const Icon(Icons.search),
-                    label: const Text('Keresés'),
+                    label: Text(AppTexts.formSearch),
                     style: FilledButton.styleFrom(
                       minimumSize: const Size(
                         AppSpacing.touchTarget,
@@ -1091,8 +1223,8 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                     ),
                     label: Text(
                       _showAdvancedFields
-                          ? 'További beállítások elrejtése'
-                          : 'További beállítások',
+                          ? AppTexts.formHideAdvanced
+                          : AppTexts.formShowAdvanced,
                     ),
                   ),
                 ),
@@ -1132,7 +1264,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          'Átszállások',
+                                          AppTexts.formTransfers,
                                           style: Theme.of(
                                             context,
                                           ).textTheme.titleSmall,
@@ -1155,7 +1287,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          'Gyaloglás',
+                                          AppTexts.formWalking,
                                           style: Theme.of(
                                             context,
                                           ).textTheme.titleSmall,
@@ -1179,7 +1311,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Közlekedési módok',
+                                        AppTexts.formTransportModes,
                                         style: Theme.of(
                                           context,
                                         ).textTheme.titleSmall,
@@ -1198,7 +1330,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Jegyfigyelés',
+                                        AppTexts.formTicketWatch,
                                         style: Theme.of(
                                           context,
                                         ).textTheme.titleSmall,
@@ -1210,7 +1342,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                           minHeight: 48,
                                         ),
                                         child: FilterChip(
-                                          label: const Text('Jegyfigyelés'),
+                                          label: Text(AppTexts.formTicketWatch),
                                           selected: widget.ticketWatch,
                                           backgroundColor: isDark
                                               ? const Color(0xFF1A1615)
@@ -1295,7 +1427,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       return ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         child: FilterChip(
-          label: Text(label),
+          label: Text(AppTexts.localizeTransportMode(label)),
           selected: selected,
           backgroundColor: unselectedBg,
           selectedColor: selectedBg,
@@ -1380,5 +1512,113 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       }
     }
     return merged;
+  }
+
+  Future<void> _setCurrentLocation(bool isFromField) async {
+    setState(() {
+      _isLoadingSuggestions = true;
+    });
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception(AppTexts.mapLocationDisabled);
+      }
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception(AppTexts.mapPermissionRequired);
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception(AppTexts.mapPermissionRequired);
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 5),
+        ),
+      );
+
+      final String name = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
+      final String token = '$name::${position.latitude},${position.longitude}';
+      final List<double> coords = [position.longitude, position.latitude];
+
+      setState(() {
+        if (isFromField) {
+          widget.fromController.text = name;
+          _selectedFromPlaceToken = token;
+          _selectedFromCoordinates = coords;
+          _fromFocusNode.unfocus();
+        } else {
+          widget.toController.text = name;
+          _selectedToPlaceToken = token;
+          _selectedToCoordinates = coords;
+          _toFocusNode.unfocus();
+        }
+        _suggestions = [];
+        _suggestionIcons = [];
+        _suggestionEntries = [];
+        _activeSearchField = _ActiveSearchField.none;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString()),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingSuggestions = false;
+        });
+      }
+    }
+  }
+
+  String _formatPhotonName(Map<String, dynamic> properties) {
+    final name = properties['name']?.toString() ?? '';
+    final street = properties['street']?.toString() ?? '';
+    final houseNumber = properties['housenumber']?.toString() ?? '';
+    final city = properties['city']?.toString() ?? '';
+    final postcode = properties['postcode']?.toString() ?? '';
+
+    // If name is just the house number, treat it as empty to avoid redundancy
+    final cleanName = (name.isNotEmpty && RegExp(r'^\d+$').hasMatch(name)) ? '' : name;
+
+    final parts = <String>[];
+
+    if (cleanName.isNotEmpty) {
+      parts.add(cleanName);
+      if (street.isNotEmpty) {
+        if (houseNumber.isNotEmpty) {
+          parts.add('$street $houseNumber');
+        } else {
+          parts.add(street);
+        }
+      }
+    } else if (street.isNotEmpty) {
+      if (houseNumber.isNotEmpty) {
+        parts.add('$street $houseNumber');
+      } else {
+        parts.add(street);
+      }
+    }
+
+    if (city.isNotEmpty && !parts.contains(city)) {
+      parts.add(city);
+    }
+
+    if (postcode.isNotEmpty) {
+      parts.add(postcode);
+    }
+
+    return parts.isEmpty ? (AppTexts.isHungarian ? 'Ismeretlen hely' : 'Unknown location') : parts.join(', ');
   }
 }

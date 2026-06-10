@@ -93,16 +93,16 @@ extension _MapViewInteractions on _MapViewState {
 
         final rawServiceLabel = item['label'] is String
             ? item['label'] as String
-            : (item['vehicleId']?.toString() ?? 'Jármű');
+            : (item['uicCode']?.toString() ?? AppTexts.unknown);
         final serviceLabel = _plainTextFromHtml(
           item['label'] is String
               ? item['label'] as String
-              : (item['vehicleId']?.toString() ?? 'Jármű'),
+              : (item['uicCode']?.toString() ?? AppTexts.unknown),
         );
         final uicLabel = _plainTextFromHtml(
           item['uicCode'] is String
               ? item['uicCode'] as String
-              : (item['vehicleId']?.toString() ?? 'Jármű'),
+              : (item['vehicleId']?.toString() ?? AppTexts.unknown),
         );
 
         final serviceLabelUsesSpanFont = _containsSpanMarkup(rawServiceLabel);
@@ -112,14 +112,18 @@ extension _MapViewInteractions on _MapViewState {
 
         final rawRouteShortName =
             trip is Map && trip['routeShortName'] is String
-                ? trip['routeShortName'] as String
-                : '';
+            ? trip['routeShortName'] as String
+            : '';
         final routeShortName = _plainTextFromHtml(rawRouteShortName);
-        final routeShortNameUsesSpanFont =
-            _containsSpanMarkup(rawRouteShortName);
+        final routeShortNameUsesSpanFont = _containsSpanMarkup(
+          rawRouteShortName,
+        );
 
         final vehicleModel = _plainTextFromHtml(
-          item['vehicleModel'] is String ? item['vehicleModel'] as String : "-",
+          item['vehicleModel'] is String &&
+                  (item['vehicleModel'] as String).trim().isNotEmpty
+              ? item['vehicleModel'] as String
+              : VehicleTypeLookup(uicLabel).vehicleType,
         );
 
         final rawTripNumber = trip is Map && trip['tripShortName'] is String
@@ -132,22 +136,22 @@ extension _MapViewInteractions on _MapViewState {
             : '';
         final tripHeadsign = _plainTextFromHtml(rawTripHeadsign);
         final tripHeadsignUsesSpanFont = _containsSpanMarkup(rawTripHeadsign);
-        final tripGtfsId =
-            trip is Map && trip['gtfsId'] is String ? (trip['gtfsId'] as String) : '';
-        final serviceDate =
-            trip is Map && trip['serviceDate'] is String
-                ? (trip['serviceDate'] as String)
-                : _todayServiceDate();
+        final tripGtfsId = trip is Map && trip['gtfsId'] is String
+            ? (trip['gtfsId'] as String)
+            : '';
+        final serviceDate = trip is Map && trip['serviceDate'] is String
+            ? (trip['serviceDate'] as String)
+            : _todayServiceDate();
 
         final nextStop = item['nextStop'];
         final prevOrCurrentStop = item['prevOrCurrentStop'];
         final arrivalDelaySeconds =
             nextStop is Map && nextStop['arrivalDelay'] is num
-                ? (nextStop['arrivalDelay'] as num).toInt()
-                : (prevOrCurrentStop is Map &&
-                        prevOrCurrentStop['arrivalDelay'] is num
-                    ? (prevOrCurrentStop['arrivalDelay'] as num).toInt()
-                    : (prevOrCurrentStop is Map &&
+            ? (nextStop['arrivalDelay'] as num).toInt()
+            : (prevOrCurrentStop is Map &&
+                      prevOrCurrentStop['arrivalDelay'] is num
+                  ? (prevOrCurrentStop['arrivalDelay'] as num).toInt()
+                  : (prevOrCurrentStop is Map &&
                             prevOrCurrentStop['departureDelay'] is num
                         ? (prevOrCurrentStop['departureDelay'] as num).toInt()
                         : null));
@@ -253,11 +257,12 @@ extension _MapViewInteractions on _MapViewState {
                   final bearing = item['bearing'] is num
                       ? (item['bearing'] as num).toDouble()
                       : null;
-                  final stopId = item['gtfsId']?.toString().trim().isNotEmpty == true
+                  final stopId =
+                      item['gtfsId']?.toString().trim().isNotEmpty == true
                       ? item['gtfsId'].toString().trim()
                       : '${lat.toStringAsFixed(6)}:${lon.toStringAsFixed(6)}';
                   final stopName = _plainTextFromHtml(
-                    item['name']?.toString() ?? 'Megálló',
+                    item['name']?.toString() ?? AppTexts.tripStopColumn,
                   );
                   parsedStops.add(
                     _MapStopData(
@@ -318,11 +323,9 @@ extension _MapViewInteractions on _MapViewState {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A helymeghatározás nincs bekapcsolva.'),
-            ),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(AppTexts.mapLocationDisabled)));
         }
         return;
       }
@@ -336,9 +339,7 @@ extension _MapViewInteractions on _MapViewState {
           permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A helyhozzáférés engedély szükséges.'),
-            ),
+            SnackBar(content: Text(AppTexts.mapPermissionRequired)),
           );
         }
         return;
@@ -368,27 +369,21 @@ extension _MapViewInteractions on _MapViewState {
       );
     } on TimeoutException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('A pozíció lekérése túl sokáig tartott.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppTexts.mapTimeout)));
       }
     } on MissingPluginException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'A lokáció plugin nincs betöltve. Indítsd újra az appot.',
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppTexts.mapPluginNotLoaded)));
       }
     } on PlatformException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('A lokáció lekérése nem sikerült.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppTexts.mapLocationFailed)));
       }
     } finally {
       if (mounted) {
@@ -450,8 +445,11 @@ extension _MapViewInteractions on _MapViewState {
       if (!response.isSuccess) {
         refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
-          _selectedStopQuickInfo =
-              _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
+          _selectedStopQuickInfo = _StopQuickInfo(
+            stopName: fallbackName,
+            lineCount: 0,
+            lines: const [],
+          );
         });
         return;
       }
@@ -460,8 +458,11 @@ extension _MapViewInteractions on _MapViewState {
       if (decoded == null) {
         refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
-          _selectedStopQuickInfo =
-              _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
+          _selectedStopQuickInfo = _StopQuickInfo(
+            stopName: fallbackName,
+            lineCount: 0,
+            lines: const [],
+          );
         });
         return;
       }
@@ -470,8 +471,11 @@ extension _MapViewInteractions on _MapViewState {
       if (stop is! Map) {
         refreshState(() {
           _isLoadingSelectedStopQuickInfo = false;
-          _selectedStopQuickInfo =
-              _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
+          _selectedStopQuickInfo = _StopQuickInfo(
+            stopName: fallbackName,
+            lineCount: 0,
+            lines: const [],
+          );
         });
         return;
       }
@@ -525,8 +529,11 @@ extension _MapViewInteractions on _MapViewState {
       }
       refreshState(() {
         _isLoadingSelectedStopQuickInfo = false;
-        _selectedStopQuickInfo =
-            _StopQuickInfo(stopName: fallbackName, lineCount: 0, lines: const []);
+        _selectedStopQuickInfo = _StopQuickInfo(
+          stopName: fallbackName,
+          lineCount: 0,
+          lines: const [],
+        );
       });
     }
   }
@@ -539,8 +546,10 @@ extension _MapViewInteractions on _MapViewState {
           if (_normalizedStopGroupName(candidate.name) != normalized) {
             return false;
           }
-          final latDiff = (candidate.point.latitude - stop.point.latitude).abs();
-          final lonDiff = (candidate.point.longitude - stop.point.longitude).abs();
+          final latDiff = (candidate.point.latitude - stop.point.latitude)
+              .abs();
+          final lonDiff = (candidate.point.longitude - stop.point.longitude)
+              .abs();
           return latDiff <= 0.0025 && lonDiff <= 0.0025;
         })
         .map((candidate) => candidate.stopId)
@@ -556,7 +565,10 @@ extension _MapViewInteractions on _MapViewState {
         context: context,
         builder: (_) => Dialog(
           clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 24,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
             child: StopDetailsScreen(

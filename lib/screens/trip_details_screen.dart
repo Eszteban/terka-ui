@@ -5,10 +5,12 @@ import 'package:latlong2/latlong.dart';
 
 import '../services/graphql/graphql_client.dart';
 import '../services/graphql/graphql_queries.dart';
+import '../theme/app_texts.dart';
 import '../utils/markup_text_utils.dart';
 import '../widgets/maps/plan_map_view.dart';
 import '../widgets/maps/route_map_data.dart';
 import '../widgets/maps/vehicle_info_card.dart';
+import '../widgets/alerts_section.dart';
 import 'stop_details_screen.dart';
 
 typedef TripDetailsBackgroundMapCallback =
@@ -131,7 +133,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Nem sikerült a frissítés: $message')),
+            SnackBar(content: Text(AppTexts.stopErrorUpdate(message))),
           );
         }
       }
@@ -151,14 +153,14 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
       final decoded = response.json;
       if (decoded == null) {
-        handleError('Érvénytelen válasz formátum.');
+        handleError(AppTexts.stopInvalidResponse);
         return;
       }
 
       final data = decoded['data'];
       final trip = data is Map ? data['trip'] : null;
       if (trip is! Map) {
-        handleError('A járat adatai nem érhetők el.');
+        handleError(AppTexts.tripDetailsNotAvailable);
         return;
       }
 
@@ -201,7 +203,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            useMobileMapSheet || _showMap ? 'Járat térképen' : 'Járat adatai',
+            useMobileMapSheet || _showMap
+                ? AppTexts.tripRouteOnMap
+                : AppTexts.tripDetails,
           ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -242,10 +246,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             children: [
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: _loadTrip,
-                child: const Text('Újrapróbálás'),
-              ),
+              FilledButton(onPressed: _loadTrip, child: Text(AppTexts.retry)),
             ],
           ),
         ),
@@ -254,7 +255,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
     final trip = _trip;
     if (trip == null) {
-      return const Center(child: Text('Nincs megjeleníthető adat.'));
+      return Center(child: Text(AppTexts.noData));
     }
 
     if (_useMobileMapSheet) {
@@ -308,10 +309,18 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
               Text(
                 tripHeadsign,
                 softWrap: true,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: AlertsSection(alerts: trip['alerts']),
         ),
 
         Expanded(
@@ -329,10 +338,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columnSpacing: 12,
-        columns: const [
-          DataColumn(label: Text('Megálló')),
-          DataColumn(label: Text('Érkezés')),
-          DataColumn(label: Text('Indulás')),
+        columns: [
+          DataColumn(label: Text(AppTexts.tripStopColumn)),
+          DataColumn(label: Text(AppTexts.stopTimeLabel), numeric: true),
         ],
         rows: stopTimes.map((stopTime) {
           final stop = stopTime['stop'];
@@ -352,14 +360,105 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
             );
           }
 
+          final scheduledArr = _asNum(stopTime['scheduledArrival']);
+          final realtimeArr = _asNum(stopTime['realtimeArrival']);
+          final arrDelay = _asNum(stopTime['arrivalDelay']);
+
+          final scheduledDep = _asNum(stopTime['scheduledDeparture']);
+          final realtimeDep = _asNum(stopTime['realtimeDeparture']);
+          final depDelay = _asNum(stopTime['departureDelay']);
+
+          final isRealtime = stopTime['realtime'] == true;
+
+          final isSameTime =
+              realtimeArr != null &&
+              realtimeDep != null &&
+              realtimeArr == realtimeDep &&
+              scheduledArr == scheduledDep;
+
+          final String? customTooltipMsg;
+          if (scheduledArr != null && scheduledDep != null && scheduledArr != scheduledDep) {
+            customTooltipMsg = AppTexts.tripScheduledTimeRange(
+              _formatEpoch(scheduledArr),
+              _formatEpoch(scheduledDep),
+            );
+          } else {
+            customTooltipMsg = null;
+          }
+
+          Widget timeCell;
+          if (realtimeArr == null && realtimeDep == null) {
+            timeCell = const Text('-');
+          } else if (realtimeArr == null) {
+            // First stop: show only departure
+            timeCell = _buildSingleRealtimeTime(
+              scheduled: scheduledDep,
+              realtime: realtimeDep,
+              delay: depDelay,
+              isRealtime: isRealtime,
+              passedStop: passedStop,
+              tooltipType: 'departure',
+              customTooltip: customTooltipMsg,
+            );
+          } else if (realtimeDep == null) {
+            // Last stop: show only arrival
+            timeCell = _buildSingleRealtimeTime(
+              scheduled: scheduledArr,
+              realtime: realtimeArr,
+              delay: arrDelay,
+              isRealtime: isRealtime,
+              passedStop: passedStop,
+              tooltipType: 'arrival',
+              customTooltip: customTooltipMsg,
+            );
+          } else if (isSameTime) {
+            // Arrival and departure are equal
+            timeCell = _buildSingleRealtimeTime(
+              scheduled: scheduledDep,
+              realtime: realtimeDep,
+              delay: depDelay,
+              isRealtime: isRealtime,
+              passedStop: passedStop,
+              customTooltip: customTooltipMsg,
+            );
+          } else {
+            // Arrival and departure differ: show stacked
+            timeCell = Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildSingleRealtimeTime(
+                  scheduled: scheduledArr,
+                  realtime: realtimeArr,
+                  delay: arrDelay,
+                  isRealtime: isRealtime,
+                  passedStop: passedStop,
+                  suffix: '-',
+                  tooltipType: 'arrival',
+                  customTooltip: customTooltipMsg,
+                ),
+                const SizedBox(height: 2),
+                _buildSingleRealtimeTime(
+                  scheduled: scheduledDep,
+                  realtime: realtimeDep,
+                  delay: depDelay,
+                  isRealtime: isRealtime,
+                  passedStop: passedStop,
+                  suffix: '',
+                  tooltipType: 'departure',
+                  customTooltip: customTooltipMsg,
+                ),
+              ],
+            );
+          }
+
           return DataRow(
             cells: [
               DataCell(
                 Builder(
                   builder: (context) {
-                    final bearing = stop is Map ? stop['bearing'] : null;
                     return SizedBox(
-                      width: 180,
+                      width: 240,
                       child: stopId.isNotEmpty
                           ? InkWell(
                               onTap: () => _openStopDetails(
@@ -367,83 +466,19 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                                 stopName: stopName,
                                 initialStopPoint: point,
                               ),
-                              child: bearing != null
-                                  ? Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            stopName,
-                                            style: const TextStyle(
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Transform.rotate(
-                                          angle: (bearing as num).toDouble() *
-                                              (3.141592653589793 / 180),
-                                          child: const Icon(
-                                            Icons.navigation,
-                                            size: 11,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : Text(
-                                      stopName,
-                                      style: const TextStyle(
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
+                              child: Text(
+                                stopName,
+                                style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
                             )
-                          : (bearing != null
-                              ? Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        stopName,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Transform.rotate(
-                                      angle: (bearing as num).toDouble() *
-                                          (3.141592653589793 / 180),
-                                      child: const Icon(
-                                        Icons.navigation,
-                                        size: 11,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Text(stopName)),
+                          : (Text(stopName)),
                     );
                   },
                 ),
               ),
-              DataCell(
-                _buildRealtimeTime(
-                  scheduled: _asNum(stopTime['scheduledArrival']),
-                  realtime: _asNum(stopTime['realtimeArrival']),
-                  delay: _asNum(stopTime['arrivalDelay']),
-                  isRealtime: stopTime['realtime'] == true,
-                  passedStop: passedStop,
-                ),
-              ),
-              DataCell(
-                _buildRealtimeTime(
-                  scheduled: _asNum(stopTime['scheduledDeparture']),
-                  realtime: _asNum(stopTime['realtimeDeparture']),
-                  delay: _asNum(stopTime['departureDelay']),
-                  isRealtime: stopTime['realtime'] == true,
-                  passedStop: passedStop,
-                ),
-              ),
+              DataCell(timeCell),
             ],
           );
         }).toList(),
@@ -541,7 +576,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Pöccintsd fel az összes időadathoz',
+                    AppTexts.tripSwipeInstruction,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
@@ -575,6 +610,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  AlertsSection(alerts: trip['alerts']),
                   _buildStopTimesDataTable(stopTimes),
                 ],
               ),
@@ -1013,7 +1049,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
                     _showMap = false;
                   });
                 },
-                child: const Text('Vissza'),
+                child: Text(AppTexts.back),
               ),
             ),
           ],
@@ -1053,15 +1089,15 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         : (vehicleId != null &&
               vehicleTripGtfsId != null &&
               vehicleId == vehicleTripGtfsId)
-        ? 'Becsült pozíció'
+        ? AppTexts.estimatedPosition
         : rawVehicleLabel.trim().isNotEmpty
         ? _plainText(rawVehicleLabel)
-        : 'ismeretlen jármű';
+        : AppTexts.unknownVehicle;
 
     final routeMode = route['mode']?.toString() ?? '';
     final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
-        ? 'vonatpótló busz'
-        : 'Ismeretlen';
+        ? AppTexts.railReplacementBus
+        : AppTexts.unknown;
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final modelLabel = rawVehicleModel.trim().isNotEmpty
         ? _plainText(rawVehicleModel)
@@ -1122,14 +1158,14 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
         : (vehicleId != null &&
               vehicleTripGtfsId != null &&
               vehicleId == vehicleTripGtfsId)
-        ? 'Becsült pozíció'
+        ? AppTexts.estimatedPosition
         : rawVehicleLabel.trim().isNotEmpty
         ? _plainText(rawVehicleLabel)
-        : 'ismeretlen jármű';
+        : AppTexts.unknownVehicle;
     final routeMode = route['mode']?.toString() ?? '';
     final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
-        ? 'vonatpótló busz'
-        : 'Ismeretlen';
+        ? AppTexts.railReplacementBus
+        : AppTexts.unknown;
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final model = rawVehicleModel.trim().isNotEmpty
         ? _plainText(rawVehicleModel)
@@ -1144,8 +1180,8 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     String nextStopName = vehicle['nextStop']["stop"]["name"]?.toString() ?? '';
 
     final vehicleInfoText = hasVehicle
-        ? '$label\n$model\n$delayText\nköv: $nextStopName'
-        : 'Nem található jármű';
+        ? '$label\n$model\n$delayText\n${AppTexts.tripNextStopPrefix}$nextStopName'
+        : AppTexts.tripNoVehicle;
 
     return (
       line: line,
@@ -1158,75 +1194,70 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     );
   }
 
-  Widget _buildRealtimeTime({
+  Widget _buildSingleRealtimeTime({
     required num? scheduled,
     required num? realtime,
     required num? delay,
     required bool isRealtime,
     required bool passedStop,
+    String? suffix,
+    String tooltipType = 'combined',
+    String? customTooltip,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final baseTextColor = colorScheme.onSurface;
     final mutedTextColor = colorScheme.onSurfaceVariant;
     final scheduledText = _formatEpoch(scheduled);
     final realtimeText = _formatEpoch(realtime);
-    final hasRealtimeDelta =
-        scheduled != null && realtime != null && realtime != scheduled;
 
+    Color color;
     if (passedStop) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            scheduledText,
-            style: TextStyle(
-              decoration: TextDecoration.lineThrough,
-              color: mutedTextColor,
-            ),
-          ),
-          Text(realtimeText, style: TextStyle(color: mutedTextColor)),
-        ],
-      );
+      color = mutedTextColor;
+    } else if (!isRealtime) {
+      color = baseTextColor;
+    } else if (scheduled == realtime || scheduled == null || realtime == null) {
+      color = Colors.green;
+    } else {
+      color = (delay ?? 0) > 0
+          ? Colors.red
+          : (delay ?? 0) < 0
+          ? Colors.blue
+          : baseTextColor;
     }
 
-    if (!isRealtime) {
-      return Text(
-        realtimeText,
-        style: TextStyle(color: baseTextColor, fontWeight: FontWeight.w700),
-      );
-    }
+    final mainText = suffix != null ? '$realtimeText $suffix' : realtimeText;
 
-    if (!hasRealtimeDelta) {
-      return Text(
-        realtimeText,
-        style: TextStyle(color: Colors.green, fontWeight: FontWeight.w700),
-      );
-    }
-
-    final color = (delay ?? 0) > 0
-        ? Colors.red
-        : (delay ?? 0) < 0
-        ? Colors.blue
-        : baseTextColor;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          scheduledText,
-          style: TextStyle(
-            decoration: TextDecoration.lineThrough,
-            color: baseTextColor,
-          ),
-        ),
-        Text(
-          realtimeText,
-          style: TextStyle(color: color, fontWeight: FontWeight.w700),
-        ),
-      ],
+    final timeWidget = Text(
+      mainText,
+      style: TextStyle(color: color, fontWeight: FontWeight.w700),
     );
+
+    if (customTooltip != null) {
+      return Tooltip(
+        message: customTooltip,
+        triggerMode: TooltipTriggerMode.longPress,
+        child: timeWidget,
+      );
+    }
+
+    if (scheduled != null) {
+      final String msg;
+      if (tooltipType == 'arrival') {
+        msg = AppTexts.tripScheduledArrival(scheduledText);
+      } else if (tooltipType == 'departure') {
+        msg = AppTexts.tripScheduledDeparture(scheduledText);
+      } else {
+        msg = AppTexts.tripScheduledTime(scheduledText);
+      }
+
+      return Tooltip(
+        message: msg,
+        triggerMode: TooltipTriggerMode.longPress,
+        child: timeWidget,
+      );
+    }
+
+    return timeWidget;
   }
 
   List<Map<String, dynamic>> _stopTimes(Map<String, dynamic> trip) {
@@ -1256,10 +1287,10 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     return const {};
   }
 
-  List<({LatLng point, String label, String? stopId, double? bearing})> _stopPoints(
-    Map<String, dynamic> trip,
-  ) {
-    final result = <({LatLng point, String label, String? stopId, double? bearing})>[];
+  List<({LatLng point, String label, String? stopId, double? bearing})>
+  _stopPoints(Map<String, dynamic> trip) {
+    final result =
+        <({LatLng point, String label, String? stopId, double? bearing})>[];
     for (final stopTime in _stopTimes(trip)) {
       final stop = stopTime['stop'];
       if (stop is! Map) {
@@ -1268,7 +1299,9 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
       final lat = stop['lat'];
       final lon = stop['lon'];
       final name = stop['name']?.toString() ?? '';
-      final bearing = stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
+      final bearing = stop['bearing'] is num
+          ? (stop['bearing'] as num).toDouble()
+          : null;
       if (lat is num && lon is num) {
         result.add((
           point: LatLng(lat.toDouble(), lon.toDouble()),
@@ -1547,16 +1580,16 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
 
   String _delayText(num? delaySeconds) {
     if (delaySeconds == null) {
-      return 'késés: n/a';
+      return AppTexts.tripDelayNa;
     }
     final minutes = (delaySeconds / 60).round();
     if (minutes > 0) {
-      return 'késés: +${minutes}p';
+      return AppTexts.tripDelayMinutes('+$minutes');
     }
     if (minutes < 0) {
-      return 'késés: ${minutes}p';
+      return AppTexts.tripDelayMinutes('$minutes');
     }
-    return 'késés: 0p';
+    return AppTexts.tripDelayZero;
   }
 
   String _plainText(String input) {

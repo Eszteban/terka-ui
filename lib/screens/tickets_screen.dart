@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_api_service.dart';
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
 import 'add_ticket_screen.dart';
 
 class TicketsScreen extends StatefulWidget {
@@ -17,6 +18,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
   bool _isLoading = true;
   String? _error;
   List<TicketItem> _tickets = const [];
+  List<PassType> _passTypes = const [];
 
   @override
   void initState() {
@@ -30,15 +32,22 @@ class _TicketsScreenState extends State<TicketsScreen> {
       _error = null;
     });
 
-    final result = await _authApiService.fetchTickets();
+    final results = await Future.wait([
+      _authApiService.fetchTickets(),
+      _authApiService.fetchPassTypes(),
+    ]);
     if (!mounted) {
       return;
     }
 
+    final ticketsResult = results[0] as TicketsResult;
+    final passTypesResult = results[1] as List<PassType>;
+
     setState(() {
       _isLoading = false;
-      _error = result.ok ? null : (result.error ?? 'Nem sikerült lekérni a jegyeket.');
-      _tickets = result.tickets;
+      _error = ticketsResult.ok ? null : (ticketsResult.error ?? AppTexts.ticketsLoadFailed);
+      _tickets = ticketsResult.tickets;
+      _passTypes = passTypesResult;
     });
   }
 
@@ -55,19 +64,17 @@ class _TicketsScreenState extends State<TicketsScreen> {
   }
 
   Future<void> _confirmDeleteTicket(TicketItem ticket) async {
-    final name = (ticket.agencyNames != null && ticket.agencyNames!.isNotEmpty)
-        ? ticket.agencyNames!.join(', ')
-        : ticket.agencyName;
+    final name = ticket.getDisplayName(_passTypes);
 
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Jegy törlése'),
-        content: Text('Biztosan törölni szeretnéd a következő jegyet?\n\n$name'),
+        title: Text(AppTexts.ticketsDeleteConfirmTitle),
+        content: Text(AppTexts.ticketsDeleteConfirmContent(name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Mégse'),
+            child: Text(AppTexts.ticketsCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
@@ -75,7 +82,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
-            child: const Text('Törlés'),
+            child: Text(AppTexts.ticketsDelete),
           ),
         ],
       ),
@@ -89,7 +96,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
       if (mounted) {
         if (result.ok) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Jegy sikeresen törölve!')),
+            SnackBar(content: Text(AppTexts.ticketsDeleteSuccess)),
           );
           _loadTickets();
         } else {
@@ -97,7 +104,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
             _isLoading = false;
           });
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result.error ?? 'Nem sikerült törölni a jegyet.')),
+            SnackBar(content: Text(result.error ?? AppTexts.ticketsDeleteFailed)),
           );
         }
       }
@@ -138,7 +145,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Jegyeim')),
+      appBar: AppBar(title: Text(AppTexts.ticketsTitle)),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadTickets,
@@ -152,15 +159,15 @@ class _TicketsScreenState extends State<TicketsScreen> {
                     const SizedBox(height: AppSpacing.lg),
                     FilledButton(
                       onPressed: _loadTickets,
-                      child: const Text('Újrapróbálás'),
+                      child: Text(AppTexts.retry),
                     ),
                   ],
                 )
               : _tickets.isEmpty
               ? ListView(
                   padding: const EdgeInsets.all(AppSpacing.lg),
-                  children: const [
-                    Text('Nincs még jegyed. A Profil -> Jegy hozzáadása gombbal tudsz felvenni.'),
+                  children: [
+                    Text(AppTexts.ticketsEmpty),
                   ],
                 )
               : ListView.separated(
@@ -185,9 +192,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    (ticket.agencyNames != null && ticket.agencyNames!.isNotEmpty)
-                                            ? ticket.agencyNames!.join(', ')
-                                            : ticket.agencyName,
+                                    ticket.getDisplayName(_passTypes),
                                     style: Theme.of(context).textTheme.titleMedium,
                                   ),
                                 ),
@@ -203,13 +208,13 @@ class _TicketsScreenState extends State<TicketsScreen> {
                                     }
                                   },
                                   itemBuilder: (context) => [
-                                    const PopupMenuItem<String>(
+                                    PopupMenuItem<String>(
                                       value: 'edit',
                                       child: Row(
                                         children: [
-                                          Icon(Icons.edit_outlined, size: 20),
-                                          SizedBox(width: 8),
-                                          Text('Módosítás'),
+                                          const Icon(Icons.edit_outlined, size: 20),
+                                          const SizedBox(width: 8),
+                                          Text(AppTexts.ticketsModify),
                                         ],
                                       ),
                                     ),
@@ -224,7 +229,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
                                           ),
                                           const SizedBox(width: 8),
                                           Text(
-                                            'Törlés',
+                                            AppTexts.ticketsDelete,
                                             style: TextStyle(
                                               color: Theme.of(context).colorScheme.error,
                                             ),
@@ -237,13 +242,13 @@ class _TicketsScreenState extends State<TicketsScreen> {
                               ],
                             ),
                             const SizedBox(height: AppSpacing.xs),
-                            Text('Típus: ${ticket.ticketType}'),
+                            Text(AppTexts.ticketsType(ticket.ticketType)),
                             const SizedBox(height: AppSpacing.xs),
-                            Text('Kezdet: ${isSingle ? '-' : _formatDateTime(ticket.ticketStart)}'),
+                            Text(AppTexts.ticketsStart(isSingle ? '-' : _formatDateTime(ticket.ticketStart))),
                             const SizedBox(height: AppSpacing.xs),
-                            Text('Lejárat: ${isSingle ? '-' : _formatDateTime(ticket.ticketEnd)}'),
+                            Text(AppTexts.ticketsEnd(isSingle ? '-' : _formatDateTime(ticket.ticketEnd))),
                             const SizedBox(height: AppSpacing.xs),
-                            Text('Mennyiség: ${ticket.quantity ?? '-'}'),
+                            Text(AppTexts.ticketsQuantity(ticket.quantity?.toString() ?? '-')),
                           ],
                         ),
                       ),

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
 
+import '../../theme/app_texts.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 
@@ -263,8 +264,8 @@ class _PlanMapViewState extends State<PlanMapView> {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A helymeghatározás nincs bekapcsolva.'),
+            SnackBar(
+              content: Text(AppTexts.mapLocationDisabled),
             ),
           );
         }
@@ -280,8 +281,8 @@ class _PlanMapViewState extends State<PlanMapView> {
           permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('A helyhozzáférés engedély szükséges.'),
+            SnackBar(
+              content: Text(AppTexts.mapPermissionRequired),
             ),
           );
         }
@@ -304,17 +305,17 @@ class _PlanMapViewState extends State<PlanMapView> {
     } on TimeoutException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('A pozíció lekérése túl sokáig tartott.'),
+          SnackBar(
+            content: Text(AppTexts.mapTimeout),
           ),
         );
       }
     } on MissingPluginException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'A lokáció plugin nincs betöltve. Indítsd újra az appot.',
+              AppTexts.mapPluginNotLoaded,
             ),
           ),
         );
@@ -322,7 +323,7 @@ class _PlanMapViewState extends State<PlanMapView> {
     } on PlatformException {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('A lokáció lekérése nem sikerült.')),
+          SnackBar(content: Text(AppTexts.mapLocationFailed)),
         );
       }
     } finally {
@@ -353,7 +354,7 @@ class _PlanMapViewState extends State<PlanMapView> {
         }
 
         if (snapshot.data != true) {
-          return const Center(child: Text('A térképet nem sikerült betölteni'));
+          return Center(child: Text(AppTexts.mapLoadFailed));
         }
 
         final fallbackCenter =
@@ -414,7 +415,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                           (segment) => Polyline(
                             points: segment.points,
                             color: segment.isWalk
-                                ? Colors.black
+                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
                                 : segment.color,
                             strokeWidth: 5,
                             pattern: segment.isWalk
@@ -631,7 +632,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                   if (widget.showMyLocationButton) ...[
                     FloatingActionButton.small(
                       heroTag: 'plan_map_my_location',
-                      tooltip: 'Tartózkodási hely',
+                      tooltip: AppTexts.mapTooltipMyLocation,
                       onPressed: _jumpToCurrentLocation,
                       child: _isLocating
                           ? const SizedBox(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_api_service.dart';
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
 
 class AddTicketScreen extends StatefulWidget {
   final TicketItem? ticket;
@@ -57,7 +58,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     if (!result.ok) {
       setState(() {
         _isLoadingOptions = false;
-        _error = result.error ?? 'Nem sikerült betölteni az opciókat.';
+        _error = result.error ?? AppTexts.addTicketOptionsLoadFailed;
       });
       return;
     }
@@ -221,14 +222,14 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     if (!_isPass) {
       if (_selectedAgency == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Válassz szolgáltatót.')),
+          SnackBar(content: Text(AppTexts.addTicketAgencyValidator)),
         );
         return;
       }
     } else {
       if (_selectedPassType == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Válassz bérlettípust.')),
+          SnackBar(content: Text(AppTexts.addTicketPassTypeValidator)),
         );
         return;
       }
@@ -291,13 +292,13 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
     if (!result.ok) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error ?? 'Nem sikerült hozzáadni a jegyet.')),
+        SnackBar(content: Text(result.error ?? AppTexts.addTicketFailed)),
       );
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message ?? 'Jegy hozzáadva!')),
+      SnackBar(content: Text(result.message ?? (widget.ticket != null ? AppTexts.authUpdateTicketSuccess : AppTexts.addTicketSuccess))),
     );
     Navigator.of(context).pop(true);
   }
@@ -321,7 +322,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.ticket != null ? 'Jegy módosítása' : 'Jegy hozzáadása'),
+        title: Text(widget.ticket != null ? AppTexts.editTicketTitle : AppTexts.addTicketTitle),
       ),
       body: SafeArea(
         child: _isLoadingOptions
@@ -337,7 +338,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                           const SizedBox(height: AppSpacing.lg),
                           FilledButton(
                             onPressed: _loadOptions,
-                            child: const Text('Újrapróbálás'),
+                            child: Text(AppTexts.retry),
                           ),
                         ],
                       ),
@@ -360,22 +361,22 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  const Text(
-                                    'Jegy típusa:',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  Text(
+                                    AppTexts.addTicketTypeLabel,
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: AppSpacing.xs),
                                   SegmentedButton<String>(
-                                    segments: const [
+                                    segments: [
                                       ButtonSegment<String>(
                                         value: 'vonaljegy',
-                                        icon: Icon(Icons.confirmation_num_outlined),
-                                        label: Text('Vonaljegy'),
+                                        icon: const Icon(Icons.confirmation_num_outlined),
+                                        label: Text(AppTexts.addTicketTypeSingle),
                                       ),
                                       ButtonSegment<String>(
                                         value: 'bérlet',
-                                        icon: Icon(Icons.card_membership_outlined),
-                                        label: Text('Bérlet'),
+                                        icon: const Icon(Icons.card_membership_outlined),
+                                        label: Text(AppTexts.addTicketTypePass),
                                       ),
                                     ],
                                     selected: {_selectedTicketType},
@@ -394,9 +395,9 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                       isExpanded: true,
                                       isDense: false,
                                       itemHeight: 84.0,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Szolgáltató',
-                                        prefixIcon: Icon(Icons.business_outlined),
+                                      decoration: InputDecoration(
+                                        labelText: AppTexts.addTicketAgencyLabel,
+                                        prefixIcon: const Icon(Icons.business_outlined),
                                       ),
                                       selectedItemBuilder: (BuildContext context) {
                                         return _agencies.map<Widget>((agency) {
@@ -434,16 +435,16 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                       },
                                       validator: (value) =>
                                           value == null || value.isEmpty
-                                              ? 'Válassz szolgáltatót.'
+                                              ? AppTexts.addTicketAgencyValidator
                                               : null,
                                     ),
                                     const SizedBox(height: AppSpacing.lg),
                                     TextFormField(
                                       controller: _quantityController,
                                       keyboardType: TextInputType.number,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Mennyiség',
-                                        prefixIcon: Icon(Icons.numbers),
+                                      decoration: InputDecoration(
+                                        labelText: AppTexts.addTicketQuantityLabel,
+                                        prefixIcon: const Icon(Icons.numbers),
                                       ),
                                       validator: (value) {
                                         if (_selectedTicketType != 'vonaljegy') {
@@ -451,11 +452,11 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                         }
                                         final raw = value?.trim() ?? '';
                                         if (raw.isEmpty) {
-                                          return 'Add meg a mennyiséget.';
+                                          return AppTexts.addTicketQuantityEmpty;
                                         }
                                         final parsed = int.tryParse(raw);
                                         if (parsed == null || parsed <= 0) {
-                                          return 'Pozitív egész számot adj meg.';
+                                          return AppTexts.addTicketQuantityPositive;
                                         }
                                         return null;
                                       },
@@ -464,9 +465,9 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                     DropdownButtonFormField<String>(
                                       initialValue: _selectedPassType,
                                       isExpanded: true,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Bérlettípus',
-                                        prefixIcon: Icon(Icons.card_membership_outlined),
+                                      decoration: InputDecoration(
+                                        labelText: AppTexts.addTicketPassTypeLabel,
+                                        prefixIcon: const Icon(Icons.card_membership_outlined),
                                       ),
                                       items: _passTypes
                                           .map(
@@ -483,7 +484,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                       },
                                       validator: (value) =>
                                           value == null || value.isEmpty
-                                              ? 'Válassz bérlettípust.'
+                                              ? AppTexts.addTicketPassTypeValidator
                                               : null,
                                     ),
                                     const SizedBox(height: AppSpacing.lg),
@@ -491,7 +492,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                       controller: _ticketStartController,
                                       readOnly: true,
                                       decoration: InputDecoration(
-                                        labelText: 'Érvényesség kezdete',
+                                        labelText: AppTexts.addTicketValidityStartLabel,
                                         prefixIcon: const Icon(Icons.schedule_outlined),
                                         suffixIcon: IconButton(
                                           icon: const Icon(Icons.calendar_month),
@@ -503,7 +504,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                           return null;
                                         }
                                         if ((value ?? '').trim().isEmpty) {
-                                          return 'Add meg a kezdő dátumot.';
+                                          return AppTexts.addTicketValidityStartValidator;
                                         }
                                         return null;
                                       },
@@ -521,8 +522,8 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                                         : Icon(widget.ticket != null ? Icons.save : Icons.add_card),
                                     label: Text(
                                       _isSubmitting
-                                          ? 'Folyamatban...'
-                                          : (widget.ticket != null ? 'Mentés' : 'Hozzáadás'),
+                                          ? AppTexts.processInProgress
+                                          : (widget.ticket != null ? AppTexts.save : AppTexts.addTicketAdd),
                                     ),
                                   ),
                                 ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
 import 'add_ticket_screen.dart';
 import 'about_screen.dart';
 import 'tickets_screen.dart';
@@ -9,11 +10,15 @@ import 'manage_pass_types_screen.dart';
 class ProfileScreen extends StatefulWidget {
   final ThemeMode selectedThemeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
+  final AppLanguage selectedLanguage;
+  final ValueChanged<AppLanguage> onLanguageChanged;
 
   const ProfileScreen({
     super.key,
     required this.selectedThemeMode,
     required this.onThemeModeChanged,
+    required this.selectedLanguage,
+    required this.onLanguageChanged,
   });
 
   @override
@@ -40,15 +45,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openAddTicket() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddTicketScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddTicketScreen()));
   }
 
   Future<void> _openManagePassTypes() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ManagePassTypesScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ManagePassTypesScreen()));
   }
 
   Future<void> _openAbout() async {
@@ -116,30 +121,80 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Megjelenés', style: textTheme.titleMedium),
+                Text(
+                  AppTexts.profileLabelAppearance,
+                  style: textTheme.titleMedium,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 SegmentedButton<ThemeMode>(
-                  segments: const [
+                  // MEGOLDÁS 1: Csökkentjük a belső paddingot, hogy több hely maradjon a szövegnek
+                  style: SegmentedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  segments: [
                     ButtonSegment<ThemeMode>(
                       value: ThemeMode.light,
-                      icon: Icon(Icons.light_mode),
-                      label: Text('Világos'),
+                      icon: const Icon(Icons.light_mode),
+                      label: Text(
+                        AppTexts.profileAppearanceVilagos,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow
+                            .ellipsis, // Ha nagyon durván elfogyna a hely, inkább három pont legyen, mint csúnya törés
+                      ),
                     ),
                     ButtonSegment<ThemeMode>(
                       value: ThemeMode.dark,
-                      icon: Icon(Icons.dark_mode),
-                      label: Text('Sötét'),
+                      icon: const Icon(Icons.dark_mode),
+                      label: Text(
+                        AppTexts.profileAppearanceSotet,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                     ButtonSegment<ThemeMode>(
                       value: ThemeMode.system,
-                      icon: Icon(Icons.settings_suggest),
-                      label: Text('Rendszer'),
+                      icon: const Icon(Icons.settings_suggest),
+                      // MEGOLDÁS 2: A FittedBox garantálja, hogy ha még a padding csökkentés után sem férne ki,
+                      // akkor inkább picit lekicsinyíti a szöveget, de nem engedi kettéhasadni a szót.
+                      label: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          AppTexts.profileAppearanceRendszer,
+                          maxLines: 1,
+                          softWrap: false,
+                        ),
+                      ),
                     ),
                   ],
                   selected: {widget.selectedThemeMode},
                   onSelectionChanged: (selection) {
                     if (selection.isNotEmpty) {
                       widget.onThemeModeChanged(selection.first);
+                    }
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(AppTexts.profileLanguage, style: textTheme.titleMedium),
+                const SizedBox(height: AppSpacing.sm),
+                SegmentedButton<AppLanguage>(
+                  segments: const [
+                    ButtonSegment<AppLanguage>(
+                      value: AppLanguage.hu,
+                      icon: Icon(Icons.language),
+                      label: Text('Magyar'),
+                    ),
+                    ButtonSegment<AppLanguage>(
+                      value: AppLanguage.en,
+                      icon: Icon(Icons.language),
+                      label: Text('English'),
+                    ),
+                  ],
+                  selected: {widget.selectedLanguage},
+                  onSelectionChanged: (selection) {
+                    if (selection.isNotEmpty) {
+                      widget.onLanguageChanged(selection.first);
                     }
                   },
                 ),
@@ -160,19 +215,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 _ProfileActionButton(
                   icon: Icons.confirmation_num,
-                  label: 'Jegyeim',
+                  label: AppTexts.profileMyTickets,
                   onTap: _openTickets,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _ProfileActionButton(
                   icon: Icons.add_card,
-                  label: 'Jegy hozzáadása',
+                  label: AppTexts.profileAddTicket,
                   onTap: _openAddTicket,
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 _ProfileActionButton(
                   icon: Icons.card_membership,
-                  label: 'Bérlettípusok kezelése',
+                  label: AppTexts.profileManagePassTypes,
                   onTap: _openManagePassTypes,
                 ),
               ],
@@ -192,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 _ProfileActionButton(
                   icon: Icons.info,
-                  label: 'Alkalmazás névjegye',
+                  label: AppTexts.profileAboutApp,
                   onTap: _openAbout,
                 ),
               ],

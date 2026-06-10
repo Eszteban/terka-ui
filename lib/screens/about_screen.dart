@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../theme/app_texts.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -29,7 +30,7 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Névjegy'), centerTitle: true),
+      appBar: AppBar(title: Text(AppTexts.aboutTitle), centerTitle: true),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -52,21 +53,35 @@ class _AboutScreenState extends State<AboutScreen> {
               const SizedBox(height: 24),
               Text(
                 _appName.isNotEmpty
-                    ? "$_appName - Teljesen Részletes Közlekedési Adatbázis"
-                    : 'Alkalmazás',
+                    ? AppTexts.aboutDescription(_appName)
+                    : AppTexts.aboutAppName,
                 style: Theme.of(context).textTheme.headlineSmall,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                'Verzió: ${_version.isNotEmpty ? _version : '-'}',
+                AppTexts.version(_version.isNotEmpty ? _version : '-'),
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              const Text(
-                'Készítette: Baranyai Brúnó (R150)\n\nProbléma esetén írj ide: info.railway150@gmail.com',
-                style: TextStyle(fontSize: 16),
+              Text(
+                AppTexts.aboutCreatedBy,
+                style: const TextStyle(fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                AppTexts.specialThanksTitle,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                AppTexts.specialThanks,
+                style: const TextStyle(fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ],
