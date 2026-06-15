@@ -4,6 +4,7 @@ import '../theme/app_texts.dart';
 import '../widgets/maps/route_map_data.dart';
 import '../widgets/maps/vehicle_info_card.dart';
 import '../utils/markup_text_utils.dart' as markup;
+import '../utils/vehicle_type_lookup.dart';
 
 class TripDetailsUtils {
   static num? asNum(dynamic value) => value is num ? value : null;
@@ -108,7 +109,9 @@ class TripDetailsUtils {
 
   static bool isWhiteLike(Color color) {
     // Avoid precision loss deprecated warnings by calling r/g/b values safely
-    return (color.r * 255.0 >= 254 && color.g * 255.0 >= 254 && color.b * 255.0 >= 254);
+    return (color.r * 255.0 >= 254 &&
+        color.g * 255.0 >= 254 &&
+        color.b * 255.0 >= 254);
   }
 
   static Color resolvedPolylineColor({
@@ -356,13 +359,17 @@ class TripDetailsUtils {
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final model = rawVehicleModel.trim().isNotEmpty
         ? plainText(rawVehicleModel)
-        : fallbackModel;
+        : VehicleTypeLookup(label).vehicleType;
 
     final rawTripShortName = trip['tripShortName']?.toString() ?? '-';
     final tripShortName = plainText(rawTripShortName);
     final tripShortNameUsesSpanFont = containsSpanMarkup(rawTripShortName);
 
-    final delayTextVal = delayText(vehicle["nextStop"] != null ? vehicle["nextStop"]["arrivalDelay"] as num? : null);
+    final delayTextVal = delayText(
+      vehicle["nextStop"] != null
+          ? vehicle["nextStop"]["arrivalDelay"] as num?
+          : null,
+    );
 
     final nextStop = vehicle['nextStop'];
     final stop = nextStop != null ? nextStop['stop'] : null;
@@ -406,11 +413,12 @@ class TripDetailsUtils {
         ? vehicleTrip['gtfsId']?.toString()
         : null;
     final vehicleId = vehicle['vehicleId']?.toString();
-    final rawVehicleLabel = vehicle['label']?.toString() != "" && vehicle['label'] != null
+    final rawVehicleLabel =
+        vehicle['label']?.toString() != "" && vehicle['label'] != null
         ? vehicle['label'].toString()
         : vehicle['uicCode'] != null
-            ? vehicle['uicCode'].toString()
-            : '';
+        ? vehicle['uicCode'].toString()
+        : '';
     final serviceLabel = !hasVehicle
         ? ''
         : (vehicleId != null &&
@@ -428,7 +436,7 @@ class TripDetailsUtils {
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final modelLabel = rawVehicleModel.trim().isNotEmpty
         ? plainText(rawVehicleModel)
-        : fallbackModel;
+        : VehicleTypeLookup(serviceLabel).vehicleType;
 
     final nextStop = vehicle['nextStop'];
     final int? arrivalDelaySeconds =
