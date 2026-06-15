@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:latlong2/latlong.dart';
 
 import '../maps/route_map_data.dart';
-import '../../screens/trip_details_screen.dart';
+import '../../screens/trip_details/trip_details_screen.dart';
 import '../../theme/app_texts.dart';
 import '../../utils/markup_text_utils.dart';
-import '../../services/auth_api_service.dart';
+import '../../models/ticket_item.dart';
 
 class SelectedItineraryMapPayload {
   final RouteMapData routeData;

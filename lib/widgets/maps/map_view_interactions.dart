@@ -191,7 +191,7 @@ extension _MapViewInteractions on _MapViewState {
             : 'FFFFFF';
         final markerTextColor = _parseTextColor(textColor);
         final markerColor = _parseRouteColor(color, mode: mode);
-        final markerOutlineAndHeadingColor = markerTextColor;
+        final markerOutlineHeadingColor = markerTextColor;
         final markerId = item['vehicleId']?.toString().trim().isNotEmpty == true
             ? item['vehicleId'].toString()
             : '${latValue.toStringAsFixed(5)}:${lonValue.toStringAsFixed(5)}:${serviceLabel.trim()}';
@@ -217,7 +217,7 @@ extension _MapViewInteractions on _MapViewState {
             mode: mode,
             markerColor: markerColor,
             markerTextColor: markerTextColor,
-            markerOutlineAndHeadingColor: markerOutlineAndHeadingColor,
+            markerOutlineHeadingColor: markerOutlineHeadingColor,
           ),
         );
       }

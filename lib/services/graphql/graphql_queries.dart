@@ -250,6 +250,28 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
       longName
       color
       textColor
+      alerts {
+        id
+        alertCause
+        alertHeaderText
+        alertDescriptionText
+        alertSeverityLevel
+        alertUrl
+        effectiveStartDate
+        effectiveEndDate
+        alertHeaderTextTranslations {
+          language
+          text
+        }
+        alertDescriptionTextTranslations {
+          language
+          text
+        }
+        alertUrlTranslations {
+          language
+          text
+        }
+      }
     }
     stoptimes {
       realtime
@@ -265,6 +287,28 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         lat
         lon
         bearing
+        alerts {
+          id
+          alertCause
+          alertHeaderText
+          alertDescriptionText
+          alertSeverityLevel
+          alertUrl
+          effectiveStartDate
+          effectiveEndDate
+          alertHeaderTextTranslations {
+            language
+            text
+          }
+          alertDescriptionTextTranslations {
+            language
+            text
+          }
+          alertUrlTranslations {
+            language
+            text
+          }
+        }
       }
     }
     tripGeometry {

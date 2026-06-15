@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:TERKA/utils/vehicle_type_lookup.dart';
+import 'package:terka/utils/vehicle_type_lookup.dart';
 
 void main() {
   group('VehicleTypeLookup tests', () {

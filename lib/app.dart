@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/main_screen.dart';
+import 'screens/main/main_screen.dart';
 import 'theme/app_tokens.dart';
 import 'theme/app_texts.dart';
 

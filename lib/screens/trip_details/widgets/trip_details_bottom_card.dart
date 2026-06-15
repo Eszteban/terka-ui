@@ -1,0 +1,83 @@
+import 'package:flutter/material.dart';
+import '../../../utils/trip_details_utils.dart';
+import '../../../widgets/line_badge.dart';
+import '../../../theme/app_texts.dart';
+
+class TripDetailsBottomCard extends StatelessWidget {
+  final Map<String, dynamic> trip;
+  final Color routeColor;
+  final Color routeTextColor;
+  final VoidCallback onBack;
+
+  const TripDetailsBottomCard({
+    super.key,
+    required this.trip,
+    required this.routeColor,
+    required this.routeTextColor,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final info = TripDetailsUtils.buildTripVehicleInfo(trip);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: colorScheme.surface.withValues(alpha: 0.95),
+          borderRadius: BorderRadius.circular(16),
+          border: isDark
+              ? Border.all(color: Colors.white.withValues(alpha: 0.08))
+              : null,
+          boxShadow: isDark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                LineBadge(
+                  lineLabel: info.line,
+                  routeColor: routeColor,
+                  routeTextColor: routeTextColor,
+                  useSpanFont: info.lineUsesSpanFont,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${info.tripShortName} - ${info.tripHeadsign}',
+                    softWrap: true,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(info.vehicleInfoText, textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onBack,
+                child: Text(AppTexts.back),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

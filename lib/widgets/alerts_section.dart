@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:html_unescape/html_unescape.dart';
 import '../theme/app_texts.dart';
 
 class AlertsSection extends StatelessWidget {
@@ -150,12 +151,17 @@ class AlertsSection extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: ExpansionTile(
               leading: Icon(severityIcon, color: severityColor, size: 24),
-              title: Text(
-                header.isNotEmpty ? header : AppTexts.alertDefaultHeader,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
-                  fontSize: 14,
+              title: RichText(
+                text: TextSpan(
+                  children: _parseHtmlToTextSpans(
+                    header.isNotEmpty ? header : AppTexts.alertDefaultHeader,
+                    TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                      fontSize: 14,
+                      fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                    ),
+                  ),
                 ),
               ),
               subtitle: timeRangeStr.isNotEmpty
@@ -172,12 +178,17 @@ class AlertsSection extends StatelessWidget {
               expandedCrossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (desc.isNotEmpty) ...[
-                  Text(
-                    desc,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      height: 1.4,
-                      color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                  RichText(
+                    text: TextSpan(
+                      children: _parseHtmlToTextSpans(
+                        desc,
+                        TextStyle(
+                          fontSize: 13.5,
+                          height: 1.4,
+                          color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                          fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -206,5 +217,51 @@ class AlertsSection extends StatelessWidget {
         const SizedBox(height: 8),
       ],
     );
+  }
+  List<InlineSpan> _parseHtmlToTextSpans(String htmlText, TextStyle baseStyle) {
+    final unescape = HtmlUnescape();
+    var text = unescape.convert(htmlText);
+
+    // Replace line breaks with newlines
+    text = text.replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n');
+
+    // Strip anchor tags, keeping the link text if any, or replace them
+    text = text.replaceAll(RegExp(r'<a[^>]*>', caseSensitive: false), '');
+    text = text.replaceAll(RegExp(r'</a>', caseSensitive: false), '');
+
+    // Strip other common block/inline tags but keep their content
+    text = text.replaceAll(RegExp(r'</?(p|div|span)[^>]*>', caseSensitive: false), '');
+
+    final spans = <InlineSpan>[];
+    final regExp = RegExp(r'<(strong|b)>(.*?)</\1>', caseSensitive: false, dotAll: true);
+
+    int lastMatchEnd = 0;
+    final matches = regExp.allMatches(text);
+
+    for (final match in matches) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: baseStyle,
+        ));
+      }
+
+      final innerText = match.group(2) ?? '';
+      spans.add(TextSpan(
+        text: innerText,
+        style: baseStyle.copyWith(fontWeight: FontWeight.bold),
+      ));
+
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: baseStyle,
+      ));
+    }
+
+    return spans;
   }
 }

@@ -47,6 +47,9 @@ class VehicleTypeLookup {
     "0430": "GANZ-MÁVAG-SZILI (GYSEV)",
     "1136": "Studenka Vagonka-IkerBZ",
     "1293": "Siemens-VECTRON MS (ÖBB)",
+    "0477": "ASEA / Csaurusz",
+    "0481": "Softronic LEMA (CFR)",
+    "0482": "Reloc ELASMO (CFR)",
 
     // Dízelmozdonyok
     "0288": "M28 Mazsola",
@@ -63,9 +66,9 @@ class VehicleTypeLookup {
     "2016": "Siemens Herkules",
     "9281": "Siemens Herkules",
     "9280": "Siemens Vectron DE",
-    "0127": "MÁV 427 / DB BR 218 / egyedi tolató",
+    "0127": "Studenka Vagonka-IP Bz",
     "1232": "Ludmilla (BR 232 / BR 233)",
-    "0001": "Henschel-TME",
+    "0001": "Henschel-TME Viking",
 
     // Villamos motorvonatok
     "0414": "BDVmot Hernyó",
@@ -87,15 +90,17 @@ class VehicleTypeLookup {
     "6815": "Stadler KISS",
     "1406": "Stadler-TRAMTRAIN",
     "1425": "Bombardier-TALENT",
-    "1446": "GYSEV Ventus / Desiro ML",
+
     "1488": "BDVmot Hernyó / Bmx pót",
     "8055": "BDt vezérlőkocsi (V43/Szili inga)",
     "2105": "BDVmot vezérlőkocsi",
 
     // Dízel motorvonatok és motorkocsik
     "0117": "Bzmot",
-    "5047": "Jenbacher",
-    "5147": "Iker-Jenbacher",
+    "5047": "Jenbacher motorvonat",
+    "5147": "Iker-Jenbacher motorvonat",
+    "1446": "Iker-Jenbacher motorvonat",
+    "0247": "Jenbacher motorvonat",
     "0416": "Uzsgyi",
     "6341": "Uzsgyi",
     "0426": "Siemens Desiro",

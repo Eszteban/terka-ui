@@ -20,7 +20,7 @@ class _VehicleMarkerData {
   final String mode;
   final Color markerColor;
   final Color markerTextColor;
-  final Color markerOutlineAndHeadingColor;
+  final Color markerOutlineHeadingColor;
 
   const _VehicleMarkerData({
     required this.markerId,
@@ -42,7 +42,7 @@ class _VehicleMarkerData {
     required this.mode,
     required this.markerColor,
     required this.markerTextColor,
-    required this.markerOutlineAndHeadingColor,
+    required this.markerOutlineHeadingColor,
   });
 }
 

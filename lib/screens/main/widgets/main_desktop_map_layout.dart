@@ -1,0 +1,133 @@
+import 'package:flutter/material.dart';
+import '../../../theme/app_tokens.dart';
+import '../../../theme/app_texts.dart';
+import '../../../widgets/maps/map_view.dart';
+import '../../../widgets/maps/route_map_data.dart';
+import '../../../widgets/tables/dummy_table.dart';
+import '../../profile_screen.dart';
+import '../../news_screen.dart';
+import 'main_selected_map_card.dart';
+
+class MainDesktopMapLayout extends StatelessWidget {
+  final ThemeMode selectedThemeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+  final AppLanguage selectedLanguage;
+  final ValueChanged<AppLanguage> onLanguageChanged;
+
+  final bool showProfile;
+  final bool showNews;
+  final bool showMap;
+
+  final RouteMapData desktopRouteOverlayData;
+  final RouteVehicleMarker? desktopRouteVehicleMarker;
+  final SelectedItineraryMapPayload? desktopSelectedMapPayload;
+
+  final Widget plannerContent;
+  final VoidCallback onClearDesktopRouteSelection;
+  final Function(RouteMapData, RouteVehicleMarker?) onShowTripOnBackgroundMap;
+
+  const MainDesktopMapLayout({
+    super.key,
+    required this.selectedThemeMode,
+    required this.onThemeModeChanged,
+    required this.selectedLanguage,
+    required this.onLanguageChanged,
+    required this.showProfile,
+    required this.showNews,
+    required this.showMap,
+    required this.desktopRouteOverlayData,
+    required this.desktopRouteVehicleMarker,
+    required this.desktopSelectedMapPayload,
+    required this.plannerContent,
+    required this.onClearDesktopRouteSelection,
+    required this.onShowTripOnBackgroundMap,
+  });
+
+  Widget _buildDesktopOverlayPanel({
+    required BuildContext context,
+    required Widget child,
+    EdgeInsetsGeometry padding = const EdgeInsets.all(16),
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: ColoredBox(
+        color: AppColors.getSurface(context).withValues(alpha: 0.84),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+            ),
+          ),
+          child: Padding(padding: padding, child: child),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const panelWidth = 430.0;
+    final showPlannerPanel = !showMap;
+    final showResultCard =
+        !showNews && !showProfile && desktopSelectedMapPayload != null;
+    final hasRouteOverlay =
+        desktopRouteOverlayData.hasContent ||
+        desktopRouteVehicleMarker != null;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: MapView(
+            controlsBottomInset: showPlannerPanel && showResultCard ? 220 : 0,
+            routeOverlayData: hasRouteOverlay ? desktopRouteOverlayData : null,
+            routeVehicleMarker: desktopRouteVehicleMarker,
+            routeFitPadding: showPlannerPanel
+                ? const EdgeInsets.fromLTRB(520, 48, 48, 260)
+                : const EdgeInsets.fromLTRB(48, 48, 48, 220),
+            showRouteStopLabels: false,
+            useBaseMapStopIcon: true,
+            onShowTripOnBackgroundMap: onShowTripOnBackgroundMap,
+          ),
+        ),
+        if (showPlannerPanel)
+          Positioned(
+            left: AppSpacing.xl,
+            top: AppSpacing.xl,
+            bottom: AppSpacing.xl,
+            width: panelWidth,
+            child: Column(
+              children: [
+                Expanded(
+                  child: _buildDesktopOverlayPanel(
+                    context: context,
+                    child: showProfile
+                        ? ProfileScreen(
+                            selectedThemeMode: selectedThemeMode,
+                            onThemeModeChanged: onThemeModeChanged,
+                            selectedLanguage: selectedLanguage,
+                            onLanguageChanged: onLanguageChanged,
+                          )
+                        : showNews
+                            ? const NewsScreen()
+                            : plannerContent,
+                  ),
+                ),
+                if (showResultCard) ...[
+                  const SizedBox(height: 12),
+                  _buildDesktopOverlayPanel(
+                    context: context,
+                    padding: EdgeInsets.zero,
+                    child: MainSelectedMapResultCard(
+                      payload: desktopSelectedMapPayload,
+                      onBack: onClearDesktopRouteSelection,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}

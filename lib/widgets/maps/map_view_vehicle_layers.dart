@@ -1,7 +1,7 @@
 part of 'map_view.dart';
 
 extension _MapViewVehicleLayers on _MapViewState {
-  List<Widget> _buildVehicleAndStopLayers() {
+  List<Widget> _buildMapLayers() {
     final layers = <Widget>[];
 
     if (_nearbyStops.isNotEmpty) {

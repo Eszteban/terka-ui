@@ -185,7 +185,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     });
   }
 
-  void _swapStartAndDestination() {
+  void _swapRouteLocations() {
     setState(() {
       final tempText = widget.fromController.text;
       widget.fromController.text = widget.toController.text;
@@ -856,7 +856,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               color: colorScheme.primary,
                               size: 20,
                             ),
-                            onPressed: _swapStartAndDestination,
+                            onPressed: _swapRouteLocations,
                             tooltip: AppTexts.formSwap,
                             visualDensity: VisualDensity.compact,
                             padding: const EdgeInsets.all(6),

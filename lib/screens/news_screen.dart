@@ -33,7 +33,14 @@ class _NewsScreenState extends State<NewsScreen> {
           if (title.isEmpty || link.isEmpty) {
             return null;
           }
-          return _NewsItem(title: title, link: link);
+          final pubDateStr = item.getElement('pubDate')?.innerText.trim() ?? '';
+          final pubDate = pubDateStr.isNotEmpty ? _parseRssDate(pubDateStr) : null;
+          return _NewsItem(
+            title: title,
+            link: link,
+            pubDate: pubDate,
+            rawPubDate: pubDateStr.isNotEmpty ? pubDateStr : null,
+          );
         })
         .whereType<_NewsItem>()
         .toList();
@@ -109,6 +116,39 @@ class _NewsScreenState extends State<NewsScreen> {
                         height: 1.3,
                       ),
                     ),
+                    subtitle: item.pubDate != null
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_rounded,
+                                  size: 14,
+                                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _formatDateTime(item.pubDate!),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : (item.rawPubDate != null
+                            ? Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  item.rawPubDate!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              )
+                            : null),
                     trailing: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
@@ -130,13 +170,56 @@ class _NewsScreenState extends State<NewsScreen> {
           ),
         );
 
+        Widget displayWidget = content;
+        if (AppTexts.isEnglish) {
+          displayWidget = Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.amber.withValues(alpha: isDark ? 0.3 : 0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.g_translate_rounded,
+                        color: isDark ? Colors.amber[200] : Colors.amber[800],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          AppTexts.newsLanguageWarning,
+                          style: TextStyle(
+                            color: isDark ? Colors.amber[100] : Colors.amber[900],
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(child: content),
+            ],
+          );
+        }
+
         if (!isDesktop) {
           return Card(
             elevation: isDark ? 0 : 2,
             shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
             shape: bentoShape,
             color: isDark ? const Color(0xFF1A1615) : Colors.white,
-            child: content,
+            child: displayWidget,
           );
         }
 
@@ -162,7 +245,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                     shape: bentoShape,
                     color: isDark ? const Color(0xFF1A1615) : Colors.white,
-                    child: content,
+                    child: displayWidget,
                   ),
                 ),
               ),
@@ -177,8 +260,77 @@ class _NewsScreenState extends State<NewsScreen> {
 class _NewsItem {
   final String title;
   final String link;
+  final DateTime? pubDate;
+  final String? rawPubDate;
 
-  const _NewsItem({required this.title, required this.link});
+  const _NewsItem({
+    required this.title,
+    required this.link,
+    this.pubDate,
+    this.rawPubDate,
+  });
+}
+
+DateTime? _parseRssDate(String dateStr) {
+  try {
+    var cleanStr = dateStr.trim();
+    if (cleanStr.contains(',')) {
+      cleanStr = cleanStr.split(',')[1].trim();
+    }
+    final parts = cleanStr.split(RegExp(r'\s+'));
+    if (parts.length < 4) return null;
+    final day = int.tryParse(parts[0]);
+    final monthStr = parts[1].toLowerCase();
+    final year = int.tryParse(parts[2]);
+    final timeParts = parts[3].split(':');
+    if (day == null || year == null || timeParts.length < 2) return null;
+    final hour = int.tryParse(timeParts[0]);
+    final minute = int.tryParse(timeParts[1]);
+    if (hour == null || minute == null) return null;
+
+    final months = {
+      'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'may': 5, 'jun': 6,
+      'jul': 7, 'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+    };
+    final month = months[monthStr];
+    if (month == null) return null;
+
+    var offsetHours = 0;
+    var offsetMinutes = 0;
+    var isNegativeOffset = false;
+    if (parts.length >= 5) {
+      final tz = parts[4];
+      if (tz.startsWith('+') || tz.startsWith('-')) {
+        isNegativeOffset = tz.startsWith('-');
+        final cleanTz = tz.substring(1);
+        if (cleanTz.length >= 4) {
+          offsetHours = int.tryParse(cleanTz.substring(0, 2)) ?? 0;
+          offsetMinutes = int.tryParse(cleanTz.substring(2, 4)) ?? 0;
+        }
+      }
+    }
+    var dt = DateTime.utc(year, month, day, hour, minute);
+    if (offsetHours != 0 || offsetMinutes != 0) {
+      final offsetDuration = Duration(hours: offsetHours, minutes: offsetMinutes);
+      dt = isNegativeOffset ? dt.add(offsetDuration) : dt.subtract(offsetDuration);
+    }
+    return dt.toLocal();
+  } catch (_) {
+    return null;
+  }
+}
+
+String _formatDateTime(DateTime dt) {
+  final year = dt.year;
+  final month = dt.month.toString().padLeft(2, '0');
+  final day = dt.day.toString().padLeft(2, '0');
+  final hour = dt.hour.toString().padLeft(2, '0');
+  final minute = dt.minute.toString().padLeft(2, '0');
+  if (AppTexts.isHungarian) {
+    return '$year. $month. $day. $hour:$minute';
+  } else {
+    return '$day/$month/$year $hour:$minute';
+  }
 }
 
 class _NewsLoadingView extends StatefulWidget {

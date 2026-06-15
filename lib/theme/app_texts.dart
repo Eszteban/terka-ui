@@ -69,8 +69,8 @@ class AppTexts {
       ? 'Készítette: Baranyai Brúnó (R150)\n\nProbléma esetén írj ide: info.railway150@gmail.com'
       : 'Created by: Brúnó Baranyai (R150)\n\nIn case of problems, write to: info.railway150@gmail.com';
   static String get specialThanks => isHungarian
-      ? 'Nagy-Pálóczi Regőnek - \"Ismeretlen járművek típusainak azonosításában nyújtott segitségéért\"'
-      : 'To Regő Nagy-Pálóczi - \"For his help in identifying unknown vehicle types\"';
+      ? 'Nagy-Pálóczi Regőnek - "Ismeretlen járművek típusainak azonosításában nyújtott segitségéért"'
+      : 'To Regő Nagy-Pálóczi - "For his help in identifying unknown vehicle types"';
   static String get specialThanksTitle =>
       isHungarian ? 'Külön köszönet' : 'Special thanks';
 
@@ -235,6 +235,9 @@ class AppTexts {
   static String get newsInstruction => isHungarian
       ? 'Kattints egy címre a cikk megnyitásához.'
       : 'Click on a title to open the article.';
+  static String get newsLanguageWarning => isHungarian
+      ? 'A hírek többnyire magyar nyelven érhetőek el.'
+      : 'News are mostly available in Hungarian.';
 
   // Profile Screen
   static String get profileLabelAppearance =>
@@ -348,7 +351,7 @@ class AppTexts {
       isHungarian ? 'Korábbi járatok mutatása' : 'Show past departures';
   static String get stopArrivals => isHungarian ? 'Érkezik' : 'Arrivals';
   static String get stopDepartures => isHungarian ? 'Indul' : 'Departures';
-  static String get stopArrivalsAndDepartures =>
+  static String get stopArrivalDeparture =>
       isHungarian ? 'Érkezik/Indul' : 'Arrival/Departure';
   static String get stopTimeLabel => isHungarian ? 'Időpont' : 'Time';
   static String stopPlatform(String platform) =>

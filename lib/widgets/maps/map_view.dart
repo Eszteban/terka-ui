@@ -12,8 +12,8 @@ import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 import '../../utils/markup_text_utils.dart';
 import '../../utils/vehicle_type_lookup.dart';
-import '../../screens/stop_details_screen.dart';
-import '../../screens/trip_details_screen.dart';
+import '../../screens/stop_details/stop_details_screen.dart';
+import '../../screens/trip_details/trip_details_screen.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'vehicle_info_card.dart';
@@ -456,7 +456,7 @@ class _MapViewState extends State<MapView> {
                         )
                         .toList(),
                   ),
-                ..._buildVehicleAndStopLayers(),
+                ..._buildMapLayers(),
                 if (routeData != null && routeData.stops.isNotEmpty)
                   MarkerLayer(
                     markers: routeData.stops
