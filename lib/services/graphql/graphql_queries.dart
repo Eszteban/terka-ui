@@ -221,7 +221,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
     id: gtfsId
     tripShortName
     tripHeadsign
-    alerts {
+    alerts(types: [ROUTE, TRIP]) {
       id
       alertCause
       alertHeaderText
@@ -250,7 +250,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
       longName
       color
       textColor
-      alerts {
+      alerts(types: [STOPS_ON_ROUTE]) {
         id
         alertCause
         alertHeaderText
@@ -287,7 +287,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         lat
         lon
         bearing
-        alerts {
+        alerts(types: [STOP_ON_ROUTES, STOP_ON_TRIPS, STOP]) {
           id
           alertCause
           alertHeaderText
@@ -449,7 +449,7 @@ String buildStopDetailsQuery(List<String> expandedIds) {
       gtfsId
       shortName
     }
-    alerts {
+    alerts(types: [STOP_ON_ROUTES, STOP_ON_TRIPS, STOP]) {
       id
       alertCause
       alertHeaderText

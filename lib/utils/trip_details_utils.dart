@@ -352,10 +352,6 @@ class TripDetailsUtils {
         : rawVehicleLabel.trim().isNotEmpty
         ? plainText(rawVehicleLabel)
         : AppTexts.unknownVehicle;
-    final routeMode = routeData['mode']?.toString() ?? '';
-    final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
-        ? AppTexts.railReplacementBus
-        : AppTexts.unknown;
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final model = rawVehicleModel.trim().isNotEmpty
         ? plainText(rawVehicleModel)
@@ -429,10 +425,6 @@ class TripDetailsUtils {
         ? plainText(rawVehicleLabel)
         : AppTexts.unknownVehicle;
 
-    final routeMode = routeData['mode']?.toString() ?? '';
-    final fallbackModel = routeMode == 'RAIL_REPLACEMENT_BUS'
-        ? AppTexts.railReplacementBus
-        : AppTexts.unknown;
     final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
     final modelLabel = rawVehicleModel.trim().isNotEmpty
         ? plainText(rawVehicleModel)

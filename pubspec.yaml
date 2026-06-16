@@ -1,7 +1,7 @@
 name: terka
 description: "Egy alkalmazás adathalászatra a MÁV szervereiről."
 publish_to: 'none'
-version: 26.25.1-f+262501
+version: 26.25.2-b+262502
 
 environment:
   sdk: ^3.11.0
