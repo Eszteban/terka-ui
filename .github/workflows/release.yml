@@ -4,13 +4,15 @@ name: Flutter APK Automatikus Release
 on:
   push:
     tags:
-      - 'v*' # A folyamat akkor indul el, ha "v" betűvel kezdődő verziócímkét (tag-et) pusholsz (pl. v1.0.0)
+      - 'v*' 
 
-# A konkrét feladatok, amiket a GitHub szerverének végre kell hajtania
+permissions:
+  contents: write 
+
 jobs:
   build:
     name: Flutter APK Build és Feltöltés
-    runs-on: ubuntu-latest # Egy tiszta Linux környezetben fog futni
+    runs-on: ubuntu-latest 
 
     steps:
       # 1. Lépés: A forráskód letöltése a virtuális gépre

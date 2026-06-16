@@ -10,14 +10,27 @@ A **TERKA** egy prémium minőségű, funkciókban gazdag Flutter alapú közös
 ---
 
 ## Tartalomjegyzék / Table of Contents
+- [📱 Letöltés / Download](#-letöltés--download)
 - [Magyar leírás](#magyar-leírás)
   - [Főbb Funkciók](#főbb-funkciók)
-  - [Technológiai Stacks](#technológiai-stack)
+  - [Technológiai Stack](#technológiai-stack)
 - [English Description](#english-description)
   - [Key Features](#key-features)
   - [Technology Stack](#technology-stack)
 - [Telepítés & Futtatás / Installation & Running](#telepítés--futtatás--installation--running)
 - [Készítők / Credits](#készítők--credits)
+
+---
+
+## 📱 Letöltés / Download
+
+### Magyar
+[![Latest Release](https://img.shields.io/github/v/release/FELHASZNÁLÓNEVED/REPO_NEVED?label=Legfrissebb%20verzi%C3%B3&color=success)](../../releases/latest)
+
+Az előre lefordított Android alkalmazást (APK) bármikor letöltheted a fenti jelvényre kattintva, vagy közvetlenül a **[Legfrissebb verzió elérése](../../releases/latest)** linken keresztül (ez a hivatkozás mindig a mindenkori legújabb kiadásra mutat).
+
+### English
+The pre-compiled Android application (APK) can be downloaded at any time by clicking the badge above, or directly via the **[Access Latest Release](../../releases/latest)** link (this link always redirects to the latest available release).
 
 ---
 
@@ -56,7 +69,7 @@ A **TERKA** egy prémium minőségű, funkciókban gazdag Flutter alapú közös
 - Cikkek megnyitása külső böngészőben egyetlen kattintással.
 
 ### 6. Testreszabás & Felhasználói élmény
-- **Sötét/Világos/Rendszer téma**: Prémium sötét mód mély antracit tónusokkal.
+- **Sötét/Világos/Rendszer téma**: Premium sötét mód mély antracit tónusokkal.
 - **Kétnyelvűség**: Teljes magyar és angol lokalizáció.
 - **Bento-Grid elrendezés**: Modern, reszponzív felület, amely asztali és táblagép méretben is igazodik a képernyőhöz.
 
@@ -130,12 +143,3 @@ flutter pub get
 
 # Alkalmazás futtatása / Run the application
 flutter run
-```
-
----
-
-## Készítők / Credits
-
-- **Készítette / Created by**: Baranyai Brúnó (R150)
-- **Kapcsolat / Contact**: info.railway150@gmail.com
-- **Külön köszönet / Special Thanks**: Nagy-Pálóczi Regőnek a járműtípusok azonosításában nyújtott segítségéért.
