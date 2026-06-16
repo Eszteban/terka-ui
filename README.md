@@ -25,7 +25,7 @@ A **TERKA** egy prémium minőségű, funkciókban gazdag Flutter alapú közös
 ## 📱 Letöltés / Download
 
 ### Magyar
-[![Latest Release](https://img.shields.io/github/v/release/FELHASZNÁLÓNEVED/REPO_NEVED?label=Legfrissebb%20verzi%C3%B3&color=success)](../../releases/latest)
+[![Latest Release](https://img.shields.io/github/v/release/Eszteban/terka-ui?label=Legfrissebb%20verzi%C3%B3&color=success)](../../releases/latest)
 
 Az előre lefordított Android alkalmazást (APK) bármikor letöltheted a fenti jelvényre kattintva, vagy közvetlenül a **[Legfrissebb verzió elérése](../../releases/latest)** linken keresztül (ez a hivatkozás mindig a mindenkori legújabb kiadásra mutat).
 
