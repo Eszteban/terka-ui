@@ -39,6 +39,9 @@ class StopTimesDataTable extends StatelessWidget {
           final stopId = stop is Map
               ? (stop['id']?.toString().trim() ?? '')
               : '';
+          final platformCode = stop is Map
+              ? (stop['platformCode']?.toString().trim() ?? '')
+              : '';
           final passedStop = TripDetailsUtils.isPassedStop(stopTime, serviceDay);
 
           final alertsList = stop is Map ? stop['alerts'] as List? : null;
@@ -172,17 +175,77 @@ class StopTimesDataTable extends StatelessWidget {
                                       stopName: stopName,
                                       initialStopPoint: point,
                                     ),
-                                    child: Text(
-                                      stopName,
-                                      style: const TextStyle(
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            stopName,
+                                            style: const TextStyle(
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (platformCode.isNotEmpty) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .outlineVariant
+                                                  .withValues(alpha: 0.5),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              platformCode,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   )
-                                : Text(
-                                    stopName,
-                                    overflow: TextOverflow.ellipsis,
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          stopName,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      if (platformCode.isNotEmpty) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant
+                                                .withValues(alpha: 0.5),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            platformCode,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                           ),
                           if (hasAlerts) ...[

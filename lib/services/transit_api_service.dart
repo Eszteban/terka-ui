@@ -66,7 +66,10 @@ class TransitApiService {
             rawLabel = '-';
           }
           final label = TripDetailsUtils.plainText(rawLabel);
-          routeMap[id] = TripStopQuickRoute(
+          if (routeMap.containsKey(label)) {
+            continue;
+          }
+          routeMap[label] = TripStopQuickRoute(
             id: id,
             label: label,
             usesSpanFont: TripDetailsUtils.containsSpanMarkup(rawLabel),
@@ -99,13 +102,14 @@ class TransitApiService {
     required List<String> stopIds,
     required DateTime selectedDate,
   }) async {
-    final selectedDayStart = DateTime(
+    final budapestMidnight = StopDetailsUtils.budapestMidnightUtc(
       selectedDate.year,
       selectedDate.month,
       selectedDate.day,
     );
-    final startEpoch = selectedDayStart.toUtc().millisecondsSinceEpoch ~/ 1000 -
+    final startEpoch = budapestMidnight.millisecondsSinceEpoch ~/ 1000 -
         const Duration(hours: 3).inSeconds; // _serviceWindowOffsetHours = 3
+
 
     final expandedIds = StopDetailsUtils.expandStopIdVariants(stopIds);
     final query = buildStopDetailsQuery(expandedIds);

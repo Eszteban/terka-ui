@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:native_device_orientation/native_device_orientation.dart';
 
 import '../news_screen.dart';
 import '../profile_screen.dart';
@@ -213,11 +214,9 @@ class _MainScreenState extends State<MainScreen> {
         if (!mounted) {
           return;
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppTexts.mainLoadMoreFailed),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(AppTexts.mainLoadMoreFailed)));
         return;
       }
 
@@ -241,11 +240,9 @@ class _MainScreenState extends State<MainScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppTexts.mainLoadMoreFailed),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTexts.mainLoadMoreFailed)));
     } finally {
       if (mounted) {
         setState(() {
@@ -332,7 +329,8 @@ class _MainScreenState extends State<MainScreen> {
       showTable: _showTable,
       hasPlannerResultsPayload: _hasPlannerResultsPayload,
       planResponseText: _planResponseText,
-      hasDesktopMapSelection: _desktopRouteOverlayData.hasContent ||
+      hasDesktopMapSelection:
+          _desktopRouteOverlayData.hasContent ||
           _desktopRouteVehicleMarker != null ||
           _desktopSelectedMapPayload != null,
       canLoadMore: (_nextPageCursor?.trim().isNotEmpty ?? false),
@@ -401,165 +399,224 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.of(context).size.width > 700;
-    final currentMobileTab = _currentMobileTab();
-    final currentDesktopTabIndex = _currentDesktopTabIndex();
-    final currentMobileSectionTitle = _currentMobileSectionTitle();
-    final horizontalPadding = isDesktop ? AppSpacing.xxl : AppSpacing.md;
-    final isMapFullscreen = _showMap;
-    final useDesktopMapLayout = isDesktop;
+    return NativeDeviceOrientationReader(
+      builder: (context) {
+        final orientation = NativeDeviceOrientationReader.orientation(context);
+        final isDesktop = MediaQuery.of(context).size.shortestSide > 600;
+        final currentMobileTab = _currentMobileTab();
+        final currentDesktopTabIndex = _currentDesktopTabIndex();
+        final currentMobileSectionTitle = _currentMobileSectionTitle();
+        final horizontalPadding = isDesktop ? AppSpacing.xxl : AppSpacing.md;
+        final isMapFullscreen = _showMap;
+        final useDesktopMapLayout = isDesktop;
 
-    return PopScope(
-      canPop: _navigationHistory.length <= 1,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          return;
-        }
-        _handleBackNavigation();
-      },
-      child: Scaffold(
-        body: Column(
-          children: [
-            if (!isMapFullscreen || isDesktop)
-              isDesktop
-                  ? TopNavbar(
-                      isDesktop: isDesktop,
-                      onHomeTap: _showMainScreen,
-                      onNewsTap: _showNewsScreen,
-                      onProfileTap: _showProfileScreen,
-                      selectedDesktopTabIndex: currentDesktopTabIndex,
-                      mobileCurrentSectionTitle: currentMobileSectionTitle,
-                    )
-                  : SafeArea(
-                      top: true,
-                      bottom: false,
-                      child: TopNavbar(
-                        isDesktop: isDesktop,
-                        onHomeTap: _showMainScreen,
-                        onNewsTap: _showNewsScreen,
-                        onProfileTap: _showProfileScreen,
-                        mobileCurrentSectionTitle: currentMobileSectionTitle,
-                      ),
-                    ),
-            Expanded(
-              child: useDesktopMapLayout
-                  ? MainDesktopMapLayout(
-                      selectedThemeMode: widget.selectedThemeMode,
-                      onThemeModeChanged: widget.onThemeModeChanged,
-                      selectedLanguage: widget.selectedLanguage,
-                      onLanguageChanged: widget.onLanguageChanged,
-                      showProfile: _showProfile,
-                      showNews: _showNews,
-                      showMap: _showMap,
-                      desktopRouteOverlayData: _desktopRouteOverlayData,
-                      desktopRouteVehicleMarker: _desktopRouteVehicleMarker,
-                      desktopSelectedMapPayload: _desktopSelectedMapPayload,
-                      plannerContent: _buildPlannerContent(isDesktop: true),
-                      onClearDesktopRouteSelection: _clearDesktopRouteSelection,
-                      onShowTripOnBackgroundMap: (routeData, vehicleMarker) {
-                        _showDesktopRouteOnBackgroundMap(
-                          routeData: routeData,
-                          vehicleMarker: vehicleMarker,
-                        );
-                      },
-                    )
-                  : isMapFullscreen
-                      ? Column(
+        final isPhoneLandscape =
+            !isDesktop &&
+            (orientation == NativeDeviceOrientation.landscapeLeft ||
+                orientation == NativeDeviceOrientation.landscapeRight);
+
+        return PopScope(
+          canPop: _navigationHistory.length <= 1,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) {
+              return;
+            }
+            _handleBackNavigation();
+          },
+          child: Scaffold(
+            body: Column(
+              children: [
+                if ((!isMapFullscreen || isDesktop) && !isPhoneLandscape)
+                  isDesktop
+                      ? TopNavbar(
+                          isDesktop: isDesktop,
+                          onHomeTap: _showMainScreen,
+                          onNewsTap: _showNewsScreen,
+                          onProfileTap: _showProfileScreen,
+                          selectedDesktopTabIndex: currentDesktopTabIndex,
+                          mobileCurrentSectionTitle: currentMobileSectionTitle,
+                        )
+                      : SafeArea(
+                          top: true,
+                          bottom: false,
+                          child: TopNavbar(
+                            isDesktop: isDesktop,
+                            onHomeTap: _showMainScreen,
+                            onNewsTap: _showNewsScreen,
+                            onProfileTap: _showProfileScreen,
+                            mobileCurrentSectionTitle:
+                                currentMobileSectionTitle,
+                          ),
+                        ),
+                Expanded(
+                  child: useDesktopMapLayout
+                      ? MainDesktopMapLayout(
+                          selectedThemeMode: widget.selectedThemeMode,
+                          onThemeModeChanged: widget.onThemeModeChanged,
+                          selectedLanguage: widget.selectedLanguage,
+                          onLanguageChanged: widget.onLanguageChanged,
+                          showProfile: _showProfile,
+                          showNews: _showNews,
+                          showMap: _showMap,
+                          desktopRouteOverlayData: _desktopRouteOverlayData,
+                          desktopRouteVehicleMarker: _desktopRouteVehicleMarker,
+                          desktopSelectedMapPayload: _desktopSelectedMapPayload,
+                          plannerContent: _buildPlannerContent(isDesktop: true),
+                          onClearDesktopRouteSelection:
+                              _clearDesktopRouteSelection,
+                          onShowTripOnBackgroundMap:
+                              (routeData, vehicleMarker) {
+                                _showDesktopRouteOnBackgroundMap(
+                                  routeData: routeData,
+                                  vehicleMarker: vehicleMarker,
+                                );
+                              },
+                        )
+                      : Row(
                           children: [
-                            ColoredBox(
-                              color: AppColors.getSurface(context),
-                              child: const SafeArea(
-                                bottom: false,
-                                child: SizedBox.shrink(),
+                            if (isPhoneLandscape &&
+                                orientation ==
+                                    NativeDeviceOrientation.landscapeRight)
+                              _buildRotatedNavBar(
+                                context,
+                                orientation,
+                                currentMobileTab,
                               ),
-                            ),
-                            const Expanded(
-                              child: Stack(
+                            Expanded(
+                              child: Column(
                                 children: [
-                                  Positioned.fill(child: MapView())
+                                  if (isPhoneLandscape && !isMapFullscreen)
+                                    SafeArea(
+                                      top: true,
+                                      bottom: false,
+                                      child: TopNavbar(
+                                        isDesktop: isDesktop,
+                                        onHomeTap: _showMainScreen,
+                                        onNewsTap: _showNewsScreen,
+                                        onProfileTap: _showProfileScreen,
+                                        mobileCurrentSectionTitle:
+                                            currentMobileSectionTitle,
+                                      ),
+                                    ),
+                                  Expanded(
+                                    child: isMapFullscreen
+                                        ? Column(
+                                            children: [
+                                              ColoredBox(
+                                                color: AppColors.getSurface(context),
+                                                child: const SafeArea(
+                                                  bottom: false,
+                                                  child: SizedBox.shrink(),
+                                                ),
+                                              ),
+                                              const Expanded(
+                                                child: Stack(
+                                                  children: [
+                                                    Positioned.fill(child: MapView()),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Padding(
+                                            padding: EdgeInsets.fromLTRB(
+                                              horizontalPadding,
+                                              AppSpacing.xl,
+                                              horizontalPadding,
+                                              AppSpacing.xl,
+                                            ),
+                                            child: Center(
+                                              child: ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                  maxWidth: isDesktop
+                                                      ? 1120
+                                                      : double.infinity,
+                                                ),
+                                                child: _showProfile
+                                                    ? ProfileScreen(
+                                                        selectedThemeMode:
+                                                            widget.selectedThemeMode,
+                                                        onThemeModeChanged:
+                                                            widget.onThemeModeChanged,
+                                                        selectedLanguage:
+                                                            widget.selectedLanguage,
+                                                        onLanguageChanged:
+                                                            widget.onLanguageChanged,
+                                                      )
+                                                    : _showNews
+                                                    ? const NewsScreen()
+                                                    : _buildPlannerContent(
+                                                        isDesktop: false,
+                                                      ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ],
-                        )
-                      : Padding(
-                          padding: EdgeInsets.fromLTRB(
-                            horizontalPadding,
-                            AppSpacing.xl,
-                            horizontalPadding,
-                            AppSpacing.xl,
-                          ),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: isDesktop ? 1120 : double.infinity,
+                            if (isPhoneLandscape &&
+                                orientation ==
+                                    NativeDeviceOrientation.landscapeLeft)
+                              _buildRotatedNavBar(
+                                context,
+                                orientation,
+                                currentMobileTab,
                               ),
-                              child: _showProfile
-                                  ? ProfileScreen(
-                                      selectedThemeMode:
-                                          widget.selectedThemeMode,
-                                      onThemeModeChanged:
-                                          widget.onThemeModeChanged,
-                                      selectedLanguage: widget.selectedLanguage,
-                                      onLanguageChanged:
-                                          widget.onLanguageChanged,
-                                    )
-                                  : _showNews
-                                      ? const NewsScreen()
-                                      : _buildPlannerContent(isDesktop: false),
-                            ),
-                          ),
+                          ],
                         ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: isDesktop
-            ? null
-            : SafeArea(
-                top: false,
-                child: NavigationBar(
-                  selectedIndex: _mobileTabIndex(currentMobileTab),
-                  onDestinationSelected: (index) {
-                    switch (index) {
-                      case 0:
-                        _showMainScreen();
-                        break;
-                      case 1:
-                        _showNewsScreen();
-                        break;
-                      case 2:
-                        _showMapScreen();
-                        break;
-                      case 3:
-                        _showProfileScreen();
-                        break;
-                    }
-                  },
-                  destinations: [
-                    NavigationDestination(
-                      icon: const Icon(Icons.home_outlined),
-                      selectedIcon: const Icon(Icons.home),
-                      label: AppTexts.mainHome,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.newspaper_outlined),
-                      selectedIcon: const Icon(Icons.newspaper),
-                      label: AppTexts.mainNews,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.map_outlined),
-                      selectedIcon: const Icon(Icons.map),
-                      label: AppTexts.mainMap,
-                    ),
-                    NavigationDestination(
-                      icon: const Icon(Icons.person_outline),
-                      selectedIcon: const Icon(Icons.person),
-                      label: AppTexts.mainProfile,
-                    ),
-                  ],
                 ),
-              ),
-      ),
+              ],
+            ),
+            bottomNavigationBar: isDesktop || isPhoneLandscape
+                ? null
+                : SafeArea(
+                    top: false,
+                    child: NavigationBar(
+                      selectedIndex: _mobileTabIndex(currentMobileTab),
+                      onDestinationSelected: (index) {
+                        switch (index) {
+                          case 0:
+                            _showMainScreen();
+                            break;
+                          case 1:
+                            _showNewsScreen();
+                            break;
+                          case 2:
+                            _showMapScreen();
+                            break;
+                          case 3:
+                            _showProfileScreen();
+                            break;
+                        }
+                      },
+                      destinations: [
+                        NavigationDestination(
+                          icon: const Icon(Icons.home_outlined),
+                          selectedIcon: const Icon(Icons.home),
+                          label: AppTexts.mainHome,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.newspaper_outlined),
+                          selectedIcon: const Icon(Icons.newspaper),
+                          label: AppTexts.mainNews,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.map_outlined),
+                          selectedIcon: const Icon(Icons.map),
+                          label: AppTexts.mainMap,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.person_outline),
+                          selectedIcon: const Icon(Icons.person),
+                          label: AppTexts.mainProfile,
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        );
+      },
     );
   }
 
@@ -574,6 +631,127 @@ class _MainScreenState extends State<MainScreen> {
       case _MobileTab.profile:
         return 3;
     }
+  }
+
+  Widget _buildRotatedNavBar(
+    BuildContext context,
+    NativeDeviceOrientation orientation,
+    _MobileTab currentMobileTab,
+  ) {
+    final quarterTurns = orientation == NativeDeviceOrientation.landscapeLeft
+        ? 3
+        : 1;
+    final oppositeTurns = orientation == NativeDeviceOrientation.landscapeLeft
+        ? 1
+        : 3;
+
+    Widget buildDestinationItem({
+      required IconData icon,
+      required IconData selectedIcon,
+      required String label,
+      required bool isSelected,
+    }) {
+      final theme = Theme.of(context);
+      final colorScheme = theme.colorScheme;
+
+      final textStyle = TextStyle(
+        fontSize: 11,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        color: isSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+      );
+
+      final iconWidget = Icon(
+        isSelected ? selectedIcon : icon,
+        color: isSelected ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
+      );
+
+      return RotatedBox(
+        quarterTurns: oppositeTurns,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            iconWidget,
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: textStyle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SafeArea(
+      top: true,
+      bottom: true,
+      left: true,
+      right: true,
+      child: RotatedBox(
+        quarterTurns: quarterTurns,
+        child: NavigationBar(
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysHide,
+          selectedIndex: _mobileTabIndex(currentMobileTab),
+          onDestinationSelected: (index) {
+            switch (index) {
+              case 0:
+                _showMainScreen();
+                break;
+              case 1:
+                _showNewsScreen();
+                break;
+              case 2:
+                _showMapScreen();
+                break;
+              case 3:
+                _showProfileScreen();
+                break;
+            }
+          },
+          destinations: [
+            NavigationDestination(
+              icon: buildDestinationItem(
+                icon: Icons.home_outlined,
+                selectedIcon: Icons.home,
+                label: AppTexts.mainHome,
+                isSelected: _mobileTabIndex(currentMobileTab) == 0,
+              ),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: buildDestinationItem(
+                icon: Icons.newspaper_outlined,
+                selectedIcon: Icons.newspaper,
+                label: AppTexts.mainNews,
+                isSelected: _mobileTabIndex(currentMobileTab) == 1,
+              ),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: buildDestinationItem(
+                icon: Icons.map_outlined,
+                selectedIcon: Icons.map,
+                label: AppTexts.mainMap,
+                isSelected: _mobileTabIndex(currentMobileTab) == 2,
+              ),
+              label: '',
+            ),
+            NavigationDestination(
+              icon: buildDestinationItem(
+                icon: Icons.person_outline,
+                selectedIcon: Icons.person,
+                label: AppTexts.mainProfile,
+                isSelected: _mobileTabIndex(currentMobileTab) == 3,
+              ),
+              label: '',
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

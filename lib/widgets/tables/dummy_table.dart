@@ -7,6 +7,7 @@ import '../../screens/trip_details/trip_details_screen.dart';
 import '../../theme/app_texts.dart';
 import '../../utils/markup_text_utils.dart';
 import '../../models/ticket_item.dart';
+import '../../utils/adaptive_dialog_utils.dart';
 
 class SelectedItineraryMapPayload {
   final RouteMapData routeData;
@@ -38,7 +39,7 @@ class SelectedItineraryLegDetail {
 
 class DummyTable extends StatelessWidget {
   static const String _spanFontFamily = 'MNR2007';
-  static const double _desktopBreakpoint = 700;
+  static const double _desktopBreakpoint = 600;
 
   final String responseText;
   final ValueChanged<SelectedItineraryMapPayload> onShowOnMap;
@@ -751,22 +752,12 @@ class DummyTable extends StatelessWidget {
         MediaQuery.of(context).size.width > _desktopBreakpoint;
 
     if (isDesktop) {
-      await showDialog<void>(
+      await showAdaptiveDetailsDialog<void>(
         context: context,
-        builder: (_) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
-            child: TripDetailsScreen(
-              tripId: tripId,
-              serviceDay: serviceDay,
-              onShowOnBackgroundMap: onShowTripOnMap,
-            ),
-          ),
+        child: TripDetailsScreen(
+          tripId: tripId,
+          serviceDay: serviceDay,
+          onShowOnBackgroundMap: onShowTripOnMap,
         ),
       );
       return;

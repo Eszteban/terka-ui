@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import '../../services/transit_api_service.dart';
 import '../../theme/app_texts.dart';
 import '../../utils/trip_details_utils.dart';
+import '../../utils/adaptive_dialog_utils.dart';
 import '../../widgets/maps/plan_map_view.dart';
 import '../../widgets/maps/route_map_data.dart';
 import '../stop_details/stop_details_screen.dart';
@@ -45,7 +46,7 @@ class TripDetailsScreen extends StatefulWidget {
 }
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
-  static const double _desktopBreakpoint = 700;
+  static const double _desktopBreakpoint = 600;
   final TransitApiService _transitApiService = const TransitApiService();
 
   bool _isLoading = true;
@@ -284,24 +285,14 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
 
     if (_isDesktopBackgroundMapMode) {
-      await showDialog<void>(
+      await showAdaptiveDetailsDialog<void>(
         context: context,
-        builder: (_) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
-            child: StopDetailsScreen(
-              stopId: stopId,
-              initialStopName: stopName,
-              initialStopPoint: initialStopPoint,
-              onShowTripOnBackgroundMap: widget.onShowOnBackgroundMap,
-              onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
-            ),
-          ),
+        child: StopDetailsScreen(
+          stopId: stopId,
+          initialStopName: stopName,
+          initialStopPoint: initialStopPoint,
+          onShowTripOnBackgroundMap: widget.onShowOnBackgroundMap,
+          onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
         ),
       );
       return;

@@ -50,6 +50,50 @@ class StopDetailsUtils {
         asNum(departure['scheduledArrival']);
   }
 
+  static int getBudapestOffsetHours(DateTime utcTime) {
+    final year = utcTime.year;
+    // Find last Sunday of March (DST starts)
+    DateTime dstStart = DateTime.utc(year, 3, 31, 1);
+    while (dstStart.weekday != DateTime.sunday) {
+      dstStart = dstStart.subtract(const Duration(days: 1));
+    }
+    // Find last Sunday of October (DST ends)
+    DateTime dstEnd = DateTime.utc(year, 10, 31, 1);
+    while (dstEnd.weekday != DateTime.sunday) {
+      dstEnd = dstEnd.subtract(const Duration(days: 1));
+    }
+    if (!utcTime.isBefore(dstStart) && utcTime.isBefore(dstEnd)) {
+      return 2; // CEST (UTC+2)
+    } else {
+      return 1; // CET (UTC+1)
+    }
+  }
+
+  static DateTime toBudapestTime(DateTime utcTime) {
+    final offset = getBudapestOffsetHours(utcTime);
+    return utcTime.add(Duration(hours: offset));
+  }
+
+  static DateTime budapestMidnightUtc(int year, int month, int day) {
+    final approxUtc = DateTime.utc(year, month, day);
+    final offset = getBudapestOffsetHours(approxUtc);
+    return approxUtc.subtract(Duration(hours: offset));
+  }
+
+  static DateTime budapestToday() {
+    final nowUtc = DateTime.now().toUtc();
+    final nowBudapest = toBudapestTime(nowUtc);
+    return DateTime.utc(nowBudapest.year, nowBudapest.month, nowBudapest.day);
+  }
+
+  static bool isSameBudapestDay(DateTime a, DateTime b) {
+    final aBudapest = a.isUtc ? toBudapestTime(a) : toBudapestTime(a.toUtc());
+    final bBudapest = b.isUtc ? toBudapestTime(b) : toBudapestTime(b.toUtc());
+    return aBudapest.year == bBudapest.year &&
+        aBudapest.month == bBudapest.month &&
+        aBudapest.day == bBudapest.day;
+  }
+
   static DateTime? resolveDepartureInstant({
     required num? serviceDay,
     required num? secondsOfDay,
@@ -59,9 +103,10 @@ class StopDetailsUtils {
     }
 
     final dayMillis = serviceDay.toInt() * 1000;
-    return DateTime.fromMillisecondsSinceEpoch(dayMillis, isUtc: true)
-        .add(Duration(seconds: secondsOfDay.toInt()))
-        .toLocal();
+    return DateTime.fromMillisecondsSinceEpoch(
+      dayMillis + secondsOfDay.toInt() * 1000,
+      isUtc: true,
+    );
   }
 
   static DateTime? resolveDepartureTime({
@@ -79,7 +124,7 @@ class StopDetailsUtils {
     final hours = totalSeconds ~/ 3600;
     final minutes = (totalSeconds % 3600) ~/ 60;
     final seconds = totalSeconds % 60;
-    return DateTime(
+    return DateTime.utc(
       serviceDayMidnight.year,
       serviceDayMidnight.month,
       serviceDayMidnight.day,
@@ -104,12 +149,10 @@ class StopDetailsUtils {
     if (serviceDay == null) {
       return null;
     }
-    final raw = DateTime.fromMillisecondsSinceEpoch(serviceDay.toInt() * 1000);
-
-    // Some backend timestamps around DST can land on 01:00 local time.
-    // Rebuild as local midnight so seconds-of-day math stays stable.
-    return DateTime(raw.year, raw.month, raw.day);
+    final serviceDayUtc = DateTime.fromMillisecondsSinceEpoch(serviceDay.toInt() * 1000, isUtc: true);
+    return toBudapestTime(serviceDayUtc);
   }
+
 
   static String formatTime(DateTime? dt) {
     if (dt == null) {

@@ -393,6 +393,7 @@ extension _MapViewInteractions on _MapViewState {
   }
 
   void _toggleVehicleLabel(String markerId) {
+    debugPrint('[Map Debug] Vehicle clicked/toggled: ID=$markerId');
     _consumeNextMapTapClose();
     refreshState(() {
       _selectedStopMarkerId = null;
@@ -407,6 +408,7 @@ extension _MapViewInteractions on _MapViewState {
   }
 
   void _toggleStopLabel(_MapStopData stop) {
+    debugPrint('[Map Debug] Stop clicked/toggled: ID=${stop.stopId}, Name=${stop.name}');
     _consumeNextMapTapClose();
     final isSame = _selectedStopMarkerId == stop.stopId;
     refreshState(() {
@@ -539,6 +541,7 @@ extension _MapViewInteractions on _MapViewState {
   }
 
   Future<void> _openStopDetails(_MapStopData stop) async {
+    debugPrint('[Map Debug] Opening stop details: ID=${stop.stopId}, Name=${stop.name}');
     _consumeNextMapTapClose();
     final normalized = _normalizedStopGroupName(stop.name);
     final groupedIds = _nearbyStops
@@ -561,24 +564,14 @@ extension _MapViewInteractions on _MapViewState {
     }
 
     if (_useDesktopDialogs) {
-      await showDialog<void>(
+      await showAdaptiveDetailsDialog<void>(
         context: context,
-        builder: (_) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 24,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
-            child: StopDetailsScreen(
-              stopId: stop.stopId,
-              initialStopName: stop.name,
-              initialStopPoint: stop.point,
-              groupedStopIds: groupedIds,
-              onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
-            ),
-          ),
+        child: StopDetailsScreen(
+          stopId: stop.stopId,
+          initialStopName: stop.name,
+          initialStopPoint: stop.point,
+          groupedStopIds: groupedIds,
+          onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
         ),
       );
       return;

@@ -287,6 +287,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         lat
         lon
         bearing
+        platformCode
         alerts(types: [STOP_ON_ROUTES, STOP_ON_TRIPS, STOP]) {
           id
           alertCause
@@ -448,6 +449,8 @@ String buildStopDetailsQuery(List<String> expandedIds) {
     routes {
       gtfsId
       shortName
+      color
+      textColor
     }
     alerts(types: [STOP_ON_ROUTES, STOP_ON_TRIPS, STOP]) {
       id
