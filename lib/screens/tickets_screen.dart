@@ -10,7 +10,14 @@ import '../theme/app_texts.dart';
 import 'add_ticket_screen.dart';
 
 class TicketsScreen extends StatefulWidget {
-  const TicketsScreen({super.key});
+  final VoidCallback? onBack;
+  final ValueChanged<TicketItem>? onEditTicket;
+
+  const TicketsScreen({
+    super.key,
+    this.onBack,
+    this.onEditTicket,
+  });
 
   @override
   State<TicketsScreen> createState() => _TicketsScreenState();
@@ -18,12 +25,10 @@ class TicketsScreen extends StatefulWidget {
 
 class _TicketsScreenState extends State<TicketsScreen> {
   final TicketApiService _ticketApiService = const TicketApiService();
-  final PassTypeApiService _passTypeApiService = const PassTypeApiService();
-
-  bool _isLoading = true;
-  String? _error;
   List<TicketItem> _tickets = const [];
   List<PassType> _passTypes = const [];
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -34,13 +39,13 @@ class _TicketsScreenState extends State<TicketsScreen> {
   Future<void> _loadTickets() async {
     setState(() {
       _isLoading = true;
-      _error = null;
     });
 
     final results = await Future.wait([
       _ticketApiService.fetchTickets(),
-      _passTypeApiService.fetchPassTypes(),
+      const PassTypeApiService().fetchPassTypes(),
     ]);
+
     if (!mounted) {
       return;
     }
@@ -57,11 +62,32 @@ class _TicketsScreenState extends State<TicketsScreen> {
   }
 
   Future<void> _editTicket(TicketItem ticket) async {
-    final bool? updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => AddTicketScreen(ticket: ticket),
-      ),
-    );
+    if (widget.onEditTicket != null) {
+      widget.onEditTicket!(ticket);
+      return;
+    }
+
+    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final bool? updated;
+    if (isDesktop) {
+      updated = await showDialog<bool>(
+        context: context,
+        builder: (_) => Dialog(
+          clipBehavior: Clip.antiAlias,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
+            child: AddTicketScreen(ticket: ticket),
+          ),
+        ),
+      );
+    } else {
+      updated = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (_) => AddTicketScreen(ticket: ticket),
+        ),
+      );
+    }
 
     if (updated == true && mounted) {
       _loadTickets();
@@ -150,7 +176,15 @@ class _TicketsScreenState extends State<TicketsScreen> {
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Scaffold(
-      appBar: AppBar(title: Text(AppTexts.ticketsTitle)),
+      appBar: AppBar(
+        title: Text(AppTexts.ticketsTitle),
+        leading: widget.onBack != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              )
+            : null,
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadTickets,

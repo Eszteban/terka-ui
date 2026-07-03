@@ -31,6 +31,7 @@ extension _MapViewOverlays on _MapViewState {
       tripHeadsignLabel: vehicle.tripHeadsign.trim(),
       serviceLabel: service,
       modelLabel: model,
+      vehicleSpeed: vehicle.vehicleSpeed,
       arrivalDelaySeconds: vehicle.arrivalDelaySeconds,
       nextStopName: vehicle.nextStopName,
       markerColor: vehicle.markerColor,

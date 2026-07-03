@@ -11,7 +11,15 @@ import '../theme/app_texts.dart';
 
 class AddTicketScreen extends StatefulWidget {
   final TicketItem? ticket;
-  const AddTicketScreen({super.key, this.ticket});
+  final VoidCallback? onBack;
+  final VoidCallback? onSaved;
+
+  const AddTicketScreen({
+    super.key,
+    this.ticket,
+    this.onBack,
+    this.onSaved,
+  });
 
   @override
   State<AddTicketScreen> createState() => _AddTicketScreenState();
@@ -306,7 +314,11 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(result.message ?? (widget.ticket != null ? AppTexts.authUpdateTicketSuccess : AppTexts.addTicketSuccess))),
     );
-    Navigator.of(context).pop(true);
+    if (widget.onSaved != null) {
+      widget.onSaved!();
+    } else {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override
@@ -328,7 +340,17 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.ticket != null ? AppTexts.editTicketTitle : AppTexts.addTicketTitle),
+        title: Text(widget.ticket != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
+        ),
       ),
       body: SafeArea(
         child: _isLoadingOptions

@@ -4,6 +4,10 @@ extension _MapViewVehicleLayers on _MapViewState {
   List<Widget> _buildMapLayers() {
     final layers = <Widget>[];
 
+    if (widget.hideGeneralStopsAndVehicles) {
+      return layers;
+    }
+
     if (_nearbyStops.isNotEmpty) {
       layers.add(
         MarkerLayer(

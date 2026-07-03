@@ -3,7 +3,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../theme/app_texts.dart';
 
 class AboutScreen extends StatefulWidget {
-  const AboutScreen({super.key});
+  final VoidCallback? onBack;
+  const AboutScreen({super.key, this.onBack});
 
   @override
   State<AboutScreen> createState() => _AboutScreenState();
@@ -30,7 +31,16 @@ class _AboutScreenState extends State<AboutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppTexts.aboutTitle), centerTitle: true),
+      appBar: AppBar(
+        title: Text(AppTexts.aboutTitle),
+        centerTitle: true,
+        leading: widget.onBack != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              )
+            : null,
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),

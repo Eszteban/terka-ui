@@ -21,6 +21,7 @@ class MainPlannerContent extends StatelessWidget {
   final List<TicketItem> tickets;
   final ValueChanged<SelectedItineraryMapPayload> onShowOnMap;
   final Function(RouteMapData, RouteVehicleMarker?)? onShowTripOnMap;
+  final Function(String, String)? onOpenTripDetailsRequested;
 
   // Form properties:
   final TextEditingController fromController;
@@ -52,6 +53,7 @@ class MainPlannerContent extends StatelessWidget {
     required this.tickets,
     required this.onShowOnMap,
     required this.onShowTripOnMap,
+    this.onOpenTripDetailsRequested,
     required this.fromController,
     required this.toController,
     required this.selectedDate,
@@ -97,6 +99,7 @@ class MainPlannerContent extends StatelessWidget {
           );
         },
         onShowTripOnMap: isDesktop ? onShowTripOnMap : null,
+        onOpenTripDetailsRequested: onOpenTripDetailsRequested,
       );
     }
 

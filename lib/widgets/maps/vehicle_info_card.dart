@@ -9,6 +9,7 @@ class VehicleInfoCard extends StatelessWidget {
   final String tripHeadsignLabel;
   final String serviceLabel;
   final String modelLabel;
+  final int vehicleSpeed;
   final int? arrivalDelaySeconds;
   final String? nextStopName;
   final Color markerColor;
@@ -26,6 +27,7 @@ class VehicleInfoCard extends StatelessWidget {
     required this.tripHeadsignLabel,
     required this.serviceLabel,
     required this.modelLabel,
+    required this.vehicleSpeed,
     required this.arrivalDelaySeconds,
     required this.nextStopName,
     required this.markerColor,
@@ -138,7 +140,7 @@ class VehicleInfoCard extends StatelessWidget {
           ],
           
           Text(
-            '$serviceLabel\n$modelLabel',
+            '$serviceLabel\n$modelLabel\n$vehicleSpeed km/h',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
                   ? Colors.white.withOpacity(0.5)

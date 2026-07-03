@@ -327,6 +327,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         departureDelay
       }
       vehicleId
+      speed
       isEstimated
       label
       licensePlate
@@ -367,6 +368,7 @@ query VehiclePositions(
     label
     uicCode
     licensePlate
+    speed
     stopRelationship {
       status
       stop {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:latlong2/latlong.dart';
 
 import '../news_screen.dart';
 import '../profile_screen.dart';
@@ -12,12 +13,20 @@ import '../../widgets/maps/map_view.dart';
 import '../../widgets/maps/route_map_data.dart';
 import '../../widgets/navigation/top_navbar.dart';
 import '../../models/ticket_item.dart';
+import '../../models/pass_type.dart';
 import '../../services/ticket_api_service.dart';
 import '../../widgets/forms/route_plan_form.dart';
 import '../../widgets/tables/dummy_table.dart';
 
 import 'widgets/main_desktop_map_layout.dart';
 import 'widgets/main_planner_content.dart';
+import '../tickets_screen.dart';
+import '../add_ticket_screen.dart';
+import '../manage_pass_types_screen.dart';
+import '../pass_type_editor_screen.dart';
+import '../about_screen.dart';
+import '../trip_details/trip_details_screen.dart';
+import '../stop_details/stop_details_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final ThemeMode selectedThemeMode;
@@ -63,6 +72,14 @@ class _MainScreenState extends State<MainScreen> {
   RouteMapData _desktopRouteOverlayData = _emptyRouteMapData;
   RouteVehicleMarker? _desktopRouteVehicleMarker;
   SelectedItineraryMapPayload? _desktopSelectedMapPayload;
+  TicketItem? _editingTicket;
+  PassType? _editingPassType;
+  String? _activeTripId;
+  String? _activeTripServiceDay;
+  String? _activeStopId;
+  String? _activeStopName;
+  LatLng? _activeStopPoint;
+  List<String>? _activeGroupedStopIds;
   final List<_MainSection> _navigationHistory = [_MainSection.home];
 
   double _currentSliderValue = 5;
@@ -105,6 +122,10 @@ class _MainScreenState extends State<MainScreen> {
       _showMap = section == _MainSection.map;
       _showNews = section == _MainSection.news;
       _showProfile = section == _MainSection.profile;
+
+      _desktopRouteOverlayData = _emptyRouteMapData;
+      _desktopRouteVehicleMarker = null;
+      _desktopSelectedMapPayload = null;
 
       if (addToHistory) {
         final current = _navigationHistory.isNotEmpty
@@ -311,9 +332,18 @@ class _MainScreenState extends State<MainScreen> {
     SelectedItineraryMapPayload? selectedPayload,
   }) {
     setState(() {
-      _desktopRouteOverlayData = routeData;
-      _desktopRouteVehicleMarker = vehicleMarker;
-      _desktopSelectedMapPayload = selectedPayload;
+      _desktopRouteOverlayData = _emptyRouteMapData;
+      _desktopRouteVehicleMarker = null;
+      _desktopSelectedMapPayload = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _desktopRouteOverlayData = routeData;
+          _desktopRouteVehicleMarker = vehicleMarker;
+          _desktopSelectedMapPayload = selectedPayload;
+        });
+      }
     });
   }
 
@@ -323,6 +353,23 @@ class _MainScreenState extends State<MainScreen> {
       _desktopRouteVehicleMarker = null;
       _desktopSelectedMapPayload = null;
     });
+  }
+
+  RouteMapData _buildStopRouteMapData() {
+    if (_activeStopId == null || _activeStopPoint == null) {
+      return _emptyRouteMapData;
+    }
+    return RouteMapData(
+      segments: const [],
+      stops: [
+        RouteStopMarker(
+          stopId: _activeStopId!,
+          label: _activeStopName ?? '',
+          point: _activeStopPoint!,
+          type: RouteStopType.transfer,
+        ),
+      ],
+    );
   }
 
   Widget _buildPlannerContent({required bool isDesktop}) {
@@ -352,6 +399,15 @@ class _MainScreenState extends State<MainScreen> {
           vehicleMarker: vehicleMarker,
         );
       },
+      onOpenTripDetailsRequested: isDesktop
+          ? (tripId, serviceDay) {
+              setState(() {
+                _activeTripId = tripId;
+                _activeTripServiceDay = serviceDay;
+              });
+              _navigateTo(_MainSection.tripDetails);
+            }
+          : null,
       fromController: _searchController1,
       toController: _searchController2,
       selectedDate: _selectedDate,
@@ -399,6 +455,118 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildSidebarContent(BuildContext context) {
+    final activeSection = _navigationHistory.last;
+    switch (activeSection) {
+      case _MainSection.profile:
+        return ProfileScreen(
+          selectedThemeMode: widget.selectedThemeMode,
+          onThemeModeChanged: widget.onThemeModeChanged,
+          selectedLanguage: widget.selectedLanguage,
+          onLanguageChanged: widget.onLanguageChanged,
+          onOpenTickets: () => _navigateTo(_MainSection.tickets),
+          onOpenAddTicket: () => _navigateTo(_MainSection.addTicket),
+          onOpenManagePassTypes: () => _navigateTo(_MainSection.managePassTypes),
+          onOpenAbout: () => _navigateTo(_MainSection.about),
+        );
+      case _MainSection.news:
+        return const NewsScreen();
+      case _MainSection.tickets:
+        return TicketsScreen(
+          onBack: _handleBackNavigation,
+          onEditTicket: (ticket) {
+            setState(() {
+              _editingTicket = ticket;
+            });
+            _navigateTo(_MainSection.editTicket);
+          },
+        );
+      case _MainSection.addTicket:
+        return AddTicketScreen(
+          onBack: _handleBackNavigation,
+          onSaved: () {
+            _handleBackNavigation();
+          },
+        );
+      case _MainSection.editTicket:
+        return AddTicketScreen(
+          ticket: _editingTicket,
+          onBack: _handleBackNavigation,
+          onSaved: () {
+            _handleBackNavigation();
+          },
+        );
+      case _MainSection.managePassTypes:
+        return ManagePassTypesScreen(
+          onBack: _handleBackNavigation,
+          onOpenPassTypeEditor: (passType) {
+            setState(() {
+              _editingPassType = passType;
+            });
+            _navigateTo(_MainSection.passTypeEditor);
+          },
+        );
+      case _MainSection.passTypeEditor:
+        return PassTypeEditorScreen(
+          passType: _editingPassType,
+          onBack: _handleBackNavigation,
+          onSaved: () {
+            _handleBackNavigation();
+          },
+        );
+      case _MainSection.about:
+        return AboutScreen(
+          onBack: _handleBackNavigation,
+        );
+      case _MainSection.tripDetails:
+        return TripDetailsScreen(
+          tripId: _activeTripId ?? '',
+          serviceDay: _activeTripServiceDay ?? '',
+          onShowOnBackgroundMap: (routeData, vehicleMarker) {
+            _showDesktopRouteOnBackgroundMap(
+              routeData: routeData,
+              vehicleMarker: vehicleMarker,
+            );
+          },
+          onOpenStopDetailsRequested: (stopId, stopName) {
+            setState(() {
+              _activeStopId = stopId;
+              _activeStopName = stopName;
+              _activeStopPoint = null;
+              _activeGroupedStopIds = null;
+            });
+            _navigateTo(_MainSection.stopDetails);
+          },
+          onCloseRequested: _handleBackNavigation,
+        );
+      case _MainSection.stopDetails:
+        return StopDetailsScreen(
+          stopId: _activeStopId ?? '',
+          initialStopName: _activeStopName,
+          initialStopPoint: _activeStopPoint,
+          groupedStopIds: _activeGroupedStopIds,
+          onShowTripOnBackgroundMap: (routeData, vehicleMarker) {
+            _showDesktopRouteOnBackgroundMap(
+              routeData: routeData,
+              vehicleMarker: vehicleMarker,
+            );
+          },
+          onOpenTripDetailsRequested: (tripId, serviceDay) {
+            setState(() {
+              _activeTripId = tripId;
+              _activeTripServiceDay = serviceDay;
+            });
+            _navigateTo(_MainSection.tripDetails);
+          },
+          onCloseRequested: _handleBackNavigation,
+        );
+      case _MainSection.home:
+      case _MainSection.table:
+      default:
+        return _buildPlannerContent(isDesktop: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = MediaQuery.of(context).size.width > 700;
@@ -444,17 +612,15 @@ class _MainScreenState extends State<MainScreen> {
             Expanded(
               child: useDesktopMapLayout
                   ? MainDesktopMapLayout(
-                      selectedThemeMode: widget.selectedThemeMode,
-                      onThemeModeChanged: widget.onThemeModeChanged,
-                      selectedLanguage: widget.selectedLanguage,
-                      onLanguageChanged: widget.onLanguageChanged,
-                      showProfile: _showProfile,
-                      showNews: _showNews,
                       showMap: _showMap,
-                      desktopRouteOverlayData: _desktopRouteOverlayData,
+                      showResultCard: (_navigationHistory.last == _MainSection.home || _navigationHistory.last == _MainSection.table) &&
+                          _desktopSelectedMapPayload != null,
+                      desktopRouteOverlayData: _navigationHistory.last == _MainSection.stopDetails
+                          ? _buildStopRouteMapData()
+                          : _desktopRouteOverlayData,
                       desktopRouteVehicleMarker: _desktopRouteVehicleMarker,
                       desktopSelectedMapPayload: _desktopSelectedMapPayload,
-                      plannerContent: _buildPlannerContent(isDesktop: true),
+                      sidebarContent: _buildSidebarContent(context),
                       onClearDesktopRouteSelection: _clearDesktopRouteSelection,
                       onShowTripOnBackgroundMap: (routeData, vehicleMarker) {
                         _showDesktopRouteOnBackgroundMap(
@@ -462,6 +628,26 @@ class _MainScreenState extends State<MainScreen> {
                           vehicleMarker: vehicleMarker,
                         );
                       },
+                      onOpenTripDetailsRequested: (tripId, serviceDay) {
+                        setState(() {
+                          _activeTripId = tripId;
+                          _activeTripServiceDay = serviceDay;
+                        });
+                        _navigateTo(_MainSection.tripDetails);
+                      },
+                      onOpenStopDetailsRequested: (stopId, stopName, initialStopPoint, groupedStopIds) {
+                        setState(() {
+                          _activeStopId = stopId;
+                          _activeStopName = stopName;
+                          _activeStopPoint = initialStopPoint;
+                          _activeGroupedStopIds = groupedStopIds;
+                        });
+                        _navigateTo(_MainSection.stopDetails);
+                      },
+                      hideGeneralStopsAndVehicles: _navigationHistory.last == _MainSection.tripDetails ||
+                          _navigationHistory.last == _MainSection.stopDetails ||
+                          _desktopRouteOverlayData.hasContent ||
+                          _desktopSelectedMapPayload != null,
                     )
                   : isMapFullscreen
                       ? Column(
@@ -579,4 +765,18 @@ class _MainScreenState extends State<MainScreen> {
 
 enum _MobileTab { home, news, map, profile }
 
-enum _MainSection { home, table, map, news, profile }
+enum _MainSection {
+  home,
+  table,
+  map,
+  news,
+  profile,
+  tickets,
+  addTicket,
+  editTicket,
+  managePassTypes,
+  passTypeEditor,
+  about,
+  tripDetails,
+  stopDetails,
+}

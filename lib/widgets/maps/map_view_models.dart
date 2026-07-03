@@ -21,6 +21,7 @@ class _VehicleMarkerData {
   final Color markerColor;
   final Color markerTextColor;
   final Color markerOutlineHeadingColor;
+  final int vehicleSpeed;
 
   const _VehicleMarkerData({
     required this.markerId,
@@ -43,6 +44,7 @@ class _VehicleMarkerData {
     required this.markerColor,
     required this.markerTextColor,
     required this.markerOutlineHeadingColor,
+    required this.vehicleSpeed,
   });
 }
 

@@ -9,7 +9,15 @@ import '../theme/app_texts.dart';
 
 class PassTypeEditorScreen extends StatefulWidget {
   final PassType? passType;
-  const PassTypeEditorScreen({super.key, this.passType});
+  final VoidCallback? onBack;
+  final VoidCallback? onSaved;
+
+  const PassTypeEditorScreen({
+    super.key,
+    this.passType,
+    this.onBack,
+    this.onSaved,
+  });
 
   @override
   State<PassTypeEditorScreen> createState() => _PassTypeEditorScreenState();
@@ -127,7 +135,11 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
 
     await _passTypeApiService.savePassType(newPassType);
     if (mounted) {
-      Navigator.of(context).pop(true);
+      if (widget.onSaved != null) {
+        widget.onSaved!();
+      } else {
+        Navigator.of(context).pop(true);
+      }
     }
   }
 
@@ -358,7 +370,13 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
         title: Text(widget.passType != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.of(context).pop();
+            }
+          },
         ),
       ),
       body: SafeArea(

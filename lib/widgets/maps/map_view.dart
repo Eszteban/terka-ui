@@ -35,6 +35,9 @@ class MapView extends StatefulWidget {
   final bool showRouteStopLabels;
   final bool useBaseMapStopIcon;
   final TripDetailsBackgroundMapCallback? onShowTripOnBackgroundMap;
+  final Function(String, String)? onOpenTripDetailsRequested;
+  final Function(String, String?, LatLng?, List<String>?)? onOpenStopDetailsRequested;
+  final bool hideGeneralStopsAndVehicles;
 
   const MapView({
     super.key,
@@ -47,6 +50,9 @@ class MapView extends StatefulWidget {
     this.showRouteStopLabels = false,
     this.useBaseMapStopIcon = true,
     this.onShowTripOnBackgroundMap,
+    this.onOpenTripDetailsRequested,
+    this.onOpenStopDetailsRequested,
+    this.hideGeneralStopsAndVehicles = false,
   });
 
   @override
@@ -139,6 +145,11 @@ class _MapViewState extends State<MapView> {
     if (oldWidget.routeOverlayData != widget.routeOverlayData ||
         oldWidget.routeVehicleMarker != widget.routeVehicleMarker ||
         oldWidget.routeFitPadding != widget.routeFitPadding) {
+      _selectedVehicleMarkerId = null;
+      _selectedStopMarkerId = null;
+      _selectedStopQuickInfo = null;
+      _isLoadingSelectedStopQuickInfo = false;
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_hasRouteOverlayContent) {
           return;
@@ -461,67 +472,88 @@ class _MapViewState extends State<MapView> {
                   MarkerLayer(
                     markers: routeData.stops
                         .map(
-                          (stop) => Marker(
-                            point: stop.point,
-                            width: 38,
-                            height: 38,
-                            alignment: widget.useBaseMapStopIcon
-                                ? Alignment.center
-                                : Alignment.topCenter,
-                            child: Stack(
-                              clipBehavior: Clip.none,
-                              alignment: Alignment.bottomCenter,
-                              children: [
-                                if (widget.showRouteStopLabels)
-                                  Positioned(
-                                    bottom: 30,
-                                    child: Builder(
-                                      builder: (context) {
-                                        final isDark =
-                                            Theme.of(context).brightness ==
-                                            Brightness.dark;
-                                        final bgColor = isDark
-                                            ? Colors.grey[900]!.withOpacity(
-                                                0.92,
-                                              )
-                                            : Colors.white.withOpacity(
-                                                0.92,
-                                              );
-                                        return Container(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 180,
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: bgColor,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                          (stop) {
+                            final isSelected = _selectedStopMarkerId == stop.stopId;
+                            return Marker(
+                              point: stop.point,
+                              width: isSelected ? 320 : 38,
+                              height: isSelected ? 180 : 38,
+                              alignment: Alignment.center,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => _toggleRouteStopLabel(stop),
+                                child: isSelected
+                                    ? Stack(
+                                        clipBehavior: Clip.none,
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned(
+                                            bottom: 92,
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onTap: _consumeNextMapTapClose,
+                                              child: _buildRouteStopInfoCard(stop),
                                             ),
                                           ),
-                                          child: Text(
-                                            stop.label,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 11,
+                                          _buildMapStopDot(stop.bearing),
+                                        ],
+                                      )
+                                    : Stack(
+                                        clipBehavior: Clip.none,
+                                        alignment: Alignment.bottomCenter,
+                                        children: [
+                                          if (widget.showRouteStopLabels)
+                                            Positioned(
+                                              bottom: 30,
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final isDark =
+                                                      Theme.of(context).brightness ==
+                                                      Brightness.dark;
+                                                  final bgColor = isDark
+                                                      ? Colors.grey[900]!.withOpacity(
+                                                          0.92,
+                                                        )
+                                                      : Colors.white.withOpacity(
+                                                          0.92,
+                                                        );
+                                                  return Container(
+                                                    constraints: const BoxConstraints(
+                                                      maxWidth: 180,
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: bgColor,
+                                                      borderRadius: BorderRadius.circular(
+                                                        6,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      stop.label,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                widget.useBaseMapStopIcon
-                                    ? _buildMapStopDot(stop.bearing)
-                                    : Icon(
-                                        Icons.location_on,
-                                        color: _routeStopColor(stop.type),
-                                        size: 30,
+                                          widget.useBaseMapStopIcon
+                                              ? _buildMapStopDot(stop.bearing)
+                                              : Icon(
+                                                  Icons.location_on,
+                                                  color: _routeStopColor(stop.type),
+                                                  size: 30,
+                                                ),
+                                        ],
                                       ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         )
                         .toList(),
                   ),
@@ -645,6 +677,11 @@ class _MapViewState extends State<MapView> {
     final serviceDay = vehicle.serviceDate.trim().isNotEmpty
         ? vehicle.serviceDate.trim()
         : _todayServiceDate();
+
+    if (widget.onOpenTripDetailsRequested != null) {
+      widget.onOpenTripDetailsRequested!(tripId, serviceDay);
+      return;
+    }
 
     if (!mounted) {
       return;

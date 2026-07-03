@@ -50,6 +50,7 @@ class DummyTable extends StatelessWidget {
   final Future<void> Function()? onLoadMore;
   final bool ticketWatch;
   final List<TicketItem> tickets;
+  final Function(String, String)? onOpenTripDetailsRequested;
 
   const DummyTable({
     super.key,
@@ -63,6 +64,7 @@ class DummyTable extends StatelessWidget {
     this.onLoadMore,
     this.ticketWatch = false,
     this.tickets = const [],
+    this.onOpenTripDetailsRequested,
   });
 
   @override
@@ -746,6 +748,11 @@ class DummyTable extends StatelessWidget {
     required String tripId,
     required String serviceDay,
   }) async {
+    if (onOpenTripDetailsRequested != null) {
+      onOpenTripDetailsRequested!(tripId, serviceDay);
+      return;
+    }
+
     final isDesktop =
         desktopInlineMapMode &&
         MediaQuery.of(context).size.width > _desktopBreakpoint;

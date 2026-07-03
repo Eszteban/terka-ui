@@ -440,6 +440,10 @@ class TripDetailsUtils {
         ? nextStop['stop']['name']?.toString()
         : null;
 
+    final vehicleSpeed = vehicle['speed'] is num
+        ? ((vehicle['speed'] as num)*3.6).round()
+        : 0;
+
     return VehicleInfoCard(
       lineLabel: lineLabel,
       lineLabelUsesSpanFont: lineLabelUsesSpanFont,
@@ -447,6 +451,7 @@ class TripDetailsUtils {
       tripHeadsignLabel: tripHeadsignLabel,
       serviceLabel: serviceLabel,
       modelLabel: modelLabel,
+      vehicleSpeed: vehicleSpeed,
       arrivalDelaySeconds: arrivalDelaySeconds,
       nextStopName: nextStopName,
       markerColor: routeColor,

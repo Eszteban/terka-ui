@@ -7,7 +7,14 @@ import '../theme/app_texts.dart';
 import 'pass_type_editor_screen.dart';
 
 class ManagePassTypesScreen extends StatefulWidget {
-  const ManagePassTypesScreen({super.key});
+  final VoidCallback? onBack;
+  final ValueChanged<PassType?>? onOpenPassTypeEditor;
+
+  const ManagePassTypesScreen({
+    super.key,
+    this.onBack,
+    this.onOpenPassTypeEditor,
+  });
 
   @override
   State<ManagePassTypesScreen> createState() => _ManagePassTypesScreenState();
@@ -38,11 +45,32 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
   }
 
   Future<void> _openPassTypeEditor([PassType? passType]) async {
-    final bool? result = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (context) => PassTypeEditorScreen(passType: passType),
-      ),
-    );
+    if (widget.onOpenPassTypeEditor != null) {
+      widget.onOpenPassTypeEditor!(passType);
+      return;
+    }
+
+    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final bool? result;
+    if (isDesktop) {
+      result = await showDialog<bool>(
+        context: context,
+        builder: (_) => Dialog(
+          clipBehavior: Clip.antiAlias,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720, maxHeight: 760),
+            child: PassTypeEditorScreen(passType: passType),
+          ),
+        ),
+      );
+    } else {
+      result = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(
+          builder: (context) => PassTypeEditorScreen(passType: passType),
+        ),
+      );
+    }
     if (result == true) {
       _loadPassTypes();
     }
@@ -100,6 +128,12 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppTexts.managePassTypesTitle),
+        leading: widget.onBack != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: widget.onBack,
+              )
+            : null,
       ),
       body: SafeArea(
         child: _isLoading

@@ -6,6 +6,16 @@ extension _MapViewInteractions on _MapViewState {
       return;
     }
 
+    if (widget.hideGeneralStopsAndVehicles) {
+      if (_vehicleMarkers.isNotEmpty || _nearbyStops.isNotEmpty) {
+        refreshState(() {
+          _vehicleMarkers = const [];
+          _nearbyStops = const [];
+        });
+      }
+      return;
+    }
+
     final camera = _mapController.camera;
     final bounds = camera.visibleBounds;
     final modes = _modesForZoom(camera.zoom);
@@ -125,7 +135,9 @@ extension _MapViewInteractions on _MapViewState {
               ? item['vehicleModel'] as String
               : VehicleTypeLookup(uicLabel).vehicleType,
         );
-
+        final vehicleSpeed = item['speed'] is num
+            ? ((item['speed'] as num)*3.6).round()
+            : 0;
         final rawTripNumber = trip is Map && trip['tripShortName'] is String
             ? trip['tripShortName'] as String
             : '';
@@ -218,6 +230,7 @@ extension _MapViewInteractions on _MapViewState {
             markerColor: markerColor,
             markerTextColor: markerTextColor,
             markerOutlineHeadingColor: markerOutlineHeadingColor,
+            vehicleSpeed: vehicleSpeed,
           ),
         );
       }
@@ -556,6 +569,16 @@ extension _MapViewInteractions on _MapViewState {
         .toSet()
         .toList();
 
+    if (widget.onOpenStopDetailsRequested != null) {
+      widget.onOpenStopDetailsRequested!(
+        stop.stopId,
+        stop.name,
+        stop.point,
+        groupedIds,
+      );
+      return;
+    }
+
     if (!mounted) {
       return;
     }
@@ -595,6 +618,38 @@ extension _MapViewInteractions on _MapViewState {
         ),
       ),
     );
+  }
+
+  void _toggleRouteStopLabel(RouteStopMarker stop) {
+    _consumeNextMapTapClose();
+    final isSame = _selectedStopMarkerId == stop.stopId;
+    refreshState(() {
+      _selectedVehicleMarkerId = null;
+      if (isSame) {
+        _selectedStopMarkerId = null;
+        _selectedStopQuickInfo = null;
+        _isLoadingSelectedStopQuickInfo = false;
+      } else {
+        _selectedStopMarkerId = stop.stopId;
+        _selectedStopQuickInfo = null;
+        _isLoadingSelectedStopQuickInfo = true;
+      }
+    });
+
+    if (!isSame && stop.stopId != null) {
+      _loadSelectedStopQuickInfo(stop.stopId!, fallbackName: stop.label);
+    }
+  }
+
+  Widget _buildRouteStopInfoCard(RouteStopMarker stop) {
+    final converted = _MapStopData(
+      stopId: stop.stopId ?? '',
+      name: stop.label,
+      point: stop.point,
+      bearing: stop.bearing,
+    );
+
+    return _buildStopInfoCard(converted);
   }
 
   void _consumeNextMapTapClose() {

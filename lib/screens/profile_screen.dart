@@ -12,6 +12,10 @@ class ProfileScreen extends StatefulWidget {
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final AppLanguage selectedLanguage;
   final ValueChanged<AppLanguage> onLanguageChanged;
+  final VoidCallback? onOpenTickets;
+  final VoidCallback? onOpenAddTicket;
+  final VoidCallback? onOpenManagePassTypes;
+  final VoidCallback? onOpenAbout;
 
   const ProfileScreen({
     super.key,
@@ -19,6 +23,10 @@ class ProfileScreen extends StatefulWidget {
     required this.onThemeModeChanged,
     required this.selectedLanguage,
     required this.onLanguageChanged,
+    this.onOpenTickets,
+    this.onOpenAddTicket,
+    this.onOpenManagePassTypes,
+    this.onOpenAbout,
   });
 
   @override
@@ -29,6 +37,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   static const _desktopBreakpoint = 700.0;
 
   Future<void> _openTickets() async {
+    if (widget.onOpenTickets != null) {
+      widget.onOpenTickets!();
+      return;
+    }
+
     final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
     if (isDesktop) {
       await _showDesktopSurface<void>(
@@ -45,18 +58,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _openAddTicket() async {
+    if (widget.onOpenAddTicket != null) {
+      widget.onOpenAddTicket!();
+      return;
+    }
+
+    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    if (isDesktop) {
+      await _showDesktopSurface<void>(
+        child: const AddTicketScreen(),
+        maxWidth: 760,
+        maxHeight: 760,
+      );
+      return;
+    }
+
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const AddTicketScreen()));
   }
 
   Future<void> _openManagePassTypes() async {
+    if (widget.onOpenManagePassTypes != null) {
+      widget.onOpenManagePassTypes!();
+      return;
+    }
+
+    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    if (isDesktop) {
+      await _showDesktopSurface<void>(
+        child: const ManagePassTypesScreen(),
+        maxWidth: 760,
+        maxHeight: 760,
+      );
+      return;
+    }
+
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const ManagePassTypesScreen()));
   }
 
   Future<void> _openAbout() async {
+    if (widget.onOpenAbout != null) {
+      widget.onOpenAbout!();
+      return;
+    }
+
     final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
     if (isDesktop) {
       await _showDesktopSurface<void>(

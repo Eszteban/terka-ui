@@ -1,46 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../theme/app_tokens.dart';
-import '../../../theme/app_texts.dart';
 import '../../../widgets/maps/map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
 import '../../../widgets/tables/dummy_table.dart';
-import '../../profile_screen.dart';
-import '../../news_screen.dart';
 import 'main_selected_map_card.dart';
 
 class MainDesktopMapLayout extends StatelessWidget {
-  final ThemeMode selectedThemeMode;
-  final ValueChanged<ThemeMode> onThemeModeChanged;
-  final AppLanguage selectedLanguage;
-  final ValueChanged<AppLanguage> onLanguageChanged;
-
-  final bool showProfile;
-  final bool showNews;
   final bool showMap;
+  final bool showResultCard;
 
   final RouteMapData desktopRouteOverlayData;
   final RouteVehicleMarker? desktopRouteVehicleMarker;
   final SelectedItineraryMapPayload? desktopSelectedMapPayload;
 
-  final Widget plannerContent;
+  final Widget sidebarContent;
   final VoidCallback onClearDesktopRouteSelection;
   final Function(RouteMapData, RouteVehicleMarker?) onShowTripOnBackgroundMap;
+  final Function(String, String)? onOpenTripDetailsRequested;
+  final Function(String, String?, LatLng?, List<String>?)? onOpenStopDetailsRequested;
+  final bool hideGeneralStopsAndVehicles;
 
   const MainDesktopMapLayout({
     super.key,
-    required this.selectedThemeMode,
-    required this.onThemeModeChanged,
-    required this.selectedLanguage,
-    required this.onLanguageChanged,
-    required this.showProfile,
-    required this.showNews,
     required this.showMap,
+    required this.showResultCard,
     required this.desktopRouteOverlayData,
     required this.desktopRouteVehicleMarker,
     required this.desktopSelectedMapPayload,
-    required this.plannerContent,
+    required this.sidebarContent,
     required this.onClearDesktopRouteSelection,
     required this.onShowTripOnBackgroundMap,
+    this.onOpenTripDetailsRequested,
+    this.onOpenStopDetailsRequested,
+    this.hideGeneralStopsAndVehicles = false,
   });
 
   Widget _buildDesktopOverlayPanel({
@@ -69,8 +62,6 @@ class MainDesktopMapLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     const panelWidth = 430.0;
     final showPlannerPanel = !showMap;
-    final showResultCard =
-        !showNews && !showProfile && desktopSelectedMapPayload != null;
     final hasRouteOverlay =
         desktopRouteOverlayData.hasContent ||
         desktopRouteVehicleMarker != null;
@@ -88,6 +79,9 @@ class MainDesktopMapLayout extends StatelessWidget {
             showRouteStopLabels: false,
             useBaseMapStopIcon: true,
             onShowTripOnBackgroundMap: onShowTripOnBackgroundMap,
+            onOpenTripDetailsRequested: onOpenTripDetailsRequested,
+            onOpenStopDetailsRequested: onOpenStopDetailsRequested,
+            hideGeneralStopsAndVehicles: hideGeneralStopsAndVehicles,
           ),
         ),
         if (showPlannerPanel)
@@ -101,16 +95,7 @@ class MainDesktopMapLayout extends StatelessWidget {
                 Expanded(
                   child: _buildDesktopOverlayPanel(
                     context: context,
-                    child: showProfile
-                        ? ProfileScreen(
-                            selectedThemeMode: selectedThemeMode,
-                            onThemeModeChanged: onThemeModeChanged,
-                            selectedLanguage: selectedLanguage,
-                            onLanguageChanged: onLanguageChanged,
-                          )
-                        : showNews
-                            ? const NewsScreen()
-                            : plannerContent,
+                    child: sidebarContent,
                   ),
                 ),
                 if (showResultCard) ...[

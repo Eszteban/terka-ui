@@ -21,6 +21,7 @@ class StopDetailsScreen extends StatefulWidget {
   final TripDetailsBackgroundMapCallback? onShowTripOnBackgroundMap;
   final TripDetailsOpenRequestCallback? onOpenTripDetailsRequested;
   final bool closeAfterOpenTripRequest;
+  final VoidCallback? onCloseRequested;
 
   const StopDetailsScreen({
     super.key,
@@ -31,6 +32,7 @@ class StopDetailsScreen extends StatefulWidget {
     this.onShowTripOnBackgroundMap,
     this.onOpenTripDetailsRequested,
     this.closeAfterOpenTripRequest = true,
+    this.onCloseRequested,
   });
 
   @override
@@ -383,7 +385,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       );
     }
 
-    return StopDetailsTabs(
+    final mainContent = StopDetailsTabs(
       now: now,
       hasPast: hasPast,
       visibleArrivals: visibleArrivals,
@@ -408,6 +410,21 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         _openTripDetails(tripId: tripId, serviceDay: serviceDay);
       },
     );
+
+    if (widget.onCloseRequested != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(widget.initialStopName ?? AppTexts.stopDetailsLabel),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: widget.onCloseRequested,
+          ),
+        ),
+        body: SafeArea(child: mainContent),
+      );
+    }
+
+    return mainContent;
   }
 
   bool get _useMobileMapSheet {
@@ -424,7 +441,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
 
     if (isDesktop && widget.onOpenTripDetailsRequested != null) {
       widget.onOpenTripDetailsRequested!(tripId, serviceDay);
-      if (widget.closeAfterOpenTripRequest && mounted) {
+      if (widget.closeAfterOpenTripRequest && widget.onCloseRequested == null && mounted) {
         Navigator.of(context).maybePop();
       }
       return;
