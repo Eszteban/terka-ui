@@ -65,7 +65,7 @@ class _NewsScreenState extends State<NewsScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final isDesktop = MediaQuery.of(context).size.width > 600;
 
     return FutureBuilder<List<_NewsItem>>(
       future: _newsFuture,

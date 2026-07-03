@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
+import 'stop_line_selector.dart';
+import '../../../utils/stop_details_utils.dart';
 
 class StopDetailsTabs extends StatelessWidget {
   final DateTime now;
@@ -20,6 +22,11 @@ class StopDetailsTabs extends StatelessWidget {
     required String serviceDay,
   }) onOpenTripDetails;
 
+  final Set<String> selectedLines;
+  final List<Map<String, dynamic>> uniqueLines;
+  final void Function(String line, bool selected) onLineSelected;
+  final VoidCallback onClearLineSelection;
+
   const StopDetailsTabs({
     super.key,
     required this.now,
@@ -29,6 +36,10 @@ class StopDetailsTabs extends StatelessWidget {
     required this.selectedDate,
     required this.showPastDepartures,
     required this.stop,
+    required this.selectedLines,
+    required this.uniqueLines,
+    required this.onLineSelected,
+    required this.onClearLineSelection,
     required this.onPickDate,
     required this.onTogglePastDepartures,
     required this.onStepSelectedDate,
@@ -37,7 +48,7 @@ class StopDetailsTabs extends StatelessWidget {
   });
 
   bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    return StopDetailsUtils.isSameBudapestDay(a, b);
   }
 
   String _formatSelectedDate(DateTime date) {
@@ -103,6 +114,15 @@ class StopDetailsTabs extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: AlertsSection(alerts: stop?['alerts']),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: StopLineSelector(
+              uniqueLines: uniqueLines,
+              selectedLines: selectedLines,
+              onLineSelected: onLineSelected,
+              onClearSelection: onClearLineSelection,
+            ),
           ),
           TabBar(
             tabs: [

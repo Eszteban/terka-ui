@@ -171,10 +171,10 @@ class TripDetailsUtils {
     return decodePolyline(encoded);
   }
 
-  static List<({LatLng point, String label, String? stopId, double? bearing})>
+  static List<({LatLng point, String label, String? stopId, double? bearing, String? platformCode})>
   stopPoints(Map<String, dynamic> trip) {
     final result =
-        <({LatLng point, String label, String? stopId, double? bearing})>[];
+        <({LatLng point, String label, String? stopId, double? bearing, String? platformCode})>[];
     for (final stopTime in stopTimes(trip)) {
       final stop = stopTime['stop'];
       if (stop is! Map) {
@@ -186,12 +186,14 @@ class TripDetailsUtils {
       final bearing = stop['bearing'] is num
           ? (stop['bearing'] as num).toDouble()
           : null;
+      final platformCode = stop['platformCode']?.toString().trim();
       if (lat is num && lon is num) {
         result.add((
           point: LatLng(lat.toDouble(), lon.toDouble()),
           label: plainText(name),
           stopId: stop['id']?.toString().trim(),
           bearing: bearing,
+          platformCode: platformCode != null && platformCode.isNotEmpty ? platformCode : null,
         ));
       }
     }
@@ -266,6 +268,7 @@ class TripDetailsUtils {
           type: type,
           stopId: item.stopId,
           bearing: item.bearing,
+          platformCode: item.platformCode,
         ),
       );
     }

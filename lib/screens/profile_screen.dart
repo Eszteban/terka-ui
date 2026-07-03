@@ -34,7 +34,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  static const _desktopBreakpoint = 700.0;
+  static const _desktopBreakpoint = 600.0;
 
   Future<void> _openTickets() async {
     if (widget.onOpenTickets != null) {

@@ -366,6 +366,10 @@ class AppTexts {
       : 'No departures to display.';
   static String get stopDetailsLabel =>
       isHungarian ? 'Megálló adatai' : 'Stop details';
+  static String get stopLineFilterTitle =>
+      isHungarian ? 'Vonal-választó' : 'Line Selector';
+  static String get stopLineFilterReset =>
+      isHungarian ? 'Alaphelyzet' : 'Reset';
 
   // Trip Details Screen
   static String get trip => isHungarian ? 'Járat' : 'Trip';

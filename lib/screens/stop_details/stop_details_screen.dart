@@ -6,13 +6,14 @@ import 'package:latlong2/latlong.dart';
 import '../../services/transit_api_service.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../theme/app_texts.dart';
+import '../../utils/adaptive_dialog_utils.dart';
 import '../trip_details/trip_details_screen.dart';
 
 import 'widgets/stop_details_mobile_sheet.dart';
 import 'widgets/stop_details_tabs.dart';
 
 class StopDetailsScreen extends StatefulWidget {
-  static const double desktopBreakpoint = 700;
+  static const double desktopBreakpoint = 600;
 
   final String stopId;
   final String? initialStopName;
@@ -47,11 +48,55 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   bool _isUpdating = false;
   bool _isFetching = false;
   bool _showPastDepartures = false;
-  DateTime _selectedDate = DateTime.now();
+  DateTime _selectedDate = StopDetailsUtils.budapestToday();
   String? _error;
   Map<String, dynamic>? _stop;
   final TransitApiService _transitApiService = const TransitApiService();
   Timer? _refreshTimer;
+  final Set<String> _selectedLines = <String>{};
+
+  @override
+  void didUpdateWidget(covariant StopDetailsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.stopId != oldWidget.stopId) {
+      _selectedLines.clear();
+      _selectedDate = StopDetailsUtils.budapestToday();
+      _showPastDepartures = false;
+      _stop = null;
+      _loadStopDetails(forceFullScreenLoading: true);
+    }
+  }
+
+  List<Map<String, dynamic>> _getUniqueLines(Map<String, dynamic> stop) {
+    final routes = stop['routes'];
+    if (routes is! List) return const [];
+
+    final seenNames = <String>{};
+    final unique = <Map<String, dynamic>>[];
+    for (final r in routes) {
+      if (r is Map) {
+        var rawLabel = r['shortName']?.toString() ?? '';
+        if (rawLabel.trim().isEmpty) {
+          rawLabel = r['longName']?.toString() ?? '';
+        }
+        if (rawLabel.trim().isEmpty) {
+          rawLabel = '-';
+        }
+        final label = StopDetailsUtils.plainText(rawLabel);
+        final useSpanFont = StopDetailsUtils.containsSpanMarkup(rawLabel);
+        if (seenNames.add(label)) {
+          unique.add({
+            'shortName': label,
+            'color': r['color']?.toString() ?? '0A84FF',
+            'textColor': r['textColor']?.toString() ?? 'FFFFFF',
+            'useSpanFont': useSpanFont,
+          });
+        }
+      }
+    }
+    unique.sort((a, b) => a['shortName'].toString().compareTo(b['shortName'].toString()));
+    return unique;
+  }
 
   @override
   void initState() {
@@ -204,7 +249,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
@@ -212,7 +257,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       return;
     }
 
-    final normalized = DateTime(picked.year, picked.month, picked.day);
+    final normalized = DateTime.utc(picked.year, picked.month, picked.day);
     if (_isSameDate(_selectedDate, normalized)) {
       return;
     }
@@ -221,7 +266,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   }
 
   Future<void> _updateSelectedDate(DateTime date) async {
-    final normalized = DateTime(date.year, date.month, date.day);
+    final normalized = DateTime.utc(date.year, date.month, date.day);
     if (_isSameDate(_selectedDate, normalized)) {
       return;
     }
@@ -235,9 +280,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   }
 
   Future<void> _stepSelectedDate(int dayDelta) async {
-    final base =
-        DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-    final stepped = base.add(Duration(days: dayDelta));
+    final stepped = _selectedDate.add(Duration(days: dayDelta));
     await _updateSelectedDate(stepped);
   }
 
@@ -249,7 +292,10 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     if (occurrence == null) {
       return false;
     }
-    return _isSameDate(occurrence, _selectedDate);
+    final occurrenceBudapest = StopDetailsUtils.toBudapestTime(occurrence);
+    return occurrenceBudapest.year == _selectedDate.year &&
+        occurrenceBudapest.month == _selectedDate.month &&
+        occurrenceBudapest.day == _selectedDate.day;
   }
 
   @override
@@ -329,9 +375,18 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     }
 
     final now = DateTime.now();
-    final isTodayView = _isSameDate(_selectedDate, now);
-    final departures =
-        StopDetailsUtils.departures(stop).where(_isOnSelectedDate).toList();
+    final isTodayView = StopDetailsUtils.isSameBudapestDay(_selectedDate, now);
+    final allDepartures = StopDetailsUtils.departures(stop).where(_isOnSelectedDate);
+    final departures = (_selectedLines.isEmpty
+        ? allDepartures
+        : allDepartures.where((d) {
+            final trip = d['trip'];
+            final route = trip is Map ? trip['route'] : null;
+            final rawRouteShortName =
+                route is Map ? (route['shortName']?.toString() ?? '-') : '-';
+            final routeShortName = StopDetailsUtils.plainText(rawRouteShortName);
+            return _selectedLines.contains(routeShortName);
+          })).toList();
     assert(() {
       debugPrint(
         '[StopDetails] filter date=${_formatSelectedDate(_selectedDate)} all=${StopDetailsUtils.departures(stop).length} sameDay=${departures.length}',
@@ -366,6 +421,22 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         visibleDepartures: visibleDepartures,
         selectedDate: _selectedDate,
         showPastDepartures: _showPastDepartures,
+        selectedLines: _selectedLines,
+        uniqueLines: _getUniqueLines(stop),
+        onLineSelected: (line, selected) {
+          setState(() {
+            if (selected) {
+              _selectedLines.add(line);
+            } else {
+              _selectedLines.remove(line);
+            }
+          });
+        },
+        onClearLineSelection: () {
+          setState(() {
+            _selectedLines.clear();
+          });
+        },
         onPickDate: _pickDate,
         onTogglePastDepartures: () {
           setState(() {
@@ -374,10 +445,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         },
         onStepSelectedDate: _stepSelectedDate,
         onGoToToday: () {
-          final nowDate = DateTime.now();
-          _updateSelectedDate(
-            DateTime(nowDate.year, nowDate.month, nowDate.day),
-          );
+          _updateSelectedDate(StopDetailsUtils.budapestToday());
         },
         onOpenTripDetails: ({required tripId, required serviceDay}) {
           _openTripDetails(tripId: tripId, serviceDay: serviceDay);
@@ -393,6 +461,22 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       selectedDate: _selectedDate,
       showPastDepartures: _showPastDepartures,
       stop: stop,
+      selectedLines: _selectedLines,
+      uniqueLines: _getUniqueLines(stop),
+      onLineSelected: (line, selected) {
+        setState(() {
+          if (selected) {
+            _selectedLines.add(line);
+          } else {
+            _selectedLines.remove(line);
+          }
+        });
+      },
+      onClearLineSelection: () {
+        setState(() {
+          _selectedLines.clear();
+        });
+      },
       onPickDate: _pickDate,
       onTogglePastDepartures: () {
         setState(() {
@@ -401,10 +485,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
       },
       onStepSelectedDate: _stepSelectedDate,
       onGoToToday: () {
-        final nowDate = DateTime.now();
-        _updateSelectedDate(
-          DateTime(nowDate.year, nowDate.month, nowDate.day),
-        );
+        _updateSelectedDate(StopDetailsUtils.budapestToday());
       },
       onOpenTripDetails: ({required tripId, required serviceDay}) {
         _openTripDetails(tripId: tripId, serviceDay: serviceDay);
@@ -451,21 +532,13 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
         widget.onShowTripOnBackgroundMap != null && isDesktop;
 
     if (useDesktopDialog) {
-      await showDialog<void>(
+      await showAdaptiveDetailsDialog<void>(
         context: context,
-        builder: (_) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
-            child: TripDetailsScreen(
-              tripId: tripId,
-              serviceDay: serviceDay,
-              onShowOnBackgroundMap: widget.onShowTripOnBackgroundMap,
-              onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
-            ),
-          ),
+        child: TripDetailsScreen(
+          tripId: tripId,
+          serviceDay: serviceDay,
+          onShowOnBackgroundMap: widget.onShowTripOnBackgroundMap,
+          onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
         ),
       );
       return;

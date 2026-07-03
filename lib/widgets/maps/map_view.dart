@@ -14,6 +14,7 @@ import '../../utils/markup_text_utils.dart';
 import '../../utils/vehicle_type_lookup.dart';
 import '../../screens/stop_details/stop_details_screen.dart';
 import '../../screens/trip_details/trip_details_screen.dart';
+import '../../utils/adaptive_dialog_utils.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'vehicle_info_card.dart';
@@ -663,6 +664,7 @@ class _MapViewState extends State<MapView> {
   }
 
   Future<void> _openTripDetails(_VehicleMarkerData vehicle) async {
+    debugPrint('[Map Debug] Opening vehicle details: vehicleId=${vehicle.markerId}, tripId=${vehicle.tripGtfsId}');
     final tripId = vehicle.tripGtfsId.trim();
     if (tripId.isEmpty) {
       if (!mounted) {
@@ -688,19 +690,12 @@ class _MapViewState extends State<MapView> {
     }
 
     if (_useDesktopDialogs) {
-      await showDialog<void>(
+      await showAdaptiveDetailsDialog<void>(
         context: context,
-        builder: (_) => Dialog(
-          clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
-            child: TripDetailsScreen(
-              tripId: tripId,
-              serviceDay: serviceDay,
-              onShowOnBackgroundMap: widget.onShowTripOnBackgroundMap,
-            ),
-          ),
+        child: TripDetailsScreen(
+          tripId: tripId,
+          serviceDay: serviceDay,
+          onShowOnBackgroundMap: widget.onShowTripOnBackgroundMap,
         ),
       );
       return;

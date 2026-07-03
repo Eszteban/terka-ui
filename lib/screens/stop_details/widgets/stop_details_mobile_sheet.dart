@@ -6,6 +6,7 @@ import '../../../widgets/maps/route_map_data.dart';
 import '../../../theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
+import 'stop_line_selector.dart';
 
 class StopDetailsMobileSheet extends StatefulWidget {
   static const double _mobileSheetMinSize = 0.2;
@@ -26,10 +27,13 @@ class StopDetailsMobileSheet extends StatefulWidget {
   final VoidCallback onTogglePastDepartures;
   final void Function(int) onStepSelectedDate;
   final VoidCallback onGoToToday;
-  final void Function({
-    required String tripId,
-    required String serviceDay,
-  }) onOpenTripDetails;
+  final void Function({required String tripId, required String serviceDay})
+  onOpenTripDetails;
+
+  final Set<String> selectedLines;
+  final List<Map<String, dynamic>> uniqueLines;
+  final void Function(String line, bool selected) onLineSelected;
+  final VoidCallback onClearLineSelection;
 
   const StopDetailsMobileSheet({
     super.key,
@@ -42,6 +46,10 @@ class StopDetailsMobileSheet extends StatefulWidget {
     required this.visibleDepartures,
     required this.selectedDate,
     required this.showPastDepartures,
+    required this.selectedLines,
+    required this.uniqueLines,
+    required this.onLineSelected,
+    required this.onClearLineSelection,
     required this.onPickDate,
     required this.onTogglePastDepartures,
     required this.onStepSelectedDate,
@@ -57,7 +65,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
   int _mobileSelectedTabIndex = 1;
 
   bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
+    return StopDetailsUtils.isSameBudapestDay(a, b);
   }
 
   String _formatSelectedDate(DateTime date) {
@@ -75,8 +83,9 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
 
     final rawStopName =
         stop['name']?.toString() ?? widget.initialStopName ?? AppTexts.stops;
-    final bearing =
-        stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
+    final bearing = stop['bearing'] is num
+        ? (stop['bearing'] as num).toDouble()
+        : null;
     return RouteMapData(
       segments: const [],
       stops: [
@@ -215,7 +224,8 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     ),
                     const SizedBox(width: 8),
                     TextButton(
-                      onPressed: _isSameDate(widget.selectedDate, DateTime.now())
+                      onPressed:
+                          _isSameDate(widget.selectedDate, DateTime.now())
                           ? null
                           : widget.onGoToToday,
                       child: Text(AppTexts.stopToday),
@@ -238,6 +248,12 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                 ],
                 const SizedBox(height: 8),
                 AlertsSection(alerts: widget.stop['alerts']),
+                StopLineSelector(
+                  uniqueLines: widget.uniqueLines,
+                  selectedLines: widget.selectedLines,
+                  onLineSelected: widget.onLineSelected,
+                  onClearSelection: widget.onClearLineSelection,
+                ),
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
