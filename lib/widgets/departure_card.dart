@@ -266,6 +266,7 @@ class DepartureCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Column(
+                  mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [

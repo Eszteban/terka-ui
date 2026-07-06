@@ -318,23 +318,23 @@ class _TimetablePopupState extends State<_TimetablePopup> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    return Align(
       alignment: Alignment.bottomCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: DepartureCard(
-          departure: widget.departure,
-          now: widget.now,
-          onTap: widget.onTap != null
-              ? () {
-                  _timer?.cancel();
-                  Navigator.of(context).maybePop();
-                  widget.onTap!();
-                }
-              : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: DepartureCard(
+            departure: widget.departure,
+            now: widget.now,
+            onTap: widget.onTap != null
+                ? () {
+                    _timer?.cancel();
+                    Navigator.of(context).maybePop();
+                    widget.onTap!();
+                  }
+                : null,
+          ),
         ),
       ),
     );
