@@ -43,6 +43,8 @@ extension _MapViewInitialization on _MapViewState {
       return;
     }
 
+    _startPositionTracking();
+
     final lastKnown = await Geolocator.getLastKnownPosition();
     if (lastKnown != null) {
       if (!mounted) {
@@ -79,4 +81,42 @@ extension _MapViewInitialization on _MapViewState {
     }
   }
 
+  void _startPositionTracking() async {
+    if (_positionSubscription != null) return;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        return;
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && _currentPosition == null) {
+        refreshState(() {
+          _currentPosition = lastKnown;
+        });
+      }
+
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
+        ),
+      ).listen(
+        (Position position) {
+          refreshState(() {
+            _currentPosition = position;
+          });
+        },
+        onError: (error) {
+          debugPrint('[Map Debug] Position stream error: $error');
+        },
+      );
+    } catch (e) {
+      debugPrint('[Map Debug] Error starting position tracking: $e');
+    }
+  }
 }

@@ -8,6 +8,7 @@ import 'dart:async';
 import '../../theme/app_texts.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
+import 'user_location_dot.dart';
 
 class PlanMapView extends StatefulWidget {
   final RouteMapData routeData;
@@ -62,6 +63,8 @@ class _PlanMapViewState extends State<PlanMapView> {
   String? _selectedStopSelectionKey;
   bool _suppressNextMapTapClose = false;
   bool _isLocating = false;
+  StreamSubscription<Position>? _positionSubscription;
+  Position? _currentPosition;
 
   @override
   void initState() {
@@ -74,13 +77,60 @@ class _PlanMapViewState extends State<PlanMapView> {
         });
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _startPositionTracking();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
     _mapEventSubscription.cancel();
     _mapController.dispose();
     super.dispose();
+  }
+
+  void _startPositionTracking() async {
+    if (_positionSubscription != null) return;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        return;
+      }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && _currentPosition == null && mounted) {
+        setState(() {
+          _currentPosition = lastKnown;
+        });
+      }
+
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 3,
+        ),
+      ).listen(
+        (Position position) {
+          if (mounted) {
+            setState(() {
+              _currentPosition = position;
+            });
+          }
+        },
+        onError: (error) {
+          debugPrint('[PlanMap Debug] Position stream error: $error');
+        },
+      );
+    } catch (e) {
+      debugPrint('[PlanMap Debug] Error starting position tracking: $e');
+    }
   }
 
   @override
@@ -289,6 +339,8 @@ class _PlanMapViewState extends State<PlanMapView> {
         return;
       }
 
+      _startPositionTracking();
+
       final lastKnown = await Geolocator.getLastKnownPosition();
       if (lastKnown != null) {
         _moveToPosition(lastKnown);
@@ -424,6 +476,18 @@ class _PlanMapViewState extends State<PlanMapView> {
                           ),
                         )
                         .toList(),
+                  ),
+                if (_currentPosition != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        child: const UserLocationDot(),
+                      ),
+                    ],
                   ),
                 if (widget.routeData.stops.isNotEmpty)
                   MarkerLayer(

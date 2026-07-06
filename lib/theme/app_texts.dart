@@ -350,7 +350,8 @@ class AppTexts {
   static String get stopShowPast =>
       isHungarian ? 'Korábbi járatok mutatása' : 'Show past departures';
   static String get stopArrivals => isHungarian ? 'Érkezik' : 'Arrivals';
-  static String get stopDepartures => isHungarian ? 'Indul' : 'Departures';
+  static String get stopDepartures => isHungarian ? 'Indulások' : 'Departures';
+  static String get stopSchedule => isHungarian ? 'Menetrend' : 'Schedule';
   static String get stopArrivalDeparture =>
       isHungarian ? 'Érkezik/Indul' : 'Arrival/Departure';
   static String get stopTimeLabel => isHungarian ? 'Időpont' : 'Time';
@@ -393,6 +394,9 @@ class AppTexts {
   static String get tripNoVehicle =>
       isHungarian ? 'Nem található jármű' : 'No vehicle found';
   static String get tripNextStopPrefix => isHungarian ? 'köv: ' : 'next: ';
+  static String get tripNextStopStoppedAt =>
+      isHungarian ? 'Itt állt meg: ' : 'Stopped at: ';
+  static String get tripNextStopIncomingAt => isHungarian ? 'Ide érkezik: ' : 'Incoming at: ';
   static String get delayNa => 'n/a';
   static String get delayMinutesUnit => isHungarian ? 'p' : 'm';
   static String get delayZero => isHungarian ? '0p' : '0m';
@@ -583,4 +587,30 @@ class AppTexts {
   static String tripScheduledDeparture(String time) => isHungarian
       ? 'Menetrend szerinti indulás: $time'
       : 'Scheduled departure: $time';
+
+  // Trip Details Additional Info
+  static String get tripAdditionalInfoTitle =>
+      isHungarian ? 'További információk' : 'Additional Information';
+  static String get tripServiceOperatedBy =>
+      isHungarian ? 'A járatot a(z) ' : 'The service is operated by ';
+  static String get tripServiceOperatedSuffix =>
+      isHungarian ? ' biztosítja.' : '.';
+  static String tripRuns(String time) =>
+      isHungarian ? 'Közlekedik: $time' : 'Runs: $time';
+  static String get tripWheelchairAccessible =>
+      isHungarian ? 'A járat kerekesszékkel igénybe vehető.' : 'The service is wheelchair accessible.';
+  static String get tripWheelchairNotAccessible =>
+      isHungarian ? 'A járat kerekesszékkel nem vehető igénybe.' : 'The service is not wheelchair accessible.';
+  static String get tripWheelchairNoInfo =>
+      isHungarian ? 'Nincs információ a kerekesszékes utazásról.' : 'No information about wheelchair accessibility.';
+  static String get tripBikesAllowed =>
+      isHungarian ? 'A járaton a kerékpárszállítás megengedett.' : 'Bicycle transport is allowed.';
+  static String get tripBikesNotAllowed =>
+      isHungarian ? 'A járaton a kerékpárszállítás nem megengedett.' : 'Bicycle transport is not allowed.';
+  static String get tripBikesNoInfo =>
+      isHungarian ? 'Nincs információ a kerékpárszállításról.' : 'No information about bicycle transport.';
+  static String get boardingOnly =>
+      isHungarian ? 'Csak felszállás' : 'Boarding only';
+  static String get alightingOnly =>
+      isHungarian ? 'Csak leszállás' : 'Alighting only';
 }

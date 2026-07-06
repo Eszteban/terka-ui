@@ -6,7 +6,9 @@ import '../../../widgets/maps/plan_map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
 import '../../../widgets/line_badge.dart';
 import '../../../widgets/alerts_section.dart';
-import '../../../widgets/tables/stop_times_data_table.dart';
+import '../../../widgets/tables/trip_stop_times_list.dart';
+import '../../../models/trip_stop_time.dart';
+import 'trip_details_additional_info.dart';
 
 class TripDetailsMobileSheet extends StatelessWidget {
   static const double _mobileSheetMinSize = 0.16;
@@ -41,7 +43,9 @@ class TripDetailsMobileSheet extends StatelessWidget {
       route['textColor']?.toString() ?? 'FFFFFF',
     );
     final vehicleMarker = TripDetailsUtils.buildTripVehicleMarker(trip, tripId);
-    final stopTimes = TripDetailsUtils.stopTimes(trip);
+    final stopTimes = TripDetailsUtils.stopTimes(trip)
+        .map((json) => TripStopTime.fromJson(json))
+        .toList();
     final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
     final tripHeadsign = TripDetailsUtils.plainText(rawTripHeadsign);
     final rawLineLabel = route['shortName']?.toString() ?? '-';
@@ -60,7 +64,7 @@ class TripDetailsMobileSheet extends StatelessWidget {
         }
       }
     }
-    if (route is Map && route['alerts'] is List) {
+    if (route['alerts'] is List) {
       for (final alert in route['alerts']) {
         if (alert is Map) {
           final id = alert['id']?.toString() ?? '';
@@ -182,10 +186,16 @@ class TripDetailsMobileSheet extends StatelessWidget {
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                      child: StopTimesDataTable(
-                        stopTimes: stopTimes,
-                        serviceDay: serviceDay,
-                        onStopTap: onStopTap,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TripStopTimesList(
+                            stopTimes: stopTimes,
+                            serviceDay: serviceDay,
+                            onStopTap: onStopTap,
+                          ),
+                          TripDetailsAdditionalInfo(trip: trip),
+                        ],
                       ),
                     ),
                   ),

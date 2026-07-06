@@ -24,6 +24,8 @@ extension _MapViewOverlays on _MapViewState {
         ? vehicle.vehicleModel.trim()
         : fallbackModel;
 
+    
+
     return VehicleInfoCard(
       lineLabel: lineLabel,
       lineLabelUsesSpanFont: vehicle.routeShortNameUsesSpanFont,
@@ -36,6 +38,7 @@ extension _MapViewOverlays on _MapViewState {
       nextStopName: vehicle.nextStopName,
       markerColor: vehicle.markerColor,
       markerTextColor: vehicle.markerTextColor,
+      nextStopStatus: vehicle.nextStopStatus,
       onTap: () {
         _consumeNextMapTapClose();
         _openTripDetails(vehicle);

@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../services/transit_api_service.dart';
+import '../../repositories/transit_repository.dart';
+import '../../injection_container.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../theme/app_texts.dart';
 import '../../utils/adaptive_dialog_utils.dart';
@@ -51,7 +52,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
   DateTime _selectedDate = StopDetailsUtils.budapestToday();
   String? _error;
   Map<String, dynamic>? _stop;
-  final TransitApiService _transitApiService = const TransitApiService();
+  final TransitRepository _transitRepository = sl<TransitRepository>();
   Timer? _refreshTimer;
   final Set<String> _selectedLines = <String>{};
 
@@ -164,7 +165,7 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
     }
 
     try {
-      final stops = await _transitApiService.fetchStopDetails(
+      final stops = await _transitRepository.fetchStopDetails(
         stopIds: groupedIds,
         selectedDate: _selectedDate,
       );

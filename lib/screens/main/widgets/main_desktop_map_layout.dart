@@ -3,7 +3,7 @@ import 'package:latlong2/latlong.dart';
 import '../../../theme/app_tokens.dart';
 import '../../../widgets/maps/map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
-import '../../../widgets/tables/dummy_table.dart';
+import '../../../widgets/tables/route_planner_results_view.dart';
 import 'main_selected_map_card.dart';
 
 class MainDesktopMapLayout extends StatelessWidget {

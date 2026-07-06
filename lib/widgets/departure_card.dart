@@ -10,18 +10,26 @@ class DepartureCard extends StatelessWidget {
   final Map<String, dynamic> departure;
   final DateTime now;
   final VoidCallback? onTap;
+  final bool isArrivalView;
 
   const DepartureCard({
     super.key,
     required this.departure,
     required this.now,
     this.onTap,
+    this.isArrivalView = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final trip = departure['trip'];
     final route = trip is Map ? trip['route'] : null;
+
+    final isWheelchair = trip is Map &&
+        (trip['wheelchairAccessible']?.toString().toUpperCase() == 'POSSIBLE' ||
+         trip['wheelchairAccessible']?.toString().toUpperCase() == 'ALLOWED');
+    final isBike = trip is Map &&
+        trip['bikesAllowed']?.toString().toUpperCase() == 'ALLOWED';
 
     final rawRouteShortName =
         route is Map ? (route['shortName']?.toString() ?? '-') : '-';
@@ -56,44 +64,9 @@ class DepartureCard extends StatelessWidget {
       secondsOfDay: StopDetailsUtils.asNum(departure['realtimeDeparture']),
     );
 
-    final isArrivalByType = StopDetailsUtils.isArrivalEntry(departure);
-    final isDepartureByType = StopDetailsUtils.isDepartureEntry(departure);
-    final eventLabel = isArrivalByType && isDepartureByType
-        ? AppTexts.stopArrivalDeparture
-        : isArrivalByType
-            ? AppTexts.stopArrivals
-            : isDepartureByType
-                ? AppTexts.stopDepartures
-                : AppTexts.stopTimeLabel;
-
-    final hasDeparture =
-        StopDetailsUtils.asNum(departure['scheduledDeparture']) != null ||
-        StopDetailsUtils.asNum(departure['realtimeDeparture']) != null;
-
-    final scheduled = hasDeparture ? scheduledDeparture : scheduledArrival;
-    final realtime = hasDeparture ? realtimeDeparture : realtimeArrival;
-
     final isPast = StopDetailsUtils.isPastDeparture(departure, now);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final delay = hasDeparture
-        ? StopDetailsUtils.asNum(departure['departureDelay'])
-        : StopDetailsUtils.asNum(departure['arrivalDelay']);
     final isRealtime = departure['realtime'] == true;
-    final isOnTime = (delay ?? 0) == 0;
-    final realtimeColor = isPast
-        ? Colors.grey
-        : !isRealtime
-            ? (isDark ? Colors.white : Colors.black)
-            : isOnTime
-                ? Colors.green
-                : (delay ?? 0) < 0
-                    ? Colors.blue
-                    : Colors.red;
-
-    final scheduledArrivalSecs = StopDetailsUtils.asNum(departure['scheduledArrival']);
-    final scheduledDepartureSecs = StopDetailsUtils.asNum(departure['scheduledDeparture']);
-    final hasBothScheduledTimes = scheduledArrivalSecs != null && scheduledDepartureSecs != null;
-    final scheduledTimesDiffer = hasBothScheduledTimes && scheduledArrivalSecs != scheduledDepartureSecs;
 
     final arrDelay = StopDetailsUtils.asNum(departure['arrivalDelay']);
     final isArrivalOnTime = (arrDelay ?? 0) == 0;
@@ -124,6 +97,73 @@ class DepartureCard extends StatelessWidget {
         : '';
     final hasPlatformCode = platformCode.isNotEmpty;
 
+    // Time calculations
+    final seconds = isArrivalView
+        ? (StopDetailsUtils.asNum(departure['realtimeArrival']) ?? StopDetailsUtils.asNum(departure['scheduledArrival']))
+        : (StopDetailsUtils.asNum(departure['realtimeDeparture']) ?? StopDetailsUtils.asNum(departure['scheduledDeparture']));
+
+    final eventInstant = StopDetailsUtils.resolveDepartureInstant(
+      serviceDay: StopDetailsUtils.asNum(departure['serviceDay']),
+      secondsOfDay: seconds,
+    );
+
+    final minutesLeft = eventInstant != null
+        ? eventInstant.difference(now).inMinutes
+        : -1;
+
+    final useMinutesFormat = minutesLeft >= 0 && minutesLeft <= 120;
+    final timeColor = isArrivalView ? realtimeArrivalColor : realtimeDepartureColor;
+    final scheduledTime = isArrivalView ? scheduledArrival : scheduledDeparture;
+    final realtimeTime = isArrivalView ? realtimeArrival : realtimeDeparture;
+
+    Widget timeWidget;
+    if (useMinutesFormat) {
+      timeWidget = Text(
+        "$minutesLeft'",
+        style: TextStyle(
+          color: timeColor,
+          fontWeight: FontWeight.bold,
+          fontSize: 24,
+        ),
+      );
+    } else {
+      if (scheduledTime != null && realtimeTime != null && scheduledTime != realtimeTime) {
+        timeWidget = Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              StopDetailsUtils.formatTime(scheduledTime),
+              style: TextStyle(
+                decoration: TextDecoration.lineThrough,
+                color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                fontSize: 12,
+              ),
+            ),
+            Text(
+              StopDetailsUtils.formatTime(realtimeTime),
+              style: TextStyle(
+                color: timeColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        );
+      } else {
+        timeWidget = Text(
+          StopDetailsUtils.formatTime(scheduledTime ?? realtimeTime),
+          style: TextStyle(
+            color: timeColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        );
+      }
+    }
+
+    final labelText = isArrivalView ? AppTexts.stopArrivals : AppTexts.stopDepartures;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
@@ -147,7 +187,7 @@ class DepartureCard extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 LineBadge(
                   lineLabel: routeShortName,
@@ -165,125 +205,81 @@ class DepartureCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        headsign,
-                        softWrap: true,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: headsignUsesSpanFont
-                              ? 14 * spanFontScale
-                              : null,
-                          fontFamily:
-                              headsignUsesSpanFont ? spanFontFamily : null,
-                          leadingDistribution: headsignUsesSpanFont
-                              ? TextLeadingDistribution.even
-                              : null,
-                          height: headsignUsesSpanFont ? 1.0 : null,
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: headsign,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: headsignUsesSpanFont
+                                    ? 14 * spanFontScale
+                                    : null,
+                                fontFamily:
+                                    headsignUsesSpanFont ? spanFontFamily : null,
+                                leadingDistribution: headsignUsesSpanFont
+                                    ? TextLeadingDistribution.even
+                                    : null,
+                                height: headsignUsesSpanFont ? 1.0 : null,
+                              ),
+                            ),
+                            if (isWheelchair) ...[
+                              const WidgetSpan(child: SizedBox(width: 6)),
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Icon(
+                                  Icons.accessible,
+                                  size: headsignUsesSpanFont ? 20 : 18,
+                                  color: isPast ? Colors.grey : Colors.blue,
+                                ),
+                              ),
+                            ],
+                            if (isBike) ...[
+                              const WidgetSpan(child: SizedBox(width: 6)),
+                              WidgetSpan(
+                                alignment: PlaceholderAlignment.middle,
+                                child: Icon(
+                                  Icons.directions_bike,
+                                  size: headsignUsesSpanFont ? 20 : 18,
+                                  color: isPast ? Colors.grey : Colors.green,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        eventLabel,
-                        style: TextStyle(
-                          color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black87),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (hasPlatformCode)
+                      if (hasPlatformCode) ...[
+                        const SizedBox(height: 4),
                         Text(
                           AppTexts.stopPlatform(platformCode),
                           style: TextStyle(
-                            color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black87),
-                            fontWeight: FontWeight.w700,
+                            color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
                           ),
-                        ),
-                      if (scheduledTimesDiffer) ...[
-                        Row(
-                          children: [
-                            Text(
-                              '${AppTexts.tripArrivalColumn} ',
-                              style: TextStyle(
-                                color: isPast ? Colors.grey : (isDark ? Colors.white70 : Colors.black54),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              StopDetailsUtils.formatTime(scheduledArrival),
-                              style: TextStyle(
-                                color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
-                                decoration: (scheduledArrival != null && realtimeArrival != null &&
-                                        scheduledArrival != realtimeArrival)
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              StopDetailsUtils.formatTime(realtimeArrival),
-                              style: TextStyle(
-                                color: realtimeArrivalColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Row(
-                          children: [
-                            Text(
-                              '${AppTexts.tripDepartureColumn} ',
-                              style: TextStyle(
-                                color: isPast ? Colors.grey : (isDark ? Colors.white70 : Colors.black54),
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              StopDetailsUtils.formatTime(scheduledDeparture),
-                              style: TextStyle(
-                                color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
-                                decoration: (scheduledDeparture != null && realtimeDeparture != null &&
-                                        scheduledDeparture != realtimeDeparture)
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              StopDetailsUtils.formatTime(realtimeDeparture),
-                              style: TextStyle(
-                                color: realtimeDepartureColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Row(
-                          children: [
-                            Text(
-                              StopDetailsUtils.formatTime(scheduled),
-                              style: TextStyle(
-                                color: isPast ? Colors.grey : (isDark ? Colors.white : Colors.black),
-                                decoration: (scheduled != null && realtime != null &&
-                                        scheduled != realtime)
-                                    ? TextDecoration.lineThrough
-                                    : TextDecoration.none,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              StopDetailsUtils.formatTime(realtime),
-                              style: TextStyle(
-                                color: realtimeColor,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ],
                   ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      labelText,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    timeWidget,
+                  ],
                 ),
               ],
             ),

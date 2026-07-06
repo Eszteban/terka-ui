@@ -7,6 +7,7 @@ import '../../../theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
 import 'stop_line_selector.dart';
+import 'stop_details_schedule.dart';
 
 class StopDetailsMobileSheet extends StatefulWidget {
   static const double _mobileSheetMinSize = 0.2;
@@ -164,12 +165,6 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
     required List<Map<String, dynamic>> visibleArrivals,
     required List<Map<String, dynamic>> visibleDepartures,
   }) {
-    final showingArrivals = _mobileSelectedTabIndex == 0;
-    final selectedItems = showingArrivals ? visibleArrivals : visibleDepartures;
-    final emptyMessage = showingArrivals
-        ? AppTexts.stopNoArrivals
-        : AppTexts.stopNoDepartures;
-
     return Column(
       children: [
         SingleChildScrollView(
@@ -262,7 +257,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     children: [
                       ChoiceChip(
                         label: Text(AppTexts.stopArrivals),
-                        selected: showingArrivals,
+                        selected: _mobileSelectedTabIndex == 0,
                         onSelected: (_) {
                           setState(() {
                             _mobileSelectedTabIndex = 0;
@@ -271,10 +266,19 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                       ),
                       ChoiceChip(
                         label: Text(AppTexts.stopDepartures),
-                        selected: !showingArrivals,
+                        selected: _mobileSelectedTabIndex == 1,
                         onSelected: (_) {
                           setState(() {
                             _mobileSelectedTabIndex = 1;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: Text(AppTexts.stopSchedule),
+                        selected: _mobileSelectedTabIndex == 2,
+                        onSelected: (_) {
+                          setState(() {
+                            _mobileSelectedTabIndex = 2;
                           });
                         },
                       ),
@@ -287,12 +291,29 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
           ),
         ),
         Expanded(
-          child: StopDetailsTimesList(
-            items: selectedItems,
-            now: now,
-            emptyMessage: emptyMessage,
-            onOpenTripDetails: widget.onOpenTripDetails,
-          ),
+          child: _mobileSelectedTabIndex == 0
+              ? StopDetailsTimesList(
+                  items: visibleArrivals,
+                  now: now,
+                  emptyMessage: AppTexts.stopNoArrivals,
+                  isArrivalView: true,
+                  onOpenTripDetails: widget.onOpenTripDetails,
+                )
+              : _mobileSelectedTabIndex == 1
+                  ? StopDetailsTimesList(
+                      items: visibleDepartures,
+                      now: now,
+                      emptyMessage: AppTexts.stopNoDepartures,
+                      isArrivalView: false,
+                      onOpenTripDetails: widget.onOpenTripDetails,
+                    )
+                  : StopDetailsSchedule(
+                      items: visibleDepartures,
+                      selectedLines: widget.selectedLines,
+                      uniqueLines: widget.uniqueLines,
+                      now: now,
+                      onOpenTripDetails: widget.onOpenTripDetails,
+                    ),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import '../widgets/maps/route_map_data.dart';
 import '../widgets/maps/vehicle_info_card.dart';
 import '../utils/markup_text_utils.dart' as markup;
 import '../utils/vehicle_type_lookup.dart';
+import '../models/trip_stop_time.dart';
 
 class TripDetailsUtils {
   static num? asNum(dynamic value) => value is num ? value : null;
@@ -91,12 +92,11 @@ class TripDetailsUtils {
         : Color(0xFF000000 | parsed);
   }
 
-  static bool isPassedStop(Map<String, dynamic> stopTime, String serviceDay) {
-    final reference =
-        asNum(stopTime['realtimeDeparture']) ??
-        asNum(stopTime['scheduledDeparture']) ??
-        asNum(stopTime['realtimeArrival']) ??
-        asNum(stopTime['scheduledArrival']);
+  static bool isPassedStop(TripStopTime stopTime, String serviceDay) {
+    final reference = stopTime.realtimeDeparture ??
+        stopTime.scheduledDeparture ??
+        stopTime.realtimeArrival ??
+        stopTime.scheduledArrival;
     if (reference == null) {
       return false;
     }
@@ -442,6 +442,10 @@ class TripDetailsUtils {
     final nextStopName = nextStop != null && nextStop['stop'] != null
         ? nextStop['stop']['name']?.toString()
         : null;
+    
+    final nextStopStatus = nextStop != null && nextStop['status'] != null
+        ? nextStop['status'].toString()
+        : '';
 
     final vehicleSpeed = vehicle['speed'] is num
         ? ((vehicle['speed'] as num)*3.6).round()
@@ -459,6 +463,7 @@ class TripDetailsUtils {
       nextStopName: nextStopName,
       markerColor: routeColor,
       markerTextColor: routeTextColor,
+      nextStopStatus: nextStopStatus,
       onTap: null,
     );
   }

@@ -3,6 +3,7 @@ import '../../../theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
 import 'stop_line_selector.dart';
+import 'stop_details_schedule.dart';
 import '../../../utils/stop_details_utils.dart';
 
 class StopDetailsTabs extends StatelessWidget {
@@ -61,7 +62,7 @@ class StopDetailsTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       initialIndex: 1,
       child: Column(
         children: [
@@ -128,6 +129,7 @@ class StopDetailsTabs extends StatelessWidget {
             tabs: [
               Tab(text: AppTexts.stopArrivals),
               Tab(text: AppTexts.stopDepartures),
+              Tab(text: AppTexts.stopSchedule),
             ],
           ),
           Expanded(
@@ -137,12 +139,21 @@ class StopDetailsTabs extends StatelessWidget {
                   items: visibleArrivals,
                   now: now,
                   emptyMessage: AppTexts.stopNoArrivals,
+                  isArrivalView: true,
                   onOpenTripDetails: onOpenTripDetails,
                 ),
                 StopDetailsTimesList(
                   items: visibleDepartures,
                   now: now,
                   emptyMessage: AppTexts.stopNoDepartures,
+                  isArrivalView: false,
+                  onOpenTripDetails: onOpenTripDetails,
+                ),
+                StopDetailsSchedule(
+                  items: visibleDepartures,
+                  selectedLines: selectedLines,
+                  uniqueLines: uniqueLines,
+                  now: now,
                   onOpenTripDetails: onOpenTripDetails,
                 ),
               ],

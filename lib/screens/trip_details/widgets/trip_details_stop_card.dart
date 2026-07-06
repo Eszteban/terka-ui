@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../services/transit_api_service.dart';
+import '../../../repositories/transit_repository.dart';
+import '../../../injection_container.dart';
 import '../../../models/trip_stop_quick_info.dart';
 import '../../../widgets/maps/route_map_data.dart';
 import '../../../widgets/line_badge.dart';
@@ -24,7 +25,7 @@ class TripDetailsStopCard extends StatefulWidget {
 }
 
 class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
-  final TransitApiService _transitApiService = const TransitApiService();
+  final TransitRepository _transitRepository = sl<TransitRepository>();
   TripStopQuickInfo? _selectedStopQuickInfo;
   bool _isLoadingSelectedStopQuickInfo = false;
   String? _selectedStopQuickInfoStopId;
@@ -55,7 +56,7 @@ class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
     });
 
     try {
-      final info = await _transitApiService.fetchStopQuickInfo(
+      final info = await _transitRepository.fetchStopQuickInfo(
         stopId: stopId,
         fallbackName: fallbackName,
       );

@@ -6,6 +6,7 @@ class StopDetailsTimesList extends StatelessWidget {
   final List<Map<String, dynamic>> items;
   final DateTime now;
   final String emptyMessage;
+  final bool isArrivalView;
   final void Function({
     required String tripId,
     required String serviceDay,
@@ -16,6 +17,7 @@ class StopDetailsTimesList extends StatelessWidget {
     required this.items,
     required this.now,
     required this.emptyMessage,
+    this.isArrivalView = false,
     this.onOpenTripDetails,
   });
 
@@ -39,6 +41,7 @@ class StopDetailsTimesList extends StatelessWidget {
         return DepartureCard(
           departure: departure,
           now: now,
+          isArrivalView: isArrivalView,
           onTap: canOpenTrip && onOpenTripDetails != null
               ? () => onOpenTripDetails!(
                     tripId: tripId,

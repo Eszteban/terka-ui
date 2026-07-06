@@ -1,4 +1,4 @@
-package com.example.terka_mobile_ui
+package hu.eszteban.terka
 
 import io.flutter.embedding.android.FlutterActivity
 

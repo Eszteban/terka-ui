@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../controllers/navigation_cubit.dart';
 import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
 class MainMobileDrawer extends StatelessWidget {
-  final VoidCallback onHomeTap;
-  final VoidCallback onStationsTap;
-  final VoidCallback onMapTap;
-
-  const MainMobileDrawer({
-    super.key,
-    required this.onHomeTap,
-    required this.onStationsTap,
-    required this.onMapTap,
-  });
+  const MainMobileDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final navCubit = context.read<NavigationCubit>();
 
     return Drawer(
       child: ColoredBox(
@@ -40,7 +34,10 @@ class MainMobileDrawer extends StatelessWidget {
                 AppTexts.home,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
-              onTap: onHomeTap,
+              onTap: () {
+                Navigator.pop(context);
+                navCubit.navigateTo(MainSection.home);
+              },
             ),
             ExpansionTile(
               title: Text(
@@ -55,7 +52,10 @@ class MainMobileDrawer extends StatelessWidget {
                     '  ${AppTexts.stops}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
-                  onTap: onStationsTap,
+                  onTap: () {
+                    Navigator.pop(context);
+                    navCubit.navigateTo(MainSection.stopDetails);
+                  },
                 ),
                 ListTile(
                   title: Text(
@@ -71,14 +71,20 @@ class MainMobileDrawer extends StatelessWidget {
                 AppTexts.mavNews,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
-              onTap: () => Navigator.pop(context),
+              onTap: () {
+                Navigator.pop(context);
+                navCubit.navigateTo(MainSection.news);
+              },
             ),
             ListTile(
               title: Text(
                 AppTexts.map,
                 style: TextStyle(color: colorScheme.onSurface),
               ),
-              onTap: onMapTap,
+              onTap: () {
+                Navigator.pop(context);
+                navCubit.navigateTo(MainSection.map);
+              },
             ),
             ExpansionTile(
               title: Text(
@@ -93,14 +99,20 @@ class MainMobileDrawer extends StatelessWidget {
                     '  ${AppTexts.myTickets}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    navCubit.navigateTo(MainSection.tickets);
+                  },
                 ),
                 ListTile(
                   title: Text(
                     '  ${AppTexts.addTicket}',
                     style: TextStyle(color: colorScheme.onSurface),
                   ),
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    Navigator.pop(context);
+                    navCubit.navigateTo(MainSection.addTicket);
+                  },
                 ),
               ],
             ),

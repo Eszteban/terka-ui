@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/pass_type.dart';
 import '../models/ticket_options.dart';
-import '../services/pass_type_api_service.dart';
-import '../services/ticket_api_service.dart';
+import '../repositories/pass_type_repository.dart';
+import '../repositories/ticket_repository.dart';
+import '../injection_container.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
 
@@ -28,8 +29,8 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
   final _nameController = TextEditingController();
   final _daysController = TextEditingController();
   final _searchController = TextEditingController();
-  final PassTypeApiService _passTypeApiService = const PassTypeApiService();
-  final TicketApiService _ticketApiService = const TicketApiService();
+  final PassTypeRepository _passTypeRepository = sl<PassTypeRepository>();
+  final TicketRepository _ticketRepository = sl<TicketRepository>();
 
   bool _isLoading = true;
   String? _error;
@@ -69,7 +70,7 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
   }
 
   Future<void> _loadAgencies() async {
-    final result = await _ticketApiService.fetchTicketFormOptions();
+    final result = await _ticketRepository.fetchTicketFormOptions();
     if (mounted) {
       if (result.ok) {
         setState(() {
@@ -133,7 +134,7 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
       durationDays: days,
     );
 
-    await _passTypeApiService.savePassType(newPassType);
+    await _passTypeRepository.savePassType(newPassType);
     if (mounted) {
       if (widget.onSaved != null) {
         widget.onSaved!();

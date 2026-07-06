@@ -4,8 +4,9 @@ import '../models/ticket_item.dart';
 import '../models/pass_type.dart';
 import '../models/ticket_options.dart';
 import '../models/auth_results.dart';
-import '../services/ticket_api_service.dart';
-import '../services/pass_type_api_service.dart';
+import '../repositories/ticket_repository.dart';
+import '../injection_container.dart';
+import '../repositories/pass_type_repository.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
 
@@ -29,8 +30,8 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _ticketStartController = TextEditingController();
-  final TicketApiService _ticketApiService = const TicketApiService();
-  final PassTypeApiService _passTypeApiService = const PassTypeApiService();
+  final TicketRepository _ticketRepository = sl<TicketRepository>();
+  final PassTypeRepository _passTypeRepository = sl<PassTypeRepository>();
 
   bool _isLoadingOptions = true;
   bool _isSubmitting = false;
@@ -64,7 +65,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       _error = null;
     });
 
-    final result = await _ticketApiService.fetchTicketFormOptions();
+    final result = await _ticketRepository.fetchTicketFormOptions();
     if (!mounted) {
       return;
     }
@@ -77,7 +78,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
       return;
     }
 
-    final passTypes = await _passTypeApiService.fetchPassTypes();
+    final passTypes = await _passTypeRepository.fetchPassTypes();
     if (!mounted) {
       return;
     }
@@ -272,7 +273,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
 
     final AuthActionResult result;
     if (widget.ticket != null) {
-      result = await _ticketApiService.updateTicket(
+      result = await _ticketRepository.updateTicket(
         TicketItem(
           id: widget.ticket!.id,
           agencyId: _isPass ? (selectedAgencyIds?.isNotEmpty == true ? selectedAgencyIds!.first : '') : (_selectedAgency ?? ''),
@@ -286,7 +287,7 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
         ),
       );
     } else {
-      result = await _ticketApiService.addTicket(
+      result = await _ticketRepository.addTicket(
         agency: _selectedAgency ?? '',
         ticketType: _selectedTicketType,
         ticketStart: startVal,

@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../services/transit_api_service.dart';
+import '../../repositories/transit_repository.dart';
+import '../../injection_container.dart';
 import '../../theme/app_texts.dart';
 import '../../utils/trip_details_utils.dart';
 import '../../utils/adaptive_dialog_utils.dart';
@@ -47,7 +48,7 @@ class TripDetailsScreen extends StatefulWidget {
 
 class _TripDetailsScreenState extends State<TripDetailsScreen> {
   static const double _desktopBreakpoint = 600;
-  final TransitApiService _transitApiService = const TransitApiService();
+  final TransitRepository _transitRepository = sl<TransitRepository>();
 
   bool _isLoading = true;
   bool _isFetching = false;
@@ -108,7 +109,7 @@ class _TripDetailsScreenState extends State<TripDetailsScreen> {
     }
 
     try {
-      final trip = await _transitApiService.fetchTripDetails(
+      final trip = await _transitRepository.fetchTripDetails(
         tripId: widget.tripId,
         serviceDay: widget.serviceDay,
       );

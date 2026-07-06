@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/pass_type.dart';
-import '../services/pass_type_api_service.dart';
+import '../repositories/pass_type_repository.dart';
+import '../injection_container.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
 import 'pass_type_editor_screen.dart';
@@ -21,7 +22,7 @@ class ManagePassTypesScreen extends StatefulWidget {
 }
 
 class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
-  final PassTypeApiService _passTypeApiService = const PassTypeApiService();
+  final PassTypeRepository _passTypeRepository = sl<PassTypeRepository>();
   List<PassType> _passTypes = [];
   bool _isLoading = true;
 
@@ -35,7 +36,7 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
     setState(() {
       _isLoading = true;
     });
-    final types = await _passTypeApiService.fetchPassTypes();
+    final types = await _passTypeRepository.fetchPassTypes();
     if (mounted) {
       setState(() {
         _passTypes = types;
@@ -103,7 +104,7 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
       setState(() {
         _isLoading = true;
       });
-      await _passTypeApiService.deletePassType(passType.id);
+      await _passTypeRepository.deletePassType(passType.id);
       _loadPassTypes();
     }
   }

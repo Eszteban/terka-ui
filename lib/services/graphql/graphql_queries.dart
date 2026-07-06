@@ -221,6 +221,9 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
     id: gtfsId
     tripShortName
     tripHeadsign
+    bikesAllowed
+    wheelchairAccessible
+    serviceDescriptions(language: "hu")
     alerts(types: [ROUTE, TRIP]) {
       id
       alertCause
@@ -250,6 +253,10 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
       longName
       color
       textColor
+      agency {
+        name
+        url
+      }
       alerts(types: [STOPS_ON_ROUTE]) {
         id
         alertCause
@@ -281,6 +288,8 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
       scheduledDeparture
       realtimeDeparture
       departureDelay
+      pickupType
+      dropoffType
       stop {
         id: gtfsId
         name
@@ -496,6 +505,8 @@ String buildStopDetailsQuery(List<String> expandedIds) {
         gtfsId
         tripShortName
         tripHeadsign
+        bikesAllowed
+        wheelchairAccessible
         route {
           shortName
           color

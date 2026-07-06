@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../models/ticket_item.dart';
+import '../extensions/ticket_extensions.dart';
 import '../models/pass_type.dart';
 import '../models/auth_results.dart';
-import '../services/ticket_api_service.dart';
-import '../services/pass_type_api_service.dart';
+import '../repositories/ticket_repository.dart';
+import '../injection_container.dart';
+import '../repositories/pass_type_repository.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
 import 'add_ticket_screen.dart';
@@ -24,7 +26,7 @@ class TicketsScreen extends StatefulWidget {
 }
 
 class _TicketsScreenState extends State<TicketsScreen> {
-  final TicketApiService _ticketApiService = const TicketApiService();
+  final TicketRepository _ticketRepository = sl<TicketRepository>();
   List<TicketItem> _tickets = const [];
   List<PassType> _passTypes = const [];
   bool _isLoading = true;
@@ -42,8 +44,8 @@ class _TicketsScreenState extends State<TicketsScreen> {
     });
 
     final results = await Future.wait([
-      _ticketApiService.fetchTickets(),
-      const PassTypeApiService().fetchPassTypes(),
+      _ticketRepository.fetchTickets(),
+      sl<PassTypeRepository>().fetchPassTypes(),
     ]);
 
     if (!mounted) {
@@ -123,7 +125,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
       setState(() {
         _isLoading = true;
       });
-      final result = await _ticketApiService.deleteTicket(ticket.id);
+      final result = await _ticketRepository.deleteTicket(ticket.id);
       if (mounted) {
         if (result.ok) {
           ScaffoldMessenger.of(context).showSnackBar(

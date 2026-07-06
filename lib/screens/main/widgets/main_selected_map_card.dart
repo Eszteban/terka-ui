@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_texts.dart';
 import '../../../widgets/maps/plan_map_view.dart';
-import '../../../widgets/tables/dummy_table.dart';
+import '../../../widgets/tables/route_planner_results_view.dart';
 
 class MainSelectedMapResultCard extends StatelessWidget {
   static const double _legTileExtent = 64;

@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../theme/app_texts.dart';
 
 import '../../services/graphql/graphql_client.dart';
@@ -18,6 +19,8 @@ import '../../utils/adaptive_dialog_utils.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'vehicle_info_card.dart';
+import 'user_location_dot.dart';
+import '../../controllers/map_cubit.dart';
 
 part 'map_view_models.dart';
 part 'map_view_overlays.dart';
@@ -107,6 +110,8 @@ class _MapViewState extends State<MapView> {
   bool _suppressNextMapTapClose = false;
   bool _didTryInitialGpsFocus = false;
   LatLng? _lastStoredLocation;
+  StreamSubscription<Position>? _positionSubscription;
+  Position? _currentPosition;
 
   @override
   void initState() {
@@ -130,6 +135,7 @@ class _MapViewState extends State<MapView> {
           _tryInitialGpsFocus();
         }
         _scheduleVehicleRefresh();
+        _startPositionTracking();
       });
     });
     _vehiclePeriodicRefresh = Timer.periodic(const Duration(minutes: 1), (_) {
@@ -161,8 +167,10 @@ class _MapViewState extends State<MapView> {
   }
 
   bool get _hasRouteOverlayContent {
-    return (widget.routeOverlayData?.hasContent ?? false) ||
-        widget.routeVehicleMarker != null;
+    final mapState = context.read<MapCubit>().state;
+    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
+    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+    return (routeData?.hasContent ?? false) || routeVehicleMarker != null;
   }
 
   bool get _useDesktopDialogs {
@@ -172,7 +180,10 @@ class _MapViewState extends State<MapView> {
 
   List<LatLng> _overlayRoutePoints() {
     final points = <LatLng>[];
-    final routeData = widget.routeOverlayData;
+    final mapState = context.read<MapCubit>().state;
+    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
+    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+
     if (routeData != null) {
       for (final segment in routeData.segments) {
         points.addAll(segment.points);
@@ -181,8 +192,8 @@ class _MapViewState extends State<MapView> {
         points.add(stop.point);
       }
     }
-    if (widget.routeVehicleMarker != null) {
-      points.add(widget.routeVehicleMarker!.point);
+    if (routeVehicleMarker != null) {
+      points.add(routeVehicleMarker.point);
     }
     return points;
   }
@@ -199,7 +210,10 @@ class _MapViewState extends State<MapView> {
   }
 
   LatLng? _overlayRouteFallbackCenter() {
-    final routeData = widget.routeOverlayData;
+    final mapState = context.read<MapCubit>().state;
+    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
+    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+
     if (routeData != null) {
       if (routeData.segments.isNotEmpty &&
           routeData.segments.first.points.isNotEmpty) {
@@ -209,7 +223,7 @@ class _MapViewState extends State<MapView> {
         return routeData.stops.first.point;
       }
     }
-    return widget.routeVehicleMarker?.point;
+    return routeVehicleMarker?.point;
   }
 
   void _fitToOverlayRoute() {
@@ -350,6 +364,7 @@ class _MapViewState extends State<MapView> {
 
   @override
   void dispose() {
+    _positionSubscription?.cancel();
     _vehicleRefreshDebounce?.cancel();
     _vehiclePeriodicRefresh?.cancel();
     _mapEventSubscription.cancel();
@@ -359,24 +374,45 @@ class _MapViewState extends State<MapView> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _mapReady,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return BlocListener<MapCubit, MapState>(
+      listenWhen: (previous, current) {
+        return previous.routeOverlayData != current.routeOverlayData ||
+            previous.routeVehicleMarker != current.routeVehicleMarker;
+      },
+      listener: (context, state) {
+        _selectedVehicleMarkerId = null;
+        _selectedStopMarkerId = null;
+        _selectedStopQuickInfo = null;
+        _isLoadingSelectedStopQuickInfo = false;
 
-        if (snapshot.data != true) {
-          return Center(child: Text(AppTexts.mapLoadFailed));
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !_hasRouteOverlayContent) {
+            return;
+          }
+          _fitToOverlayRoute();
+        });
+      },
+      child: BlocBuilder<MapCubit, MapState>(
+        builder: (context, mapState) {
+          return FutureBuilder<bool>(
+            future: _mapReady,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        final routeData = widget.routeOverlayData;
-        final initialOverlayFit = _initialOverlayCameraFit();
-        final initialCenter =
-            _overlayRouteFallbackCenter() ??
-            _lastStoredLocation ??
-            LatLng(47.497913, 19.040236);
-        return Stack(
+              if (snapshot.data != true) {
+                return Center(child: Text(AppTexts.mapLoadFailed));
+              }
+
+              final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
+              final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+              final initialOverlayFit = _initialOverlayCameraFit();
+              final initialCenter =
+                  _overlayRouteFallbackCenter() ??
+                  _lastStoredLocation ??
+                  LatLng(47.497913, 19.040236);
+              return Stack(
           children: [
             FlutterMap(
               mapController: _mapController,
@@ -469,6 +505,18 @@ class _MapViewState extends State<MapView> {
                         .toList(),
                   ),
                 ..._buildMapLayers(),
+                if (_currentPosition != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                        width: 36,
+                        height: 36,
+                        alignment: Alignment.center,
+                        child: const UserLocationDot(),
+                      ),
+                    ],
+                  ),
                 if (routeData != null && routeData.stops.isNotEmpty)
                   MarkerLayer(
                     markers: routeData.stops
@@ -558,16 +606,16 @@ class _MapViewState extends State<MapView> {
                         )
                         .toList(),
                   ),
-                if (widget.routeVehicleMarker != null)
+                if (routeVehicleMarker != null)
                   MarkerLayer(
                     markers: [
                       Marker(
-                        point: widget.routeVehicleMarker!.point,
+                        point: routeVehicleMarker.point,
                         width: 24,
                         height: 24,
                         alignment: Alignment.center,
                         child: _buildRouteVehicleDot(
-                          widget.routeVehicleMarker!,
+                          routeVehicleMarker,
                         ),
                       ),
                     ],
@@ -661,7 +709,10 @@ class _MapViewState extends State<MapView> {
         );
       },
     );
-  }
+  },
+),
+);
+}
 
   Future<void> _openTripDetails(_VehicleMarkerData vehicle) async {
     debugPrint('[Map Debug] Opening vehicle details: vehicleId=${vehicle.markerId}, tripId=${vehicle.tripGtfsId}');

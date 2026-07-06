@@ -169,6 +169,7 @@ extension _MapViewInteractions on _MapViewState {
                         : null));
 
         String? nextStopName;
+        String? stopStatus;
         final stopRelationship = item['stopRelationship'];
         if (stopRelationship is List) {
           int bestRank = 1 << 30;
@@ -184,6 +185,7 @@ extension _MapViewInteractions on _MapViewState {
               if (rank < bestRank) {
                 bestRank = rank;
                 nextStopName = _plainTextFromHtml(name).trim();
+                stopStatus = status is String ? status : null;
               }
             }
           }
@@ -193,6 +195,8 @@ extension _MapViewInteractions on _MapViewState {
           if (name is String && name.trim().isNotEmpty) {
             nextStopName = _plainTextFromHtml(name).trim();
           }
+          final status = stopRelationship['status'];
+          stopStatus = status is String ? status.toString() : "";
         }
 
         final color = route is Map && route['color'] is String
@@ -231,6 +235,7 @@ extension _MapViewInteractions on _MapViewState {
             markerTextColor: markerTextColor,
             markerOutlineHeadingColor: markerOutlineHeadingColor,
             vehicleSpeed: vehicleSpeed,
+            nextStopStatus: stopStatus ?? "",
           ),
         );
       }
@@ -357,6 +362,8 @@ extension _MapViewInteractions on _MapViewState {
         }
         return;
       }
+
+      _startPositionTracking();
 
       final lastKnown = await Geolocator.getLastKnownPosition();
       if (lastKnown != null) {

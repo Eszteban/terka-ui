@@ -14,6 +14,7 @@ class VehicleInfoCard extends StatelessWidget {
   final String? nextStopName;
   final Color markerColor;
   final Color markerTextColor;
+  final String nextStopStatus;
   final VoidCallback? onTap;
 
   static const String _spanFontFamily = 'MNR2007';
@@ -32,6 +33,7 @@ class VehicleInfoCard extends StatelessWidget {
     required this.nextStopName,
     required this.markerColor,
     required this.markerTextColor,
+    required this.nextStopStatus,
     this.onTap,
   });
 
@@ -56,9 +58,22 @@ class VehicleInfoCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     final nextStop = (nextStopName ?? tripHeadsignLabel).trim();
+    String stopStatusText = nextStopStatus;
+    if (stopStatusText.isNotEmpty) {
+      if (stopStatusText == "IN_TRANSIT_TO") {
+        stopStatusText = AppTexts.tripNextStopPrefix;
+      } else if (stopStatusText == "INCOMING_AT") {
+        stopStatusText = AppTexts.tripNextStopIncomingAt;
+      } else if (nextStopStatus == "STOPPED_AT") {
+        stopStatusText = AppTexts.tripNextStopStoppedAt;
+      } else {
+        stopStatusText = "";
+      }
+    }
+
     final nextStopPart = nextStop.isNotEmpty 
-        ? '${AppTexts.tripNextStopPrefix}$nextStop' 
-        : '${AppTexts.tripNextStopPrefix}-';
+        ? '$stopStatusText$nextStop' 
+        : '';
     
     final delayString = _formatDelayValue(arrivalDelaySeconds);
     final delayColor = _delayColor(arrivalDelaySeconds);

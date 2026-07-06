@@ -3,7 +3,9 @@ import 'package:latlong2/latlong.dart';
 import '../../../utils/trip_details_utils.dart';
 import '../../../widgets/line_badge.dart';
 import '../../../widgets/alerts_section.dart';
-import '../../../widgets/tables/stop_times_data_table.dart';
+import '../../../widgets/tables/trip_stop_times_list.dart';
+import '../../../models/trip_stop_time.dart';
+import 'trip_details_additional_info.dart';
 
 class TripDetailsTableView extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -23,7 +25,9 @@ class TripDetailsTableView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stopTimes = TripDetailsUtils.stopTimes(trip);
+    final stopTimes = TripDetailsUtils.stopTimes(trip)
+        .map((json) => TripStopTime.fromJson(json))
+        .toList();
     final route = TripDetailsUtils.route(trip);
     final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
     final tripHeadsign = TripDetailsUtils.plainText(rawTripHeadsign);
@@ -48,7 +52,7 @@ class TripDetailsTableView extends StatelessWidget {
         }
       }
     }
-    if (route is Map && route['alerts'] is List) {
+    if (route['alerts'] is List) {
       for (final alert in route['alerts']) {
         if (alert is Map) {
           final id = alert['id']?.toString() ?? '';
@@ -104,10 +108,16 @@ class TripDetailsTableView extends StatelessWidget {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: StopTimesDataTable(
-              stopTimes: stopTimes,
-              serviceDay: serviceDay,
-              onStopTap: onStopTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TripStopTimesList(
+                  stopTimes: stopTimes,
+                  serviceDay: serviceDay,
+                  onStopTap: onStopTap,
+                ),
+                TripDetailsAdditionalInfo(trip: trip),
+              ],
             ),
           ),
         ),

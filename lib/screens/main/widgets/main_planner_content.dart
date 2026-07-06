@@ -1,26 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../theme/app_texts.dart';
 import '../../../models/ticket_item.dart';
 import '../../../widgets/forms/route_plan_form.dart';
-import '../../../widgets/tables/dummy_table.dart';
-import '../../../widgets/maps/route_map_data.dart';
+import '../../../widgets/tables/route_planner_results_view.dart';
+import '../../../controllers/route_planner_cubit.dart';
+import '../../../controllers/map_cubit.dart';
+import '../../../controllers/navigation_cubit.dart';
 import 'main_plan_loading_view.dart';
 import 'main_selected_map_card.dart';
 
 class MainPlannerContent extends StatelessWidget {
   final bool isDesktop;
-  final bool isPlanLoading;
-  final bool showTable;
-  final bool hasPlannerResultsPayload;
-  final String planResponseText;
-  final bool hasDesktopMapSelection;
-  final bool canLoadMore;
-  final bool isLoadingMore;
-  final Future<void> Function() onLoadMore;
   final bool ticketWatch;
   final List<TicketItem> tickets;
-  final ValueChanged<SelectedItineraryMapPayload> onShowOnMap;
-  final Function(RouteMapData, RouteVehicleMarker?)? onShowTripOnMap;
   final Function(String, String)? onOpenTripDetailsRequested;
 
   // Form properties:
@@ -41,18 +34,8 @@ class MainPlannerContent extends StatelessWidget {
   const MainPlannerContent({
     super.key,
     required this.isDesktop,
-    required this.isPlanLoading,
-    required this.showTable,
-    required this.hasPlannerResultsPayload,
-    required this.planResponseText,
-    required this.hasDesktopMapSelection,
-    required this.canLoadMore,
-    required this.isLoadingMore,
-    required this.onLoadMore,
     required this.ticketWatch,
     required this.tickets,
-    required this.onShowOnMap,
-    required this.onShowTripOnMap,
     this.onOpenTripDetailsRequested,
     required this.fromController,
     required this.toController,
@@ -71,53 +54,88 @@ class MainPlannerContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isPlanLoading) {
-      return const MainPlanLoadingView();
-    }
+    return BlocBuilder<RoutePlannerCubit, RoutePlannerState>(
+      builder: (context, plannerState) {
+        if (plannerState.isPlanLoading) {
+          return const MainPlanLoadingView();
+        }
 
-    if (showTable && hasPlannerResultsPayload) {
-      return DummyTable(
-        responseText: planResponseText.isEmpty
-            ? AppTexts.mainDefaultPlanResponse
-            : planResponseText,
-        desktopInlineMapMode: isDesktop,
-        hasDesktopMapSelection: hasDesktopMapSelection,
-        canLoadMore: canLoadMore,
-        isLoadingMore: isLoadingMore,
-        onLoadMore: onLoadMore,
-        ticketWatch: ticketWatch,
-        tickets: tickets,
-        onShowOnMap: (payload) {
-          if (isDesktop) {
-            onShowOnMap(payload);
-            return;
-          }
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => SelectedItineraryMapScreen(payload: payload),
-            ),
-          );
-        },
-        onShowTripOnMap: isDesktop ? onShowTripOnMap : null,
-        onOpenTripDetailsRequested: onOpenTripDetailsRequested,
-      );
-    }
+        return BlocBuilder<MapCubit, MapState>(
+          builder: (context, mapState) {
+            final showTable = context.read<NavigationCubit>().state.currentSection == MainSection.table;
+            final hasPlannerResultsPayload = plannerState.planResponseJson != null ||
+                plannerState.hasMeaningfulPlanResponse ||
+                plannerState.planResponseText.isNotEmpty;
 
-    return RoutePlanForm(
-      fromController: fromController,
-      toController: toController,
-      selectedDate: selectedDate,
-      transfers: transfers,
-      maxWalk: maxWalk,
-      selectedTransportModes: selectedTransportModes,
-      ticketWatch: ticketWatch,
-      onSearch: onSearch,
-      onLoadingChanged: onLoadingChanged,
-      onPickDate: onPickDate,
-      onTransfersChanged: onTransfersChanged,
-      onMaxWalkChanged: onMaxWalkChanged,
-      onTransportModeToggle: onTransportModeToggle,
-      onTicketWatchChanged: onTicketWatchChanged,
+            if (showTable && hasPlannerResultsPayload) {
+              final hasDesktopMapSelection = mapState.routeOverlayData.hasContent ||
+                  mapState.routeVehicleMarker != null ||
+                  mapState.selectedMapPayload != null;
+              final canLoadMore = (plannerState.nextPageCursor?.trim().isNotEmpty ?? false);
+
+              return RoutePlannerResultsView(
+                responseText: plannerState.planResponseText.isEmpty
+                    ? AppTexts.mainDefaultPlanResponse
+                    : plannerState.planResponseText,
+                desktopInlineMapMode: isDesktop,
+                hasDesktopMapSelection: hasDesktopMapSelection,
+                canLoadMore: canLoadMore,
+                isLoadingMore: plannerState.isLoadingMore,
+                onLoadMore: () async {
+                  final success = await context.read<RoutePlannerCubit>().loadMorePlans();
+                  if (!success && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(AppTexts.mainLoadMoreFailed)),
+                    );
+                  }
+                },
+                ticketWatch: ticketWatch,
+                tickets: tickets,
+                onShowOnMap: (payload) {
+                  if (isDesktop) {
+                    context.read<MapCubit>().showDesktopRouteOnBackgroundMap(
+                          routeData: payload.routeData,
+                          selectedPayload: payload,
+                        );
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => SelectedItineraryMapScreen(payload: payload),
+                    ),
+                  );
+                },
+                onShowTripOnMap: isDesktop
+                    ? (routeData, vehicleMarker) {
+                        context.read<MapCubit>().showDesktopRouteOnBackgroundMap(
+                              routeData: routeData,
+                              vehicleMarker: vehicleMarker,
+                            );
+                      }
+                    : null,
+                onOpenTripDetailsRequested: onOpenTripDetailsRequested,
+              );
+            }
+
+            return RoutePlanForm(
+              fromController: fromController,
+              toController: toController,
+              selectedDate: selectedDate,
+              transfers: transfers,
+              maxWalk: maxWalk,
+              selectedTransportModes: selectedTransportModes,
+              ticketWatch: ticketWatch,
+              onSearch: onSearch,
+              onLoadingChanged: onLoadingChanged,
+              onPickDate: onPickDate,
+              onTransfersChanged: onTransfersChanged,
+              onMaxWalkChanged: onMaxWalkChanged,
+              onTransportModeToggle: onTransportModeToggle,
+              onTicketWatchChanged: onTicketWatchChanged,
+            );
+          },
+        );
+      },
     );
   }
 }

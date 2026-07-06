@@ -1,5 +1,3 @@
-import 'pass_type.dart';
-
 class TicketItem {
   final int id;
   final String agencyId;
@@ -66,23 +64,6 @@ class TicketItem {
     'ticket_end': ticketEnd,
     'quantity': quantity,
   };
-
-  String getDisplayName(List<PassType> passTypes) {
-    if (ticketType == 'bérlet') {
-      final ticketIds = Set<String>.from(agencyIds ?? []);
-      if (ticketIds.isNotEmpty) {
-        for (final pt in passTypes) {
-          final ptIds = Set<String>.from(pt.agencyIds);
-          if (ticketIds.length == ptIds.length && ticketIds.containsAll(ptIds)) {
-            return pt.name;
-          }
-        }
-      }
-    }
-    return (agencyNames != null && agencyNames!.isNotEmpty)
-        ? agencyNames!.join(', ')
-        : agencyName;
-  }
 
   static bool hasValidTicketsForItinerary(Map<String, dynamic> itinerary, List<TicketItem> tickets) {
     return getMissingTicketAgencies(itinerary, tickets).isEmpty;

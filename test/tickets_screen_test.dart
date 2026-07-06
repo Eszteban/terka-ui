@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:terka/models/pass_type.dart';
 import 'package:terka/models/ticket_item.dart';
+import 'package:terka/extensions/ticket_extensions.dart';
 import 'package:terka/theme/app_texts.dart';
 
 void main() {

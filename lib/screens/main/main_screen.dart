@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-
-
+import '../../controllers/navigation_cubit.dart';
+import '../../controllers/route_planner_cubit.dart';
+import '../../controllers/map_cubit.dart';
 import '../news_screen.dart';
 import '../profile_screen.dart';
-import '../../utils/main_screen_utils.dart';
-import '../../controllers/plan_response_controller.dart';
-import '../../services/transit_api_service.dart';
 import '../../theme/app_tokens.dart';
 import '../../theme/app_texts.dart';
 import '../../widgets/maps/map_view.dart';
@@ -17,9 +15,10 @@ import '../../widgets/maps/route_map_data.dart';
 import '../../widgets/navigation/top_navbar.dart';
 import '../../models/ticket_item.dart';
 import '../../models/pass_type.dart';
-import '../../services/ticket_api_service.dart';
+import '../../repositories/ticket_repository.dart';
+import '../../injection_container.dart';
 import '../../widgets/forms/route_plan_form.dart';
-import '../../widgets/tables/dummy_table.dart';
+import '../../widgets/tables/route_planner_results_view.dart';
 
 import 'widgets/main_desktop_map_layout.dart';
 import 'widgets/main_planner_content.dart';
@@ -55,26 +54,10 @@ class _MainScreenState extends State<MainScreen> {
     stops: [],
   );
 
-  final TransitApiService _transitApiService = const TransitApiService();
   final TextEditingController _searchController1 = TextEditingController();
   final TextEditingController _searchController2 = TextEditingController();
 
   DateTime? _selectedDate;
-  bool _showTable = false;
-  bool _showMap = false;
-  bool _showNews = false;
-  bool _showProfile = false;
-  bool _isPlanLoading = false;
-  bool _isLoadingMorePlans = false;
-  bool _hasMeaningfulPlanResponse = false;
-  String _planResponseText = '';
-  Map<String, dynamic>? _planResponseJson;
-  String _lastPlanQuery = '';
-  Map<String, dynamic>? _lastPlanVariables;
-  String? _nextPageCursor;
-  RouteMapData _desktopRouteOverlayData = _emptyRouteMapData;
-  RouteVehicleMarker? _desktopRouteVehicleMarker;
-  SelectedItineraryMapPayload? _desktopSelectedMapPayload;
   TicketItem? _editingTicket;
   PassType? _editingPassType;
   String? _activeTripId;
@@ -83,7 +66,6 @@ class _MainScreenState extends State<MainScreen> {
   String? _activeStopName;
   LatLng? _activeStopPoint;
   List<String>? _activeGroupedStopIds;
-  final List<_MainSection> _navigationHistory = [_MainSection.home];
 
   double _currentSliderValue = 5;
   double _currentWalkingValue = 1000;
@@ -99,14 +81,32 @@ class _MainScreenState extends State<MainScreen> {
   bool _jegyfigyeles = false;
   List<TicketItem> _tickets = const [];
 
+  late final NavigationCubit _navigationCubit;
+  late final RoutePlannerCubit _routePlannerCubit;
+  late final MapCubit _mapCubit;
+
+  bool get _showMap =>
+      _navigationCubit.state.currentSection == MainSection.map;
+  bool get _showNews =>
+      _navigationCubit.state.currentSection == MainSection.news;
+  bool get _showProfile =>
+      _navigationCubit.state.currentSection == MainSection.profile;
+
+  bool get _hasMeaningfulPlanResponse => _routePlannerCubit.state.hasMeaningfulPlanResponse;
+  String get _planResponseText => _routePlannerCubit.state.planResponseText;
+  Map<String, dynamic>? get _planResponseJson => _routePlannerCubit.state.planResponseJson;
+
   @override
   void initState() {
     super.initState();
+    _navigationCubit = sl<NavigationCubit>();
+    _routePlannerCubit = sl<RoutePlannerCubit>();
+    _mapCubit = sl<MapCubit>();
     _loadTickets();
   }
 
   Future<void> _loadTickets() async {
-    final result = await const TicketApiService().fetchTickets();
+    final result = await sl<TicketRepository>().fetchTickets();
     if (mounted) {
       setState(() {
         _tickets = result.tickets;
@@ -119,44 +119,25 @@ class _MainScreenState extends State<MainScreen> {
       _hasMeaningfulPlanResponse ||
       _planResponseText.isNotEmpty;
 
-  void _navigateTo(_MainSection section, {bool addToHistory = true}) {
+  void _showMainScreen() {
     setState(() {
-      _showTable = section == _MainSection.table;
-      _showMap = section == _MainSection.map;
-      _showNews = section == _MainSection.news;
-      _showProfile = section == _MainSection.profile;
-
-      _desktopRouteOverlayData = _emptyRouteMapData;
-      _desktopRouteVehicleMarker = null;
-      _desktopSelectedMapPayload = null;
-
-      if (addToHistory) {
-        final current = _navigationHistory.isNotEmpty
-            ? _navigationHistory.last
-            : _MainSection.home;
-        if (current != section) {
-          _navigationHistory.add(section);
-        }
-      }
+      _searchController1.clear();
+      _searchController2.clear();
     });
-    _loadTickets();
+    _routePlannerCubit.clearSearch();
+    _navigationCubit.navigateTo(MainSection.home);
   }
 
-  bool _handleBackNavigation() {
-    if (_showTable && _hasPlannerResultsPayload) {
-      _showMainScreen();
-      _navigationHistory.clear();
-      _navigationHistory.add(_MainSection.home);
-      return false;
-    }
-    if (_navigationHistory.length <= 1) {
-      return true;
-    }
+  void _showMapScreen() {
+    _navigationCubit.navigateTo(MainSection.map);
+  }
 
-    _navigationHistory.removeLast();
-    final previousSection = _navigationHistory.last;
-    _navigateTo(previousSection, addToHistory: false);
-    return false;
+  void _showNewsScreen() {
+    _navigationCubit.navigateTo(MainSection.news);
+  }
+
+  void _showProfileScreen() {
+    _navigationCubit.navigateTo(MainSection.profile);
   }
 
   Future<void> _pickDate(BuildContext context) async {
@@ -174,31 +155,11 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void _showMainScreen() {
-    setState(() {
-      _searchController1.clear();
-      _searchController2.clear();
-      _hasMeaningfulPlanResponse = false;
-      _planResponseText = '';
-      _planResponseJson = null;
-      _lastPlanQuery = '';
-      _lastPlanVariables = null;
-      _nextPageCursor = null;
-      _isLoadingMorePlans = false;
-    });
-    _navigateTo(_MainSection.home);
-  }
-
-  void _showMapScreen() {
-    _navigateTo(_MainSection.map);
-  }
-
-  void _showNewsScreen() {
-    _navigateTo(_MainSection.news);
-  }
-
-  void _showProfileScreen() {
-    _navigateTo(_MainSection.profile);
+  bool _handleBackNavigation() {
+    return _navigationCubit.handleBackNavigation(
+          hasPlannerResultsPayload: _hasPlannerResultsPayload,
+          onShowMainScreen: _showMainScreen,
+        );
   }
 
   void _toggleTransportMode(String label) {
@@ -211,80 +172,6 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  Future<void> _loadMorePlans() async {
-    if (_isLoadingMorePlans) {
-      return;
-    }
-    if (_lastPlanQuery.trim().isEmpty ||
-        _lastPlanVariables == null ||
-        _nextPageCursor == null ||
-        _nextPageCursor!.trim().isEmpty) {
-      return;
-    }
-
-    setState(() {
-      _isLoadingMorePlans = true;
-    });
-
-    try {
-      final nextJson = await _transitApiService.loadMorePlans(
-        query: _lastPlanQuery,
-        variables: _lastPlanVariables!,
-        nextPageCursor: _nextPageCursor,
-      );
-
-      if (nextJson == null) {
-        if (!mounted) {
-          return;
-        }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(AppTexts.mainLoadMoreFailed)));
-        return;
-      }
-
-      final merged = _mergePlanResponses(_planResponseJson, nextJson);
-      final plan = PlanResponseController.extractPlan(nextJson);
-      final nextCursor = PlanResponseController.extractNextPageCursor(plan);
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _planResponseJson = merged;
-        _planResponseText = const JsonEncoder.withIndent('  ').convert(merged);
-        _hasMeaningfulPlanResponse = _hasItineraries(merged);
-        _lastPlanVariables = Map<String, dynamic>.from(_lastPlanVariables!)
-          ..['pageCursor'] = _nextPageCursor;
-        _nextPageCursor = nextCursor;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(AppTexts.mainLoadMoreFailed)));
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingMorePlans = false;
-        });
-      }
-    }
-  }
-
-  bool _hasItineraries(Map<String, dynamic>? json) {
-    return MainScreenUtils.hasItineraries(json);
-  }
-
-  Map<String, dynamic> _mergePlanResponses(
-    Map<String, dynamic>? current,
-    Map<String, dynamic> next,
-  ) {
-    return MainScreenUtils.mergePlanResponses(current, next);
-  }
 
   _MobileTab _currentMobileTab() {
     if (_showProfile) {
@@ -330,28 +217,15 @@ class _MainScreenState extends State<MainScreen> {
     RouteVehicleMarker? vehicleMarker,
     SelectedItineraryMapPayload? selectedPayload,
   }) {
-    setState(() {
-      _desktopRouteOverlayData = _emptyRouteMapData;
-      _desktopRouteVehicleMarker = null;
-      _desktopSelectedMapPayload = null;
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        setState(() {
-          _desktopRouteOverlayData = routeData;
-          _desktopRouteVehicleMarker = vehicleMarker;
-          _desktopSelectedMapPayload = selectedPayload;
-        });
-      }
-    });
+    _mapCubit.showDesktopRouteOnBackgroundMap(
+      routeData: routeData,
+      vehicleMarker: vehicleMarker,
+      selectedPayload: selectedPayload,
+    );
   }
 
   void _clearDesktopRouteSelection() {
-    setState(() {
-      _desktopRouteOverlayData = _emptyRouteMapData;
-      _desktopRouteVehicleMarker = null;
-      _desktopSelectedMapPayload = null;
-    });
+    _mapCubit.clearDesktopRouteSelection();
   }
 
   RouteMapData _buildStopRouteMapData() {
@@ -374,38 +248,15 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildPlannerContent({required bool isDesktop}) {
     return MainPlannerContent(
       isDesktop: isDesktop,
-      isPlanLoading: _isPlanLoading,
-      showTable: _showTable,
-      hasPlannerResultsPayload: _hasPlannerResultsPayload,
-      planResponseText: _planResponseText,
-      hasDesktopMapSelection:
-          _desktopRouteOverlayData.hasContent ||
-          _desktopRouteVehicleMarker != null ||
-          _desktopSelectedMapPayload != null,
-      canLoadMore: (_nextPageCursor?.trim().isNotEmpty ?? false),
-      isLoadingMore: _isLoadingMorePlans,
-      onLoadMore: _loadMorePlans,
       ticketWatch: _jegyfigyeles,
       tickets: _tickets,
-      onShowOnMap: (payload) {
-        _showDesktopRouteOnBackgroundMap(
-          routeData: payload.routeData,
-          selectedPayload: payload,
-        );
-      },
-      onShowTripOnMap: (routeData, vehicleMarker) {
-        _showDesktopRouteOnBackgroundMap(
-          routeData: routeData,
-          vehicleMarker: vehicleMarker,
-        );
-      },
       onOpenTripDetailsRequested: isDesktop
           ? (tripId, serviceDay) {
               setState(() {
                 _activeTripId = tripId;
                 _activeTripServiceDay = serviceDay;
               });
-              _navigateTo(_MainSection.tripDetails);
+              _navigationCubit.navigateTo(MainSection.tripDetails);
             }
           : null,
       fromController: _searchController1,
@@ -415,25 +266,14 @@ class _MainScreenState extends State<MainScreen> {
       maxWalk: _currentWalkingValue,
       selectedTransportModes: _selectedKozlekedes,
       onSearch: (PlanSearchResult result) {
-        setState(() {
-          _hasMeaningfulPlanResponse = result.hasMeaningfulResponse;
-          _planResponseText = result.responseText;
-          _planResponseJson = result.responseJson;
-          _lastPlanQuery = result.query;
-          _lastPlanVariables = result.requestVariables;
-          _nextPageCursor = result.nextPageCursor;
-          if (isDesktop) {
-            _desktopRouteOverlayData = _emptyRouteMapData;
-            _desktopRouteVehicleMarker = null;
-            _desktopSelectedMapPayload = null;
-          }
-        });
-        _navigateTo(_MainSection.table);
+        _routePlannerCubit.setPlanResult(result);
+        if (isDesktop) {
+          _mapCubit.clearDesktopRouteSelection();
+        }
+        _navigationCubit.navigateTo(MainSection.table);
       },
       onLoadingChanged: (isLoading) {
-        setState(() {
-          _isPlanLoading = isLoading;
-        });
+        _routePlannerCubit.setLoading(isLoading);
       },
       onPickDate: () => _pickDate(context),
       onTransfersChanged: (value) {
@@ -455,40 +295,39 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildSidebarContent(BuildContext context) {
-    final activeSection = _navigationHistory.last;
+  Widget _buildSidebarContent(BuildContext context, MainSection activeSection) {
     switch (activeSection) {
-      case _MainSection.profile:
+      case MainSection.profile:
         return ProfileScreen(
           selectedThemeMode: widget.selectedThemeMode,
           onThemeModeChanged: widget.onThemeModeChanged,
           selectedLanguage: widget.selectedLanguage,
           onLanguageChanged: widget.onLanguageChanged,
-          onOpenTickets: () => _navigateTo(_MainSection.tickets),
-          onOpenAddTicket: () => _navigateTo(_MainSection.addTicket),
-          onOpenManagePassTypes: () => _navigateTo(_MainSection.managePassTypes),
-          onOpenAbout: () => _navigateTo(_MainSection.about),
+          onOpenTickets: () => _navigationCubit.navigateTo(MainSection.tickets),
+          onOpenAddTicket: () => _navigationCubit.navigateTo(MainSection.addTicket),
+          onOpenManagePassTypes: () => _navigationCubit.navigateTo(MainSection.managePassTypes),
+          onOpenAbout: () => _navigationCubit.navigateTo(MainSection.about),
         );
-      case _MainSection.news:
+      case MainSection.news:
         return const NewsScreen();
-      case _MainSection.tickets:
+      case MainSection.tickets:
         return TicketsScreen(
           onBack: _handleBackNavigation,
           onEditTicket: (ticket) {
             setState(() {
               _editingTicket = ticket;
             });
-            _navigateTo(_MainSection.editTicket);
+            _navigationCubit.navigateTo(MainSection.editTicket);
           },
         );
-      case _MainSection.addTicket:
+      case MainSection.addTicket:
         return AddTicketScreen(
           onBack: _handleBackNavigation,
           onSaved: () {
             _handleBackNavigation();
           },
         );
-      case _MainSection.editTicket:
+      case MainSection.editTicket:
         return AddTicketScreen(
           ticket: _editingTicket,
           onBack: _handleBackNavigation,
@@ -496,17 +335,17 @@ class _MainScreenState extends State<MainScreen> {
             _handleBackNavigation();
           },
         );
-      case _MainSection.managePassTypes:
+      case MainSection.managePassTypes:
         return ManagePassTypesScreen(
           onBack: _handleBackNavigation,
           onOpenPassTypeEditor: (passType) {
             setState(() {
               _editingPassType = passType;
             });
-            _navigateTo(_MainSection.passTypeEditor);
+            _navigationCubit.navigateTo(MainSection.passTypeEditor);
           },
         );
-      case _MainSection.passTypeEditor:
+      case MainSection.passTypeEditor:
         return PassTypeEditorScreen(
           passType: _editingPassType,
           onBack: _handleBackNavigation,
@@ -514,11 +353,11 @@ class _MainScreenState extends State<MainScreen> {
             _handleBackNavigation();
           },
         );
-      case _MainSection.about:
+      case MainSection.about:
         return AboutScreen(
           onBack: _handleBackNavigation,
         );
-      case _MainSection.tripDetails:
+      case MainSection.tripDetails:
         return TripDetailsScreen(
           tripId: _activeTripId ?? '',
           serviceDay: _activeTripServiceDay ?? '',
@@ -535,11 +374,11 @@ class _MainScreenState extends State<MainScreen> {
               _activeStopPoint = null;
               _activeGroupedStopIds = null;
             });
-            _navigateTo(_MainSection.stopDetails);
+            _navigationCubit.navigateTo(MainSection.stopDetails);
           },
           onCloseRequested: _handleBackNavigation,
         );
-      case _MainSection.stopDetails:
+      case MainSection.stopDetails:
         return StopDetailsScreen(
           stopId: _activeStopId ?? '',
           initialStopName: _activeStopName,
@@ -556,12 +395,12 @@ class _MainScreenState extends State<MainScreen> {
               _activeTripId = tripId;
               _activeTripServiceDay = serviceDay;
             });
-            _navigateTo(_MainSection.tripDetails);
+            _navigationCubit.navigateTo(MainSection.tripDetails);
           },
           onCloseRequested: _handleBackNavigation,
         );
-      case _MainSection.home:
-      case _MainSection.table:
+      case MainSection.home:
+      case MainSection.table:
       default:
         return _buildPlannerContent(isDesktop: true);
     }
@@ -569,79 +408,112 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return NativeDeviceOrientationReader(
-      builder: (context) {
-        final orientation = NativeDeviceOrientationReader.orientation(context);
-        final isDesktop = MediaQuery.of(context).size.shortestSide > 600;
-        final currentMobileTab = _currentMobileTab();
-        final currentDesktopTabIndex = _currentDesktopTabIndex();
-        final currentMobileSectionTitle = _currentMobileSectionTitle();
-        final horizontalPadding = isDesktop ? AppSpacing.xxl : AppSpacing.md;
-        final isMapFullscreen = _showMap;
-        final useDesktopMapLayout = isDesktop;
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<NavigationCubit>.value(value: _navigationCubit),
+        BlocProvider<RoutePlannerCubit>.value(value: _routePlannerCubit),
+        BlocProvider<MapCubit>.value(value: _mapCubit),
+      ],
+      child: BlocListener<NavigationCubit, NavigationState>(
+        listener: (context, state) {
+          _mapCubit.clearDesktopRouteSelection();
+          _loadTickets();
+        },
+        child: BlocBuilder<NavigationCubit, NavigationState>(
+          builder: (context, state) {
+            return BlocBuilder<RoutePlannerCubit, RoutePlannerState>(
+              builder: (context, plannerState) {
+                return BlocBuilder<MapCubit, MapState>(
+                  builder: (context, mapState) {
+                    return NativeDeviceOrientationReader(
+                      builder: (context) {
+                final orientation = NativeDeviceOrientationReader.orientation(context);
+                final isDesktop = MediaQuery.of(context).size.shortestSide > 600;
+                final currentMobileTab = _currentMobileTab();
+                final currentDesktopTabIndex = _currentDesktopTabIndex();
+                final currentMobileSectionTitle = _currentMobileSectionTitle();
+                final horizontalPadding = isDesktop ? AppSpacing.xxl : AppSpacing.md;
+                final isMapFullscreen = _showMap;
+                final useDesktopMapLayout = isDesktop;
 
-        final isPhoneLandscape =
-            !isDesktop &&
-            (orientation == NativeDeviceOrientation.landscapeLeft ||
-                orientation == NativeDeviceOrientation.landscapeRight);
+                final isPhoneLandscape =
+                    !isDesktop &&
+                    (orientation == NativeDeviceOrientation.landscapeLeft ||
+                        orientation == NativeDeviceOrientation.landscapeRight);
 
-        return PopScope(
-          canPop: _navigationHistory.length <= 1,
-          onPopInvokedWithResult: (didPop, result) {
-            if (didPop) {
-              return;
-            }
-            _handleBackNavigation();
-          },
-          child: Scaffold(
-            body: Column(
-              children: [
-                if ((!isMapFullscreen || isDesktop) && !isPhoneLandscape)
-                  isDesktop
-                      ? TopNavbar(
-                          isDesktop: isDesktop,
-                          onHomeTap: _showMainScreen,
-                          onNewsTap: _showNewsScreen,
-                          onProfileTap: _showProfileScreen,
-                          selectedDesktopTabIndex: currentDesktopTabIndex,
-                          mobileCurrentSectionTitle: currentMobileSectionTitle,
-                        )
-                      : SafeArea(
-                          top: true,
-                          bottom: false,
-                          child: TopNavbar(
-                            isDesktop: isDesktop,
-                            onHomeTap: _showMainScreen,
-                            onNewsTap: _showNewsScreen,
-                            onProfileTap: _showProfileScreen,
-                            mobileCurrentSectionTitle:
-                                currentMobileSectionTitle,
-                          ),
-                        ),
-                Expanded(
-                  child: useDesktopMapLayout
-                      ? MainDesktopMapLayout(
-                          selectedThemeMode: widget.selectedThemeMode,
-                          onThemeModeChanged: widget.onThemeModeChanged,
-                          selectedLanguage: widget.selectedLanguage,
-                          onLanguageChanged: widget.onLanguageChanged,
-                          showProfile: _showProfile,
-                          showNews: _showNews,
-                          showMap: _showMap,
-                          desktopRouteOverlayData: _desktopRouteOverlayData,
-                          desktopRouteVehicleMarker: _desktopRouteVehicleMarker,
-                          desktopSelectedMapPayload: _desktopSelectedMapPayload,
-                          plannerContent: _buildPlannerContent(isDesktop: true),
-                          onClearDesktopRouteSelection:
-                              _clearDesktopRouteSelection,
-                          onShowTripOnBackgroundMap:
-                              (routeData, vehicleMarker) {
-                                _showDesktopRouteOnBackgroundMap(
-                                  routeData: routeData,
-                                  vehicleMarker: vehicleMarker,
-                                );
-                              },
-                        )
+                return PopScope(
+                  canPop: state.history.length <= 1,
+                  onPopInvokedWithResult: (didPop, result) {
+                    if (didPop) {
+                      return;
+                    }
+                    _handleBackNavigation();
+                  },
+                  child: Scaffold(
+                    body: Column(
+                      children: [
+                        if ((!isMapFullscreen || isDesktop) && !isPhoneLandscape)
+                          isDesktop
+                              ? TopNavbar(
+                                  isDesktop: isDesktop,
+                                  onHomeTap: _showMainScreen,
+                                  onNewsTap: _showNewsScreen,
+                                  onProfileTap: _showProfileScreen,
+                                  selectedDesktopTabIndex: currentDesktopTabIndex,
+                                  mobileCurrentSectionTitle: currentMobileSectionTitle,
+                                )
+                              : SafeArea(
+                                  top: true,
+                                  bottom: false,
+                                  child: TopNavbar(
+                                    isDesktop: isDesktop,
+                                    onHomeTap: _showMainScreen,
+                                    onNewsTap: _showNewsScreen,
+                                    onProfileTap: _showProfileScreen,
+                                    mobileCurrentSectionTitle:
+                                        currentMobileSectionTitle,
+                                  ),
+                                ),
+                        Expanded(
+                          child: useDesktopMapLayout
+                              ? MainDesktopMapLayout(
+                                  showMap: _showMap,
+                                  showResultCard: (state.currentSection == MainSection.home || state.currentSection == MainSection.table) &&
+                                      mapState.selectedMapPayload != null,
+                                  desktopRouteOverlayData: state.currentSection == MainSection.stopDetails
+                                      ? _buildStopRouteMapData()
+                                      : mapState.routeOverlayData,
+                                  desktopRouteVehicleMarker: mapState.routeVehicleMarker,
+                                  desktopSelectedMapPayload: mapState.selectedMapPayload,
+                                  sidebarContent: _buildSidebarContent(context, state.currentSection),
+                                  onClearDesktopRouteSelection: _clearDesktopRouteSelection,
+                                  onShowTripOnBackgroundMap: (routeData, vehicleMarker) {
+                                    _showDesktopRouteOnBackgroundMap(
+                                      routeData: routeData,
+                                      vehicleMarker: vehicleMarker,
+                                    );
+                                  },
+                                  onOpenTripDetailsRequested: (tripId, serviceDay) {
+                                    setState(() {
+                                      _activeTripId = tripId;
+                                      _activeTripServiceDay = serviceDay;
+                                    });
+                                    _navigationCubit.navigateTo(MainSection.tripDetails);
+                                  },
+                                  onOpenStopDetailsRequested: (stopId, stopName, initialStopPoint, groupedStopIds) {
+                                    setState(() {
+                                      _activeStopId = stopId;
+                                      _activeStopName = stopName;
+                                      _activeStopPoint = initialStopPoint;
+                                      _activeGroupedStopIds = groupedStopIds;
+                                    });
+                                    _navigationCubit.navigateTo(MainSection.stopDetails);
+                                  },
+                                  hideGeneralStopsAndVehicles: state.currentSection == MainSection.tripDetails ||
+                                      state.currentSection == MainSection.stopDetails ||
+                                      mapState.routeOverlayData.hasContent ||
+                                      mapState.selectedMapPayload != null,
+                                )
                       : Row(
                           children: [
                             if (isPhoneLandscape &&
@@ -788,6 +660,14 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     );
+                  },
+                );
+              },
+            );
+          },
+        ),
+      ),
+    );
   }
 
   int _mobileTabIndex(_MobileTab tab) {
@@ -926,19 +806,3 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 enum _MobileTab { home, news, map, profile }
-
-enum _MainSection {
-  home,
-  table,
-  map,
-  news,
-  profile,
-  tickets,
-  addTicket,
-  editTicket,
-  managePassTypes,
-  passTypeEditor,
-  about,
-  tripDetails,
-  stopDetails,
-}
