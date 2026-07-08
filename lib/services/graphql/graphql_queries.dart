@@ -326,6 +326,12 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
       points
     }
     vehiclePositions {
+      stopRelationship {
+        status
+        stop {
+          name
+        }
+      }
       nextStop {
         arrivalDelay
         stop {

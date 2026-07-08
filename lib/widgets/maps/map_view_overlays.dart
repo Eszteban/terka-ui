@@ -2,43 +2,19 @@ part of 'map_view.dart';
 
 extension _MapViewOverlays on _MapViewState {
   Widget _buildVehicleInfoCard(_VehicleMarkerData vehicle) {
-    final lineLabel = vehicle.routeShortName.trim().isNotEmpty
-        ? vehicle.routeShortName.trim()
-        : (vehicle.serviceLabel.trim().isNotEmpty
-              ? vehicle.serviceLabel.trim()
-              : '-');
-              
-    final tripNumberLabel = vehicle.tripNumber.trim().isNotEmpty
-        ? vehicle.tripNumber.trim()
-        : '-';
-        
-    final service = vehicle.serviceLabel.trim().isNotEmpty
-        ? vehicle.serviceLabel.trim()
-        : AppTexts.unknown.toLowerCase();
-        
-    final fallbackModel = vehicle.mode == 'RAIL_REPLACEMENT_BUS'
-        ? AppTexts.railReplacementBus
-        : AppTexts.unknown;
-        
-    final model = vehicle.vehicleModel.trim().isNotEmpty
-        ? vehicle.vehicleModel.trim()
-        : fallbackModel;
+    final trip = vehicle.rawVehicle['trip'] is Map
+        ? vehicle.rawVehicle['trip'] as Map<String, dynamic>
+        : null;
+    final route = trip != null && trip['route'] is Map
+        ? trip['route'] as Map<String, dynamic>
+        : null;
 
-    
-
-    return VehicleInfoCard(
-      lineLabel: lineLabel,
-      lineLabelUsesSpanFont: vehicle.routeShortNameUsesSpanFont,
-      tripNumberLabel: tripNumberLabel,
-      tripHeadsignLabel: vehicle.tripHeadsign.trim(),
-      serviceLabel: service,
-      modelLabel: model,
-      vehicleSpeed: vehicle.vehicleSpeed,
-      arrivalDelaySeconds: vehicle.arrivalDelaySeconds,
-      nextStopName: vehicle.nextStopName,
+    return VehicleInfoCard.fromVehicleMap(
+      vehicle: vehicle.rawVehicle,
+      trip: trip,
+      route: route,
       markerColor: vehicle.markerColor,
       markerTextColor: vehicle.markerTextColor,
-      nextStopStatus: vehicle.nextStopStatus,
       onTap: () {
         _consumeNextMapTapClose();
         _openTripDetails(vehicle);
@@ -143,7 +119,7 @@ extension _MapViewOverlays on _MapViewState {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),

@@ -6,6 +6,26 @@ import '../widgets/maps/vehicle_info_card.dart';
 import '../utils/markup_text_utils.dart' as markup;
 import '../utils/vehicle_type_lookup.dart';
 import '../models/trip_stop_time.dart';
+int _stopStatusRank(String? status) {
+  if (status == null) {
+    return 10;
+  }
+  switch (status.toUpperCase()) {
+    case 'INCOMING_AT':
+    case 'NEXT':
+    case 'EXPECTED':
+    case 'PREDICTED':
+      return 0;
+    case 'STOPPING_AT':
+    case 'AT':
+    case 'CURRENT':
+      return 1;
+    case 'IN_TRANSIT_TO':
+      return 2;
+    default:
+      return 10;
+  }
+}
 
 class TripDetailsUtils {
   static num? asNum(dynamic value) => value is num ? value : null;
@@ -370,12 +390,35 @@ class TripDetailsUtils {
           : null,
     );
 
-    final nextStop = vehicle['nextStop'];
-    final stop = nextStop != null ? nextStop['stop'] : null;
-    String nextStopName = stop != null ? stop["name"]?.toString() ?? '' : '';
+    String? nextStopName;
+    final stopRelationship = vehicle['stopRelationship'];
+    if (stopRelationship is List) {
+      int bestRank = 1 << 30;
+      for (final rel in stopRelationship) {
+        if (rel is! Map) {
+          continue;
+        }
+        final stop = rel['stop'];
+        final name = stop is Map ? stop['name'] : null;
+        final status = rel['status'];
+        if (name is String && name.trim().isNotEmpty) {
+          final rank = _stopStatusRank(status is String ? status : '');
+          if (rank < bestRank) {
+            bestRank = rank;
+            nextStopName = markup.plainTextFromHtml(name).trim();
+          }
+        }
+      }
+    } else if (stopRelationship is Map) {
+      final stop = stopRelationship['stop'];
+      final name = stop is Map ? stop['name'] : null;
+      if (name is String && name.trim().isNotEmpty) {
+        nextStopName = markup.plainTextFromHtml(name).trim();
+      }
+    }
 
     final vehicleInfoText = hasVehicle
-        ? '$label\n$model\n$delayTextVal\n${AppTexts.tripNextStopPrefix}$nextStopName'
+        ? '$label\n$model\n$delayTextVal\n${AppTexts.tripNextStopPrefix}${nextStopName ?? ""}'
         : AppTexts.tripNoVehicle;
 
     return (
@@ -394,76 +437,14 @@ class TripDetailsUtils {
     required Color routeColor,
     required Color routeTextColor,
   }) {
-    final routeData = route(trip);
     final vehicle = firstVehicle(trip);
-    final hasVehicle = vehicle.isNotEmpty;
-    final rawLine = routeData['shortName']?.toString() ?? '-';
-    final lineLabel = plainText(rawLine);
-    final lineLabelUsesSpanFont = containsSpanMarkup(rawLine);
-
-    final rawTripShortName = trip['tripShortName']?.toString() ?? '-';
-    final tripNumberLabel = plainText(rawTripShortName);
-
-    final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
-    final tripHeadsignLabel = plainText(rawTripHeadsign);
-
-    final vehicleTrip = vehicle['trip'];
-    final vehicleTripGtfsId = vehicleTrip is Map
-        ? vehicleTrip['gtfsId']?.toString()
-        : null;
-    final vehicleId = vehicle['vehicleId']?.toString();
-    final rawVehicleLabel =
-        vehicle['label']?.toString() != "" && vehicle['label'] != null
-        ? vehicle['label'].toString()
-        : vehicle['uicCode'] != null
-        ? vehicle['uicCode'].toString()
-        : '';
-    final serviceLabel = !hasVehicle
-        ? ''
-        : (vehicleId != null &&
-              vehicleTripGtfsId != null &&
-              vehicleId == vehicleTripGtfsId)
-        ? AppTexts.estimatedPosition
-        : rawVehicleLabel.trim().isNotEmpty
-        ? plainText(rawVehicleLabel)
-        : AppTexts.unknownVehicle;
-
-    final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
-    final modelLabel = rawVehicleModel.trim().isNotEmpty
-        ? plainText(rawVehicleModel)
-        : VehicleTypeLookup(serviceLabel).vehicleType;
-
-    final nextStop = vehicle['nextStop'];
-    final int? arrivalDelaySeconds =
-        nextStop != null && nextStop['arrivalDelay'] is num
-        ? (nextStop['arrivalDelay'] as num).toInt()
-        : null;
-
-    final nextStopName = nextStop != null && nextStop['stop'] != null
-        ? nextStop['stop']['name']?.toString()
-        : null;
-    
-    final nextStopStatus = nextStop != null && nextStop['status'] != null
-        ? nextStop['status'].toString()
-        : '';
-
-    final vehicleSpeed = vehicle['speed'] is num
-        ? ((vehicle['speed'] as num)*3.6).round()
-        : 0;
-
-    return VehicleInfoCard(
-      lineLabel: lineLabel,
-      lineLabelUsesSpanFont: lineLabelUsesSpanFont,
-      tripNumberLabel: tripNumberLabel,
-      tripHeadsignLabel: tripHeadsignLabel,
-      serviceLabel: serviceLabel,
-      modelLabel: modelLabel,
-      vehicleSpeed: vehicleSpeed,
-      arrivalDelaySeconds: arrivalDelaySeconds,
-      nextStopName: nextStopName,
+    final routeData = route(trip);
+    return VehicleInfoCard.fromVehicleMap(
+      vehicle: vehicle,
+      trip: trip,
+      route: routeData,
       markerColor: routeColor,
       markerTextColor: routeTextColor,
-      nextStopStatus: nextStopStatus,
       onTap: null,
     );
   }

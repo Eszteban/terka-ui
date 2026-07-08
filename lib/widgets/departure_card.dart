@@ -169,10 +169,10 @@ class DepartureCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Colors.white.withOpacity(0.08)) : null,
+        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

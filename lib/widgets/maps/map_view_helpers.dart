@@ -58,24 +58,6 @@ extension _MapViewHelpers on _MapViewState {
     return Color(0xFF000000 | value);
   }
 
-  int _stopStatusRank(String status) {
-    switch (status.toUpperCase()) {
-      case 'INCOMING_AT':
-      case 'NEXT':
-      case 'EXPECTED':
-      case 'PREDICTED':
-        return 0;
-      case 'STOPPING_AT':
-      case 'AT':
-      case 'CURRENT':
-        return 1;
-      case 'IN_TRANSIT_TO':
-        return 2;
-      default:
-        return 10;
-    }
-  }
-
   String _normalizedStopGroupName(String name) {
     return _plainTextFromHtml(name).trim().toLowerCase();
   }

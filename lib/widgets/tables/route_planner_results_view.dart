@@ -397,7 +397,7 @@ class RoutePlannerResultsView extends StatelessWidget {
               color: isDark ? const Color(0xFF2C1E1D) : const Color(0xFFFDE8E8),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isDark ? const Color(0xFFEF5350).withOpacity(0.3) : const Color(0xFFE57373).withOpacity(0.5),
+                color: isDark ? const Color(0xFFEF5350).withValues(alpha: 0.3) : const Color(0xFFE57373).withValues(alpha: 0.5),
               ),
             ),
             child: Row(

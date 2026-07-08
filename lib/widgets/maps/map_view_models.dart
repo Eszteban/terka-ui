@@ -10,19 +10,11 @@ class _VehicleMarkerData {
   final bool serviceLabelUsesSpanFont;
   final String routeShortName;
   final bool routeShortNameUsesSpanFont;
-  final String tripNumber;
-  final bool tripNumberUsesSpanFont;
-  final String tripHeadsign;
-  final bool tripHeadsignUsesSpanFont;
-  final String vehicleModel;
-  final int? arrivalDelaySeconds;
-  final String? nextStopName;
   final String mode;
   final Color markerColor;
   final Color markerTextColor;
   final Color markerOutlineHeadingColor;
-  final int vehicleSpeed;
-  final String nextStopStatus;
+  final Map<String, dynamic> rawVehicle;
 
   const _VehicleMarkerData({
     required this.markerId,
@@ -34,19 +26,11 @@ class _VehicleMarkerData {
     required this.serviceLabelUsesSpanFont,
     required this.routeShortName,
     required this.routeShortNameUsesSpanFont,
-    required this.tripNumber,
-    required this.tripNumberUsesSpanFont,
-    required this.tripHeadsign,
-    required this.tripHeadsignUsesSpanFont,
-    required this.vehicleModel,
-    required this.arrivalDelaySeconds,
-    required this.nextStopName,
     required this.mode,
     required this.markerColor,
     required this.markerTextColor,
     required this.markerOutlineHeadingColor,
-    required this.vehicleSpeed,
-    required this.nextStopStatus,
+    required this.rawVehicle,
   });
 }
 

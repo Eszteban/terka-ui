@@ -8,11 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../theme/app_texts.dart';
+import 'map_controls.dart';
 
 import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 import '../../utils/markup_text_utils.dart';
-import '../../utils/vehicle_type_lookup.dart';
 import '../../screens/stop_details/stop_details_screen.dart';
 import '../../screens/trip_details/trip_details_screen.dart';
 import '../../utils/adaptive_dialog_utils.dart';
@@ -40,7 +40,8 @@ class MapView extends StatefulWidget {
   final bool useBaseMapStopIcon;
   final TripDetailsBackgroundMapCallback? onShowTripOnBackgroundMap;
   final Function(String, String)? onOpenTripDetailsRequested;
-  final Function(String, String?, LatLng?, List<String>?)? onOpenStopDetailsRequested;
+  final Function(String, String?, LatLng?, List<String>?)?
+  onOpenStopDetailsRequested;
   final bool hideGeneralStopsAndVehicles;
 
   const MapView({
@@ -168,8 +169,13 @@ class _MapViewState extends State<MapView> {
 
   bool get _hasRouteOverlayContent {
     final mapState = context.read<MapCubit>().state;
-    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
-    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+    final routeData =
+        widget.routeOverlayData ??
+        (mapState.routeOverlayData.hasContent
+            ? mapState.routeOverlayData
+            : null);
+    final routeVehicleMarker =
+        widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
     return (routeData?.hasContent ?? false) || routeVehicleMarker != null;
   }
 
@@ -181,8 +187,13 @@ class _MapViewState extends State<MapView> {
   List<LatLng> _overlayRoutePoints() {
     final points = <LatLng>[];
     final mapState = context.read<MapCubit>().state;
-    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
-    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+    final routeData =
+        widget.routeOverlayData ??
+        (mapState.routeOverlayData.hasContent
+            ? mapState.routeOverlayData
+            : null);
+    final routeVehicleMarker =
+        widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
 
     if (routeData != null) {
       for (final segment in routeData.segments) {
@@ -211,8 +222,13 @@ class _MapViewState extends State<MapView> {
 
   LatLng? _overlayRouteFallbackCenter() {
     final mapState = context.read<MapCubit>().state;
-    final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
-    final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+    final routeData =
+        widget.routeOverlayData ??
+        (mapState.routeOverlayData.hasContent
+            ? mapState.routeOverlayData
+            : null);
+    final routeVehicleMarker =
+        widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
 
     if (routeData != null) {
       if (routeData.segments.isNotEmpty &&
@@ -304,6 +320,50 @@ class _MapViewState extends State<MapView> {
     _mapController.rotate(0);
   }
 
+  void _showMapAttributionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            AppTexts.isHungarian ? 'Térkép információk' : 'Map Information',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppTexts.isHungarian
+                    ? '• Térkép csempék: © CARTO\n• Térképadatok: © OpenStreetMap közreműködők'
+                    : '• Map tiles: © CARTO\n• Map data: © OpenStreetMap contributors',
+                style: const TextStyle(height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppTexts.isHungarian
+                    ? 'A térképi adatok az OpenStreetMap nyílt adatbázisából származnak (ODbL).'
+                    : 'Map data is sourced from the OpenStreetMap open database (ODbL).',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppTexts.isHungarian ? 'Bezárás' : 'Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _toggleRotationGesture() {
     setState(() {
       _isRotationGestureEnabled = !_isRotationGestureEnabled;
@@ -318,7 +378,7 @@ class _MapViewState extends State<MapView> {
     final camera = _mapController.camera;
     _mapController.move(
       LatLng(position.latitude, position.longitude),
-      camera.zoom < 15 ? 15 : camera.zoom,
+      camera.zoom < 16 ? 16 : camera.zoom,
     );
     unawaited(_saveLastLocation(position.latitude, position.longitude));
   }
@@ -405,124 +465,137 @@ class _MapViewState extends State<MapView> {
                 return Center(child: Text(AppTexts.mapLoadFailed));
               }
 
-              final routeData = widget.routeOverlayData ?? (mapState.routeOverlayData.hasContent ? mapState.routeOverlayData : null);
-              final routeVehicleMarker = widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+              final routeData =
+                  widget.routeOverlayData ??
+                  (mapState.routeOverlayData.hasContent
+                      ? mapState.routeOverlayData
+                      : null);
+              final routeVehicleMarker =
+                  widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
               final initialOverlayFit = _initialOverlayCameraFit();
               final initialCenter =
                   _overlayRouteFallbackCenter() ??
                   _lastStoredLocation ??
                   LatLng(47.497913, 19.040236);
               return Stack(
-          children: [
-            FlutterMap(
-              mapController: _mapController,
-              options: initialOverlayFit != null
-                  ? MapOptions(
-                      initialCameraFit: initialOverlayFit,
-                      minZoom: _minZoom,
-                      maxZoom: _maxZoom,
-                      onTap: (_, _) {
-                        if (_suppressNextMapTapClose) {
-                          _suppressNextMapTapClose = false;
-                          return;
-                        }
-                        if (_selectedVehicleMarkerId != null ||
-                            _selectedStopMarkerId != null) {
-                          setState(() {
-                            _selectedVehicleMarkerId = null;
-                            _selectedStopMarkerId = null;
-                            _selectedStopQuickInfo = null;
-                            _isLoadingSelectedStopQuickInfo = false;
-                          });
-                        }
-                      },
-                      onPositionChanged: (_, _) {
-                        _scheduleVehicleRefresh();
-                      },
-                      interactionOptions: InteractionOptions(
-                        flags:
-                            (widget.showRotationControls &&
-                                _isRotationGestureEnabled)
-                            ? InteractiveFlag.all
-                            : InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      ),
-                    )
-                  : MapOptions(
-                      initialCenter: initialCenter,
-                      initialZoom: 12,
-                      minZoom: _minZoom,
-                      maxZoom: _maxZoom,
-                      onTap: (_, _) {
-                        if (_suppressNextMapTapClose) {
-                          _suppressNextMapTapClose = false;
-                          return;
-                        }
-                        if (_selectedVehicleMarkerId != null ||
-                            _selectedStopMarkerId != null) {
-                          setState(() {
-                            _selectedVehicleMarkerId = null;
-                            _selectedStopMarkerId = null;
-                            _selectedStopQuickInfo = null;
-                            _isLoadingSelectedStopQuickInfo = false;
-                          });
-                        }
-                      },
-                      onPositionChanged: (_, _) {
-                        _scheduleVehicleRefresh();
-                      },
-                      interactionOptions: InteractionOptions(
-                        flags:
-                            (widget.showRotationControls &&
-                                _isRotationGestureEnabled)
-                            ? InteractiveFlag.all
-                            : InteractiveFlag.all & ~InteractiveFlag.rotate,
-                      ),
-                    ),
-              children: [
-                TileLayer(
-                  urlTemplate: Theme.of(context).brightness == Brightness.dark
-                      ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-                      : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-                  userAgentPackageName: 'hu.terka.terka_mobile_ui',
-                  maxZoom: 19,
-                ),
-                if (routeData != null && routeData.segments.isNotEmpty)
-                  PolylineLayer(
-                    polylines: routeData.segments
-                        .where((segment) => segment.points.length >= 2)
-                        .map(
-                          (segment) => Polyline(
-                            points: segment.points,
-                            color: segment.isWalk
-                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
-                                : segment.color,
-                            strokeWidth: 5,
-                            pattern: segment.isWalk
-                                ? StrokePattern.dotted()
-                                : const StrokePattern.solid(),
+                children: [
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: initialOverlayFit != null
+                        ? MapOptions(
+                            initialCameraFit: initialOverlayFit,
+                            minZoom: _minZoom,
+                            maxZoom: _maxZoom,
+                            onTap: (_, _) {
+                              if (_suppressNextMapTapClose) {
+                                _suppressNextMapTapClose = false;
+                                return;
+                              }
+                              if (_selectedVehicleMarkerId != null ||
+                                  _selectedStopMarkerId != null) {
+                                setState(() {
+                                  _selectedVehicleMarkerId = null;
+                                  _selectedStopMarkerId = null;
+                                  _selectedStopQuickInfo = null;
+                                  _isLoadingSelectedStopQuickInfo = false;
+                                });
+                              }
+                            },
+                            onPositionChanged: (_, _) {
+                              _scheduleVehicleRefresh();
+                            },
+                            interactionOptions: InteractionOptions(
+                              flags:
+                                  (widget.showRotationControls &&
+                                      _isRotationGestureEnabled)
+                                  ? InteractiveFlag.all
+                                  : InteractiveFlag.all &
+                                        ~InteractiveFlag.rotate,
+                            ),
+                          )
+                        : MapOptions(
+                            initialCenter: initialCenter,
+                            initialZoom: 12,
+                            minZoom: _minZoom,
+                            maxZoom: _maxZoom,
+                            onTap: (_, _) {
+                              if (_suppressNextMapTapClose) {
+                                _suppressNextMapTapClose = false;
+                                return;
+                              }
+                              if (_selectedVehicleMarkerId != null ||
+                                  _selectedStopMarkerId != null) {
+                                setState(() {
+                                  _selectedVehicleMarkerId = null;
+                                  _selectedStopMarkerId = null;
+                                  _selectedStopQuickInfo = null;
+                                  _isLoadingSelectedStopQuickInfo = false;
+                                });
+                              }
+                            },
+                            onPositionChanged: (_, _) {
+                              _scheduleVehicleRefresh();
+                            },
+                            interactionOptions: InteractionOptions(
+                              flags:
+                                  (widget.showRotationControls &&
+                                      _isRotationGestureEnabled)
+                                  ? InteractiveFlag.all
+                                  : InteractiveFlag.all &
+                                        ~InteractiveFlag.rotate,
+                            ),
                           ),
-                        )
-                        .toList(),
-                  ),
-                ..._buildMapLayers(),
-                if (_currentPosition != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
-                        width: 36,
-                        height: 36,
-                        alignment: Alignment.center,
-                        child: const UserLocationDot(),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            Theme.of(context).brightness == Brightness.dark
+                            ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
+                            : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                        userAgentPackageName: 'hu.terka.terka_mobile_ui',
+                        maxZoom: 19,
                       ),
-                    ],
-                  ),
-                if (routeData != null && routeData.stops.isNotEmpty)
-                  MarkerLayer(
-                    markers: routeData.stops
-                        .map(
-                          (stop) {
-                            final isSelected = _selectedStopMarkerId == stop.stopId;
+                      if (routeData != null && routeData.segments.isNotEmpty)
+                        PolylineLayer(
+                          polylines: routeData.segments
+                              .where((segment) => segment.points.length >= 2)
+                              .map(
+                                (segment) => Polyline(
+                                  points: segment.points,
+                                  color: segment.isWalk
+                                      ? (Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black)
+                                      : segment.color,
+                                  strokeWidth: 5,
+                                  pattern: segment.isWalk
+                                      ? StrokePattern.dotted()
+                                      : const StrokePattern.solid(),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      if (MapControls.showUserLocation && _currentPosition != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(
+                                _currentPosition!.latitude,
+                                _currentPosition!.longitude,
+                              ),
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              child: const UserLocationDot(),
+                            ),
+                          ],
+                        ),
+                      ..._buildMapLayers(),
+                      if (routeData != null && routeData.stops.isNotEmpty)
+                        MarkerLayer(
+                          markers: routeData.stops.map((stop) {
+                            final isSelected =
+                                _selectedStopMarkerId == stop.stopId;
                             return Marker(
                               point: stop.point,
                               width: isSelected ? 320 : 38,
@@ -541,7 +614,9 @@ class _MapViewState extends State<MapView> {
                                             child: GestureDetector(
                                               behavior: HitTestBehavior.opaque,
                                               onTap: _consumeNextMapTapClose,
-                                              child: _buildRouteStopInfoCard(stop),
+                                              child: _buildRouteStopInfoCard(
+                                                stop,
+                                              ),
                                             ),
                                           ),
                                           _buildMapStopDot(stop.bearing),
@@ -557,32 +632,39 @@ class _MapViewState extends State<MapView> {
                                               child: Builder(
                                                 builder: (context) {
                                                   final isDark =
-                                                      Theme.of(context).brightness ==
+                                                      Theme.of(
+                                                        context,
+                                                      ).brightness ==
                                                       Brightness.dark;
                                                   final bgColor = isDark
-                                                      ? Colors.grey[900]!.withOpacity(
-                                                          0.92,
-                                                        )
-                                                      : Colors.white.withOpacity(
-                                                          0.92,
+                                                      ? Colors.grey[900]!
+                                                            .withValues(
+                                                              alpha: 0.92,
+                                                            )
+                                                      : Colors.white.withValues(
+                                                          alpha: 0.92,
                                                         );
                                                   return Container(
-                                                    constraints: const BoxConstraints(
-                                                      maxWidth: 180,
-                                                    ),
-                                                    padding: const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2,
-                                                    ),
+                                                    constraints:
+                                                        const BoxConstraints(
+                                                          maxWidth: 180,
+                                                        ),
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 6,
+                                                          vertical: 2,
+                                                        ),
                                                     decoration: BoxDecoration(
                                                       color: bgColor,
-                                                      borderRadius: BorderRadius.circular(
-                                                        6,
-                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            6,
+                                                          ),
                                                     ),
                                                     child: Text(
                                                       stop.label,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                       style: const TextStyle(
                                                         fontSize: 11,
                                                       ),
@@ -595,135 +677,92 @@ class _MapViewState extends State<MapView> {
                                               ? _buildMapStopDot(stop.bearing)
                                               : Icon(
                                                   Icons.location_on,
-                                                  color: _routeStopColor(stop.type),
+                                                  color: _routeStopColor(
+                                                    stop.type,
+                                                  ),
                                                   size: 30,
                                                 ),
                                         ],
                                       ),
                               ),
                             );
-                          },
-                        )
-                        .toList(),
+                          }).toList(),
+                        ),
+                      if (routeVehicleMarker != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: routeVehicleMarker.point,
+                              width: 24,
+                              height: 24,
+                              alignment: Alignment.center,
+                              child: _buildRouteVehicleDot(routeVehicleMarker),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
-                if (routeVehicleMarker != null)
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: routeVehicleMarker.point,
-                        width: 24,
-                        height: 24,
-                        alignment: Alignment.center,
-                        child: _buildRouteVehicleDot(
-                          routeVehicleMarker,
+                  if (_isLoadingVehicles)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withValues(alpha: 0.85),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Padding(
+                          padding: EdgeInsets.all(8),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-              ],
-            ),
-            if (_isLoadingVehicles)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: DecoratedBox(
-                    decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  ),
-                ),
-              ),
-            if (widget.showMyLocationButton)
-              Positioned(
-                left: 12,
-                bottom: 12 + widget.controlsBottomInset,
-                child: FloatingActionButton.small(
-                  heroTag: 'map_my_location',
-                  onPressed: _jumpToCurrentLocation,
-                  child: _isLocating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.my_location),
-                ),
-              ),
-            Positioned(
-              right: 12,
-              bottom: 12 + widget.controlsBottomInset,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.showRotationControls) ...[
-                    FloatingActionButton.small(
-                      heroTag: 'map_rotate_toggle',
-                      onPressed: _toggleRotationGesture,
-                      backgroundColor: _isRotationGestureEnabled
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                      foregroundColor: _isRotationGestureEnabled
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : null,
-                      child: Icon(
-                        _isRotationGestureEnabled
-                            ? Icons.screen_lock_rotation
-                            : Icons.screen_rotation,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_isRotated) ...[
-                      FloatingActionButton.small(
-                        heroTag: 'map_compass',
-                        onPressed: _resetNorth,
-                        child: const Icon(Icons.explore),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                  ],
-                  FloatingActionButton.small(
-                    heroTag: 'map_zoom_in',
-                    onPressed: () => _zoomBy(1),
-                    child: const Icon(Icons.add),
-                  ),
-                  const SizedBox(height: 8),
-                  FloatingActionButton.small(
-                    heroTag: 'map_zoom_out',
-                    onPressed: () => _zoomBy(-1),
-                    child: const Icon(Icons.remove),
+                  MapControls(
+                    controlsBottomInset: widget.controlsBottomInset,
+                    showRotationControls: widget.showRotationControls,
+                    isRotationGestureEnabled: _isRotationGestureEnabled,
+                    isRotated: _isRotated,
+                    showMyLocationButton: widget.showMyLocationButton,
+                    isLocating: _isLocating,
+                    onResetNorth: _resetNorth,
+                    onToggleRotation: _toggleRotationGesture,
+                    onToggleLocationDot: () {
+                      setState(() {
+                        MapControls.showUserLocation = !MapControls.showUserLocation;
+                      });
+                    },
+                    onJumpToCurrentLocation: _jumpToCurrentLocation,
+                    onZoomIn: () => _zoomBy(1),
+                    onZoomOut: () => _zoomBy(-1),
+                    onShowAttribution: () => _showMapAttributionDialog(context),
                   ),
                 ],
-              ),
-            ),
-          ],
-        );
-      },
+              );
+            },
+          );
+        },
+      ),
     );
-  },
-),
-);
-}
+  }
 
   Future<void> _openTripDetails(_VehicleMarkerData vehicle) async {
-    debugPrint('[Map Debug] Opening vehicle details: vehicleId=${vehicle.markerId}, tripId=${vehicle.tripGtfsId}');
+    debugPrint(
+      '[Map Debug] Opening vehicle details: vehicleId=${vehicle.markerId}, tripId=${vehicle.tripGtfsId}',
+    );
     final tripId = vehicle.tripGtfsId.trim();
     if (tripId.isEmpty) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppTexts.mapNoTripId)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(AppTexts.mapNoTripId)));
       return;
     }
 

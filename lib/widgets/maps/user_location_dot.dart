@@ -40,7 +40,7 @@ class _UserLocationDotState extends State<UserLocationDot>
               height: 36 * _controller.value,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.blue.withOpacity(0.25 * (1.0 - _controller.value)),
+                color: Colors.blue.withValues(alpha: 0.25 * (1.0 - _controller.value)),
               ),
             ),
             // White border ring with shadow
@@ -52,7 +52,7 @@ class _UserLocationDotState extends State<UserLocationDot>
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withValues(alpha: 0.25),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),

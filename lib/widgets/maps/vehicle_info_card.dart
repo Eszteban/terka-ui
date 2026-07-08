@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
+import '../../utils/markup_text_utils.dart' as markup;
+import '../../utils/vehicle_type_lookup.dart';
 
 class VehicleInfoCard extends StatelessWidget {
   final String lineLabel;
@@ -37,6 +39,174 @@ class VehicleInfoCard extends StatelessWidget {
     this.onTap,
   });
 
+  static int _stopStatusRank(String status) {
+    switch (status.toUpperCase()) {
+      case 'INCOMING_AT':
+      case 'NEXT':
+      case 'EXPECTED':
+      case 'PREDICTED':
+        return 0;
+      case 'STOPPING_AT':
+      case 'AT':
+      case 'CURRENT':
+        return 1;
+      case 'IN_TRANSIT_TO':
+        return 2;
+      default:
+        return 10;
+    }
+  }
+
+  factory VehicleInfoCard.fromVehicleMap({
+    required Map<String, dynamic> vehicle,
+    required Map<String, dynamic>? trip,
+    required Map<String, dynamic>? route,
+    required Color markerColor,
+    required Color markerTextColor,
+    VoidCallback? onTap,
+  }) {
+    final routeMap = route;
+    final tripMap = trip;
+
+    final mode = routeMap != null && routeMap['mode'] is String
+        ? routeMap['mode'] as String
+        : 'UNKNOWN';
+
+    final rawServiceLabel = vehicle['label'] is String
+        ? vehicle['label'] as String
+        : (vehicle['uicCode']?.toString() ?? AppTexts.unknown);
+
+    final vehicleTrip = vehicle['trip'] ?? tripMap;
+    final vehicleTripGtfsId = vehicleTrip is Map
+        ? vehicleTrip['gtfsId']?.toString()
+        : null;
+    final vehicleId = vehicle['vehicleId']?.toString();
+
+    final uicLabel = markup.plainTextFromHtml(
+      vehicle['uicCode'] is String
+          ? vehicle['uicCode'] as String
+          : (vehicle['vehicleId']?.toString() ?? AppTexts.unknown),
+    );
+
+    final String serviceLabel;
+    if (vehicleId != null &&
+        vehicleTripGtfsId != null &&
+        vehicleId == vehicleTripGtfsId) {
+      serviceLabel = AppTexts.estimatedPosition;
+    } else {
+      final parsedLabel = markup.plainTextFromHtml(rawServiceLabel);
+      serviceLabel = parsedLabel.trim().isNotEmpty
+          ? parsedLabel
+          : uicLabel.trim();
+    }
+
+    final rawVehicleModel = vehicle['vehicleModel']?.toString() ?? '';
+    final String modelLabel;
+    if (rawVehicleModel.trim().isNotEmpty) {
+      modelLabel = markup.plainTextFromHtml(rawVehicleModel);
+    } else {
+      final lookupName = VehicleTypeLookup(uicLabel).vehicleType;
+      if (lookupName == 'Ismeretlen') {
+        modelLabel = mode == 'RAIL_REPLACEMENT_BUS'
+            ? AppTexts.railReplacementBus
+            : AppTexts.unknown;
+      } else {
+        modelLabel = lookupName;
+      }
+    }
+
+    final rawRouteShortName =
+        tripMap != null && tripMap['routeShortName'] is String
+        ? tripMap['routeShortName'] as String
+        : (routeMap != null && routeMap['shortName'] is String
+              ? routeMap['shortName'] as String
+              : '');
+    final routeShortName = markup.plainTextFromHtml(rawRouteShortName);
+    final routeShortNameUsesSpanFont = markup.containsSpanMarkup(
+      rawRouteShortName,
+    );
+
+    final lineLabel = routeShortName.trim().isNotEmpty
+        ? routeShortName.trim()
+        : (serviceLabel.trim().isNotEmpty ? serviceLabel.trim() : '-');
+
+    final rawTripShortName =
+        tripMap != null && tripMap['tripShortName'] is String
+        ? tripMap['tripShortName'] as String
+        : '';
+    final tripNumberLabel = rawTripShortName.trim().isNotEmpty
+        ? markup.plainTextFromHtml(rawTripShortName).trim()
+        : '-';
+
+    final rawTripHeadsign = tripMap != null && tripMap['tripHeadsign'] is String
+        ? tripMap['tripHeadsign'] as String
+        : '';
+    final tripHeadsignLabel = markup.plainTextFromHtml(rawTripHeadsign).trim();
+
+    final nextStop = vehicle['nextStop'];
+    final prevOrCurrentStop = vehicle['prevOrCurrentStop'];
+    final arrivalDelaySeconds =
+        nextStop is Map && nextStop['arrivalDelay'] is num
+        ? (nextStop['arrivalDelay'] as num).toInt()
+        : (prevOrCurrentStop is Map && prevOrCurrentStop['arrivalDelay'] is num
+              ? (prevOrCurrentStop['arrivalDelay'] as num).toInt()
+              : (prevOrCurrentStop is Map &&
+                        prevOrCurrentStop['departureDelay'] is num
+                    ? (prevOrCurrentStop['departureDelay'] as num).toInt()
+                    : null));
+
+    String? nextStopName;
+    String? stopStatus;
+    final stopRelationship = vehicle['stopRelationship'];
+    if (stopRelationship is List) {
+      int bestRank = 1 << 30;
+      for (final rel in stopRelationship) {
+        if (rel is! Map) {
+          continue;
+        }
+        final stop = rel['stop'];
+        final name = stop is Map ? stop['name'] : null;
+        final status = rel['status'];
+        if (name is String && name.trim().isNotEmpty) {
+          final rank = _stopStatusRank(status is String ? status : '');
+          if (rank < bestRank) {
+            bestRank = rank;
+            nextStopName = markup.plainTextFromHtml(name).trim();
+            stopStatus = status is String ? status : null;
+          }
+        }
+      }
+    } else if (stopRelationship is Map) {
+      final stop = stopRelationship['stop'];
+      final name = stop is Map ? stop['name'] : null;
+      if (name is String && name.trim().isNotEmpty) {
+        nextStopName = markup.plainTextFromHtml(name).trim();
+      }
+      final status = stopRelationship['status'];
+      stopStatus = status is String ? status.toString() : "";
+    }
+
+    final vehicleSpeed = vehicle['speed'] is num
+        ? ((vehicle['speed'] as num) * 3.6).round()
+        : 0;
+
+    return VehicleInfoCard(
+      lineLabel: lineLabel,
+      lineLabelUsesSpanFont: routeShortNameUsesSpanFont,
+      tripNumberLabel: tripNumberLabel,
+      tripHeadsignLabel: tripHeadsignLabel,
+      serviceLabel: serviceLabel.isNotEmpty ? serviceLabel : uicLabel,
+      modelLabel: modelLabel,
+      vehicleSpeed: vehicleSpeed,
+      arrivalDelaySeconds: arrivalDelaySeconds,
+      nextStopName: nextStopName,
+      markerColor: markerColor,
+      markerTextColor: markerTextColor,
+      nextStopStatus: stopStatus ?? "",
+      onTap: onTap,
+    );
+  }
+
   String _formatDelayValue(int? delaySeconds) {
     if (delaySeconds == null) return AppTexts.delayNa;
     if (delaySeconds.abs() < 60) return AppTexts.delayZero;
@@ -56,7 +226,7 @@ class VehicleInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     final nextStop = (nextStopName ?? tripHeadsignLabel).trim();
     String stopStatusText = nextStopStatus;
     if (stopStatusText.isNotEmpty) {
@@ -71,10 +241,8 @@ class VehicleInfoCard extends StatelessWidget {
       }
     }
 
-    final nextStopPart = nextStop.isNotEmpty 
-        ? '$stopStatusText$nextStop' 
-        : '';
-    
+    final nextStopPart = nextStop.isNotEmpty ? '$stopStatusText$nextStop' : '';
+
     final delayString = _formatDelayValue(arrivalDelaySeconds);
     final delayColor = _delayColor(arrivalDelaySeconds);
 
@@ -86,7 +254,7 @@ class VehicleInfoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -111,12 +279,8 @@ class VehicleInfoCard extends StatelessWidget {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     color: markerTextColor,
-                    fontSize: lineLabelUsesSpanFont
-                        ? 14 * _spanFontScale
-                        : 14,
-                    fontFamily: lineLabelUsesSpanFont
-                        ? _spanFontFamily
-                        : null,
+                    fontSize: lineLabelUsesSpanFont ? 14 * _spanFontScale : 14,
+                    fontFamily: lineLabelUsesSpanFont ? _spanFontFamily : null,
                     leadingDistribution: lineLabelUsesSpanFont
                         ? TextLeadingDistribution.even
                         : null,
@@ -141,7 +305,7 @@ class VehicleInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          
+
           if (tripHeadsignLabel.isNotEmpty) ...[
             Text(
               tripHeadsignLabel,
@@ -153,13 +317,13 @@ class VehicleInfoCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
-          
+
           Text(
             '$serviceLabel\n$modelLabel\n$vehicleSpeed km/h',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withOpacity(0.5)
-                  : Colors.black.withOpacity(0.5),
+                  ? Colors.white.withValues(alpha: 0.5)
+                  : Colors.black.withValues(alpha: 0.5),
               fontSize: 13,
               height: 1.3,
             ),
@@ -174,7 +338,10 @@ class VehicleInfoCard extends StatelessWidget {
               ),
               Text(
                 delayString,
-                style: TextStyle(color: delayColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: delayColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),

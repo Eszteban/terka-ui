@@ -9,6 +9,7 @@ import '../../theme/app_texts.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'user_location_dot.dart';
+import 'map_controls.dart';
 
 class PlanMapView extends StatefulWidget {
   final RouteMapData routeData;
@@ -294,6 +295,48 @@ class _PlanMapViewState extends State<PlanMapView> {
     _mapController.rotate(0);
   }
 
+  void _showMapAttributionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            AppTexts.isHungarian ? 'Térkép információk' : 'Map Information',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppTexts.isHungarian
+                    ? '• Térkép csempék: © CARTO\n• Térképadatok: © OpenStreetMap közreműködők'
+                    : '• Map tiles: © CARTO\n• Map data: © OpenStreetMap contributors',
+                style: const TextStyle(height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppTexts.isHungarian
+                    ? 'A térképi adatok az OpenStreetMap nyílt adatbázisából származnak (ODbL).'
+                    : 'Map data is sourced from the OpenStreetMap open database (ODbL).',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(AppTexts.isHungarian ? 'Bezárás' : 'Close'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _toggleRotationGesture() {
     setState(() {
       _isRotationGestureEnabled = !_isRotationGestureEnabled;
@@ -477,7 +520,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                         )
                         .toList(),
                   ),
-                if (_currentPosition != null)
+                if (MapControls.showUserLocation && _currentPosition != null)
                   MarkerLayer(
                     markers: [
                       Marker(
@@ -555,9 +598,9 @@ class _PlanMapViewState extends State<PlanMapView> {
                                                       Brightness.dark;
                                                   final bgColor = isDark
                                                       ? Colors.grey[900]!
-                                                            .withOpacity(0.92)
+                                                            .withValues(alpha: 0.92)
                                                       : Colors.white
-                                                            .withOpacity(0.92);
+                                                            .withValues(alpha: 0.92);
                                                   return Container(
                                                     constraints:
                                                         const BoxConstraints(
@@ -687,67 +730,25 @@ class _PlanMapViewState extends State<PlanMapView> {
                   ),
               ],
             ),
-            Positioned(
-              right: 12,
-              bottom: 12 + widget.controlsBottomInset,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.showMyLocationButton) ...[
-                    FloatingActionButton.small(
-                      heroTag: 'plan_map_my_location',
-                      tooltip: AppTexts.mapTooltipMyLocation,
-                      onPressed: _jumpToCurrentLocation,
-                      child: _isLocating
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.my_location),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  if (widget.showRotationControls) ...[
-                    FloatingActionButton.small(
-                      heroTag: 'plan_map_rotate_toggle',
-                      onPressed: _toggleRotationGesture,
-                      backgroundColor: _isRotationGestureEnabled
-                          ? Theme.of(context).colorScheme.primary
-                          : null,
-                      foregroundColor: _isRotationGestureEnabled
-                          ? Theme.of(context).colorScheme.onPrimary
-                          : null,
-                      child: Icon(
-                        _isRotationGestureEnabled
-                            ? Icons.screen_lock_rotation
-                            : Icons.screen_rotation,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (_isRotated) ...[
-                      FloatingActionButton.small(
-                        heroTag: 'plan_map_compass',
-                        onPressed: _resetNorth,
-                        child: const Icon(Icons.explore),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                  ],
-                  FloatingActionButton.small(
-                    heroTag: 'plan_map_zoom_in',
-                    onPressed: () => _zoomBy(1),
-                    child: const Icon(Icons.add),
-                  ),
-                  const SizedBox(height: 8),
-                  FloatingActionButton.small(
-                    heroTag: 'plan_map_zoom_out',
-                    onPressed: () => _zoomBy(-1),
-                    child: const Icon(Icons.remove),
-                  ),
-                ],
+              MapControls(
+                controlsBottomInset: widget.controlsBottomInset,
+                showRotationControls: widget.showRotationControls,
+                isRotationGestureEnabled: _isRotationGestureEnabled,
+                isRotated: _isRotated,
+                showMyLocationButton: widget.showMyLocationButton,
+                isLocating: _isLocating,
+                onResetNorth: _resetNorth,
+                onToggleRotation: _toggleRotationGesture,
+                onToggleLocationDot: () {
+                  setState(() {
+                    MapControls.showUserLocation = !MapControls.showUserLocation;
+                  });
+                },
+                onJumpToCurrentLocation: _jumpToCurrentLocation,
+                onZoomIn: () => _zoomBy(1),
+                onZoomOut: () => _zoomBy(-1),
+                onShowAttribution: () => _showMapAttributionDialog(context),
               ),
-            ),
           ],
         );
       },

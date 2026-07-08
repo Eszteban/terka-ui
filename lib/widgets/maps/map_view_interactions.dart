@@ -85,7 +85,7 @@ extension _MapViewInteractions on _MapViewState {
         if (markers.length >= maxVehicles) {
           break;
         }
-        if (item is! Map) {
+        if (item is! Map<String, dynamic>) {
           continue;
         }
 
@@ -129,75 +129,12 @@ extension _MapViewInteractions on _MapViewState {
           rawRouteShortName,
         );
 
-        final vehicleModel = _plainTextFromHtml(
-          item['vehicleModel'] is String &&
-                  (item['vehicleModel'] as String).trim().isNotEmpty
-              ? item['vehicleModel'] as String
-              : VehicleTypeLookup(uicLabel).vehicleType,
-        );
-        final vehicleSpeed = item['speed'] is num
-            ? ((item['speed'] as num)*3.6).round()
-            : 0;
-        final rawTripNumber = trip is Map && trip['tripShortName'] is String
-            ? trip['tripShortName'] as String
-            : '';
-        final tripNumber = _plainTextFromHtml(rawTripNumber);
-        final tripNumberUsesSpanFont = _containsSpanMarkup(rawTripNumber);
-        final rawTripHeadsign = trip is Map && trip['tripHeadsign'] is String
-            ? trip['tripHeadsign'] as String
-            : '';
-        final tripHeadsign = _plainTextFromHtml(rawTripHeadsign);
-        final tripHeadsignUsesSpanFont = _containsSpanMarkup(rawTripHeadsign);
         final tripGtfsId = trip is Map && trip['gtfsId'] is String
             ? (trip['gtfsId'] as String)
             : '';
         final serviceDate = trip is Map && trip['serviceDate'] is String
             ? (trip['serviceDate'] as String)
             : _todayServiceDate();
-
-        final nextStop = item['nextStop'];
-        final prevOrCurrentStop = item['prevOrCurrentStop'];
-        final arrivalDelaySeconds =
-            nextStop is Map && nextStop['arrivalDelay'] is num
-            ? (nextStop['arrivalDelay'] as num).toInt()
-            : (prevOrCurrentStop is Map &&
-                      prevOrCurrentStop['arrivalDelay'] is num
-                  ? (prevOrCurrentStop['arrivalDelay'] as num).toInt()
-                  : (prevOrCurrentStop is Map &&
-                            prevOrCurrentStop['departureDelay'] is num
-                        ? (prevOrCurrentStop['departureDelay'] as num).toInt()
-                        : null));
-
-        String? nextStopName;
-        String? stopStatus;
-        final stopRelationship = item['stopRelationship'];
-        if (stopRelationship is List) {
-          int bestRank = 1 << 30;
-          for (final rel in stopRelationship) {
-            if (rel is! Map) {
-              continue;
-            }
-            final stop = rel['stop'];
-            final name = stop is Map ? stop['name'] : null;
-            final status = rel['status'];
-            if (name is String && name.trim().isNotEmpty) {
-              final rank = _stopStatusRank(status is String ? status : '');
-              if (rank < bestRank) {
-                bestRank = rank;
-                nextStopName = _plainTextFromHtml(name).trim();
-                stopStatus = status is String ? status : null;
-              }
-            }
-          }
-        } else if (stopRelationship is Map) {
-          final stop = stopRelationship['stop'];
-          final name = stop is Map ? stop['name'] : null;
-          if (name is String && name.trim().isNotEmpty) {
-            nextStopName = _plainTextFromHtml(name).trim();
-          }
-          final status = stopRelationship['status'];
-          stopStatus = status is String ? status.toString() : "";
-        }
 
         final color = route is Map && route['color'] is String
             ? route['color'] as String
@@ -223,19 +160,11 @@ extension _MapViewInteractions on _MapViewState {
             serviceLabelUsesSpanFont: serviceLabelUsesSpanFont,
             routeShortName: routeShortName,
             routeShortNameUsesSpanFont: routeShortNameUsesSpanFont,
-            tripNumber: tripNumber,
-            tripNumberUsesSpanFont: tripNumberUsesSpanFont,
-            tripHeadsign: tripHeadsign,
-            tripHeadsignUsesSpanFont: tripHeadsignUsesSpanFont,
-            vehicleModel: vehicleModel,
-            arrivalDelaySeconds: arrivalDelaySeconds,
-            nextStopName: nextStopName,
             mode: mode,
             markerColor: markerColor,
             markerTextColor: markerTextColor,
             markerOutlineHeadingColor: markerOutlineHeadingColor,
-            vehicleSpeed: vehicleSpeed,
-            nextStopStatus: stopStatus ?? "",
+            rawVehicle: item,
           ),
         );
       }

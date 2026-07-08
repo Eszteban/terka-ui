@@ -73,6 +73,42 @@ class AppTexts {
       : 'To Regő Nagy-Pálóczi - "For his help in identifying unknown vehicle types"';
   static String get specialThanksTitle =>
       isHungarian ? 'Külön köszönet' : 'Special thanks';
+  static String get aboutDeveloper => isHungarian ? 'Fejlesztő' : 'Developer';
+  static String get aboutContactDeveloper =>
+      isHungarian ? 'Kapcsolatfelvétel' : 'Contact Developer';
+  static String get aboutGithub => isHungarian ? 'GitHub' : 'GitHub';
+  static String get aboutDataSources =>
+      isHungarian ? 'Adatforrások & API-k' : 'Data Sources & APIs';
+  static String get aboutDataSourcesSubtitle => isHungarian
+      ? 'Hálózati végpontok és szolgáltatások'
+      : 'Network endpoints and services';
+  static String get aboutMavPluszApi => 'MÁV Plusz API';
+  static String get aboutPhotonGeocoder => 'Photon Geocoder';
+  static String get aboutMavinformNews =>
+      isHungarian ? 'MÁVINFORM Hírek' : 'MÁVINFORM News';
+  static String get aboutMapData =>
+      isHungarian ? 'Térképadatok & Megjelenítés' : 'Map Data & Layout';
+  static String get aboutMapDataSubtitle => isHungarian
+      ? 'Csempeszolgáltató és térképadatok'
+      : 'Map tiles provider and data source';
+  static String get aboutCartoTiles =>
+      isHungarian ? 'CARTO csempék' : 'CARTO tiles';
+  static String get aboutOpenStreetMap =>
+      isHungarian ? 'OpenStreetMap' : 'OpenStreetMap';
+  static String get aboutTypography =>
+      isHungarian ? 'Betűtípus' : 'Typography';
+  static String get aboutFontFamilyLabel => isHungarian ? 'Család' : 'Family';
+  static String get aboutFontExplanation => isHungarian
+      ? 'A MÁV Normalizált Rendszer (2007) hivatalos betűkészlete, melyet az alkalmazás a valósághű megálló- és járatkijelzőkhöz használ fel.'
+      : 'The official font family of the Hungarian State Railways (MÁV, 2007), used by the application for authentic stop and line indicators.';
+  static String get aboutUsedLibraries =>
+      isHungarian ? 'Használt könyvtárak' : 'Used Libraries';
+  static String get aboutUsedLibrariesSubtitle => isHungarian
+      ? 'Nyílt forráskódú szoftverek és licenceik'
+      : 'Open source packages and licenses';
+  static String get aboutViewAllLicenses =>
+      isHungarian ? 'Összes licenc megtekintése' : 'View All Licenses';
+
 
   // Tickets Screen
   static String get ticketsTitle => isHungarian ? 'Jegyeim' : 'My Tickets';
