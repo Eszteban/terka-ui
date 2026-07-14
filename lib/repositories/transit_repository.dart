@@ -18,9 +18,7 @@ abstract class TransitRepository {
   });
 
   Future<Map<String, dynamic>?> fetchRoutePlans({
-    required String fromPlace,
-    required String toPlace,
-    required DateTime dateTime,
-    String? nextPageCursor,
+    required Map<String, dynamic> originalVariables,
+    required String nextPageCursor,
   });
 }

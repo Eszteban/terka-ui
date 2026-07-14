@@ -11,6 +11,8 @@ import '../../screens/trip_details/trip_details_screen.dart';
 import '../itinerary_leg_tile.dart';
 import '../../extensions/string_html_cleaner.dart';
 
+import '../forms/route_plan_form.dart';
+
 class SelectedItineraryMapPayload {
   final RouteMapData routeData;
   final String title;
@@ -39,7 +41,7 @@ class SelectedItineraryLegDetail {
   });
 }
 
-class RoutePlannerResultsView extends StatelessWidget {
+class RoutePlannerResultsView extends StatefulWidget {
   static const String _spanFontFamily = 'MNR2007';
   static const double _desktopBreakpoint = 600;
 
@@ -55,6 +57,27 @@ class RoutePlannerResultsView extends StatelessWidget {
   final List<TicketItem> tickets;
   final Function(String, String)? onOpenTripDetailsRequested;
 
+  // Form properties for inline edit:
+  final TextEditingController? fromController;
+  final TextEditingController? toController;
+  final DateTime? selectedDate;
+  final double transfers;
+  final double maxWalk;
+  final Set<String> selectedTransportModes;
+  final ValueChanged<PlanSearchResult>? onSearch;
+  final ValueChanged<bool>? onLoadingChanged;
+  final VoidCallback? onPickDate;
+  final ValueChanged<double>? onTransfersChanged;
+  final ValueChanged<double>? onMaxWalkChanged;
+  final ValueChanged<String>? onTransportModeToggle;
+  final ValueChanged<bool>? onTicketWatchChanged;
+  final String? initialFromPlaceToken;
+  final String? initialToPlaceToken;
+  final List<double>? initialFromCoordinates;
+  final List<double>? initialToCoordinates;
+  final Function(String? token, List<double>? coordinates)? onFromPlaceChanged;
+  final Function(String? token, List<double>? coordinates)? onToPlaceChanged;
+
   const RoutePlannerResultsView({
     super.key,
     required this.responseText,
@@ -68,15 +91,42 @@ class RoutePlannerResultsView extends StatelessWidget {
     this.ticketWatch = false,
     this.tickets = const [],
     this.onOpenTripDetailsRequested,
+    this.fromController,
+    this.toController,
+    this.selectedDate,
+    this.transfers = 5,
+    this.maxWalk = 1000,
+    this.selectedTransportModes = const {},
+    this.onSearch,
+    this.onLoadingChanged,
+    this.onPickDate,
+    this.onTransfersChanged,
+    this.onMaxWalkChanged,
+    this.onTransportModeToggle,
+    this.onTicketWatchChanged,
+    this.initialFromPlaceToken,
+    this.initialToPlaceToken,
+    this.initialFromCoordinates,
+    this.initialToCoordinates,
+    this.onFromPlaceChanged,
+    this.onToPlaceChanged,
   });
 
   @override
+  State<RoutePlannerResultsView> createState() => _RoutePlannerResultsViewState();
+}
+
+class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
+  bool _isFormExpanded = false;
+
+
+  @override
   Widget build(BuildContext context) {
-    final itineraries = RouteDataUtils.extractItineraries(responseText);
+    final itineraries = RouteDataUtils.extractItineraries(widget.responseText);
     final summaryLabel = _buildResultsHeader(itineraries);
 
-    if (desktopInlineMapMode &&
-        !hasDesktopMapSelection &&
+    if (widget.desktopInlineMapMode &&
+        !widget.hasDesktopMapSelection &&
         itineraries.isNotEmpty) {
       final firstItinerary = itineraries.first;
       final firstSummary = RouteDataUtils.buildSummary(firstItinerary);
@@ -88,139 +138,134 @@ class RoutePlannerResultsView extends StatelessWidget {
           firstMapData,
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          onShowOnMap(firstPayload);
+          widget.onShowOnMap(firstPayload);
         });
       }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
+      padding: EdgeInsets.zero,
       children: [
+        if (widget.fromController != null && widget.toController != null) ...[
+          _buildCollapsibleFormPanel(context),
+          const SizedBox(height: 12),
+        ],
         Text(summaryLabel, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 16),
-        Expanded(
-          child: itineraries.isEmpty
-              ? Card(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 220),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(12),
-                      child: SelectableText(responseText),
-                    ),
+        if (itineraries.isEmpty)
+          Card(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 220),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: SelectableText(widget.responseText),
+              ),
+            ),
+          )
+        else
+          ...List.generate(itineraries.length, (index) {
+            final itinerary = itineraries[index];
+            final summary = RouteDataUtils.buildSummary(itinerary);
+            final mapData = _buildRouteMapData(itinerary);
+            final lineBadges = _buildLineBadges(itinerary);
+            final mapPayload = _buildMapPayload(
+              itinerary,
+              summary,
+              mapData,
+            );
+
+            final colorScheme = Theme.of(context).colorScheme;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
+            final missingAgencies = widget.ticketWatch
+                ? TicketItem.getMissingTicketAgencies(itinerary, widget.tickets)
+                : const <String>[];
+            final hasTickets = widget.ticketWatch ? missingAgencies.isEmpty : false;
+            final borderSideColor = widget.ticketWatch
+                ? (hasTickets ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)))
+                : colorScheme.outlineVariant.withValues(alpha: 0.3);
+            final borderSideWidth = widget.ticketWatch ? 2.0 : 1.0;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: index < itineraries.length - 1 ? 12.0 : 0.0),
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: borderSideColor,
+                    width: borderSideWidth,
                   ),
-                )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.separated(
-                        itemCount: itineraries.length,
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          final itinerary = itineraries[index];
-                          final summary = RouteDataUtils.buildSummary(itinerary);
-                          final mapData = _buildRouteMapData(itinerary);
-                          final lineBadges = _buildLineBadges(itinerary);
-                          final mapPayload = _buildMapPayload(
-                            itinerary,
-                            summary,
-                            mapData,
-                          );
-
-                          final colorScheme = Theme.of(context).colorScheme;
-                          final isDark = Theme.of(context).brightness == Brightness.dark;
-
-                          final missingAgencies = ticketWatch
-                               ? TicketItem.getMissingTicketAgencies(itinerary, tickets)
-                               : const <String>[];
-                           final hasTickets = ticketWatch ? missingAgencies.isEmpty : false;
-                           final borderSideColor = ticketWatch
-                               ? (hasTickets ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)))
-                               : colorScheme.outlineVariant.withValues(alpha: 0.3);
-                           final borderSideWidth = ticketWatch ? 2.0 : 1.0;
-
-                           return Card(
-                             margin: const EdgeInsets.symmetric(vertical: 6),
-                             clipBehavior: Clip.antiAlias,
-                             shape: RoundedRectangleBorder(
-                               borderRadius: BorderRadius.circular(16),
-                               side: BorderSide(
-                                 color: borderSideColor,
-                                 width: borderSideWidth,
-                               ),
-                             ),
-                             child: Padding(
-                               padding: const EdgeInsets.all(12),
-                               child: ExpansionTile(
-                                 shape: const Border(),
-                                 collapsedShape: const Border(),
-                                 tilePadding: EdgeInsets.zero,
-                                 onExpansionChanged: desktopInlineMapMode
-                                     ? (expanded) {
-                                         if (expanded && mapData.hasContent) {
-                                           onShowOnMap(mapPayload);
-                                         }
-                                       }
-                                     : null,
-                                 title: _buildBentoHeader(
-                                   context,
-                                   itinerary,
-                                   summary,
-                                   lineBadges,
-                                   missingAgencies,
-                                 ),
-                                 childrenPadding: const EdgeInsets.fromLTRB(
-                                   0,
-                                   12,
-                                   0,
-                                   0,
-                                 ),
-                                 children: [
-                                   ..._buildLegTiles(context, itinerary),
-                                   if (!desktopInlineMapMode) ...[
-                                     const SizedBox(height: 12),
-                                     SizedBox(
-                                       width: double.infinity,
-                                       child: FilledButton.icon(
-                                           onPressed: mapData.hasContent
-                                               ? () => onShowOnMap(mapPayload)
-                                               : null,
-                                           icon: const Icon(Icons.map),
-                                           label: Text(AppTexts.tableShowOnMap),
-                                         ),
-                                       ),
-                                     ],
-                                 ],
-                               ),
-                             ),
-                           );
-                        },
-                      ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ExpansionTile(
+                    shape: const Border(),
+                    collapsedShape: const Border(),
+                    tilePadding: EdgeInsets.zero,
+                    onExpansionChanged: widget.desktopInlineMapMode
+                        ? (expanded) {
+                            if (expanded && mapData.hasContent) {
+                              widget.onShowOnMap(mapPayload);
+                            }
+                          }
+                        : null,
+                    title: _buildBentoHeader(
+                      context,
+                      itinerary,
+                      summary,
+                      lineBadges,
+                      missingAgencies,
                     ),
-                    if (canLoadMore)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: SizedBox(
+                    childrenPadding: const EdgeInsets.fromLTRB(
+                      0,
+                      12,
+                      0,
+                      0,
+                    ),
+                    children: [
+                      ..._buildLegTiles(context, itinerary),
+                      if (!widget.desktopInlineMapMode) ...[
+                        const SizedBox(height: 12),
+                        SizedBox(
                           width: double.infinity,
-                          child: FilledButton(
-                            onPressed: isLoadingMore
-                                ? null
-                                : () => onLoadMore?.call(),
-                            child: isLoadingMore
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : Text(AppTexts.tableLoadMore),
+                          child: FilledButton.icon(
+                            onPressed: mapData.hasContent
+                                ? () => widget.onShowOnMap(mapPayload)
+                                : null,
+                            icon: const Icon(Icons.map),
+                            label: Text(AppTexts.tableShowOnMap),
                           ),
                         ),
-                      ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
-        ),
+              ),
+            );
+          }),
+        if (itineraries.isNotEmpty && widget.canLoadMore)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.isLoadingMore
+                    ? null
+                    : () => widget.onLoadMore?.call(),
+                child: widget.isLoadingMore
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(AppTexts.tableLoadMore),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -448,10 +493,10 @@ class RoutePlannerResultsView extends StatelessWidget {
         leg: leg,
         nextLeg: nextLeg,
         serviceDay: '',
-        desktopInlineMapMode: desktopInlineMapMode,
-        desktopBreakpoint: _desktopBreakpoint,
-        onShowTripOnMap: onShowTripOnMap,
-        onOpenTripDetailsRequested: onOpenTripDetailsRequested,
+        desktopInlineMapMode: widget.desktopInlineMapMode,
+        desktopBreakpoint: RoutePlannerResultsView._desktopBreakpoint,
+        onShowTripOnMap: widget.onShowTripOnMap,
+        onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
       );
     });
   }
@@ -497,7 +542,7 @@ class RoutePlannerResultsView extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     fontSize: 28,
                     height: 1.0,
-                    fontFamily: _spanFontFamily,
+                    fontFamily: RoutePlannerResultsView._spanFontFamily,
                     leadingDistribution: TextLeadingDistribution.even,
                   ),
                 ),
@@ -766,5 +811,95 @@ class RoutePlannerResultsView extends StatelessWidget {
 
   bool _containsSpanMarkup(String value) {
     return containsSpanMarkup(value);
+  }
+
+  Widget _buildCollapsibleFormPanel(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Card(
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.25 : 0.35,
+          ),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            title: Text(
+              AppTexts.isHungarian ? 'Paraméterek módosítása' : 'Modify parameters',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text(
+              '${widget.fromController!.text} ➔ ${widget.toController!.text}',
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            leading: Icon(Icons.tune, color: colorScheme.primary),
+            trailing: IconButton(
+              icon: Icon(
+                _isFormExpanded ? Icons.expand_less : Icons.expand_more,
+                color: colorScheme.primary,
+              ),
+              onPressed: () {
+                setState(() {
+                  _isFormExpanded = !_isFormExpanded;
+                });
+              },
+            ),
+            onTap: () {
+              setState(() {
+                _isFormExpanded = !_isFormExpanded;
+              });
+            },
+          ),
+          if (_isFormExpanded)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: RoutePlanForm(
+                fromController: widget.fromController!,
+                toController: widget.toController!,
+                selectedDate: widget.selectedDate,
+                transfers: widget.transfers,
+                maxWalk: widget.maxWalk,
+                selectedTransportModes: widget.selectedTransportModes,
+                ticketWatch: widget.ticketWatch,
+                initialFromPlaceToken: widget.initialFromPlaceToken,
+                initialToPlaceToken: widget.initialToPlaceToken,
+                initialFromCoordinates: widget.initialFromCoordinates,
+                initialToCoordinates: widget.initialToCoordinates,
+                onSearch: (result) {
+                  if (mounted) {
+                    setState(() {
+                      _isFormExpanded = false;
+                    });
+                  }
+                  if (widget.onSearch != null) {
+                    widget.onSearch!(result);
+                  }
+                },
+                onLoadingChanged: widget.onLoadingChanged ?? (_) {},
+                onPickDate: widget.onPickDate ?? () {},
+                onTransfersChanged: widget.onTransfersChanged ?? (_) {},
+                onMaxWalkChanged: widget.onMaxWalkChanged ?? (_) {},
+                onTransportModeToggle: widget.onTransportModeToggle ?? (_) {},
+                onTicketWatchChanged: widget.onTicketWatchChanged ?? (_) {},
+                onFromPlaceChanged: widget.onFromPlaceChanged,
+                onToPlaceChanged: widget.onToPlaceChanged,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

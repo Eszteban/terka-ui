@@ -536,3 +536,19 @@ ${aliasLines.join('\n')}
 String _graphqlStringLiteral(String value) {
   return value.replaceAll('\\', r'\\').replaceAll('"', r'\"');
 }
+
+const String searchRoutesQuery = r'''
+query SearchRoutes($name: String!) {
+  routes(name: $name) {
+    gtfsId
+    shortName
+    longName
+    mode
+    color
+    textColor
+    agency {
+      name
+    }
+  }
+}
+''';

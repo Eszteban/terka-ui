@@ -531,6 +531,7 @@ extension _MapViewInteractions on _MapViewState {
           initialStopPoint: stop.point,
           groupedStopIds: groupedIds,
           onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
+          onPlanRouteToStop: widget.onPlanRouteToStop,
         ),
       );
       return;
@@ -544,6 +545,7 @@ extension _MapViewInteractions on _MapViewState {
           initialStopPoint: stop.point,
           groupedStopIds: groupedIds,
           onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
+          onPlanRouteToStop: widget.onPlanRouteToStop,
         ),
       ),
     );

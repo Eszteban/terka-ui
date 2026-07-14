@@ -10,6 +10,7 @@ import '../../services/graphql/graphql_queries.dart';
 
 import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
+import 'autocomplete_search_field.dart';
 
 enum _ActiveSearchField { none, from, to }
 
@@ -20,6 +21,10 @@ class PlanSearchResult {
   final Map<String, dynamic>? requestVariables;
   final Map<String, dynamic>? responseJson;
   final String? nextPageCursor;
+  final String? fromPlaceToken;
+  final String? toPlaceToken;
+  final List<double>? fromCoordinates;
+  final List<double>? toCoordinates;
 
   const PlanSearchResult({
     required this.hasMeaningfulResponse,
@@ -28,22 +33,13 @@ class PlanSearchResult {
     this.requestVariables,
     this.responseJson,
     this.nextPageCursor,
+    this.fromPlaceToken,
+    this.toPlaceToken,
+    this.fromCoordinates,
+    this.toCoordinates,
   });
 }
 
-class _SuggestionEntry {
-  final String name;
-  final String? id;
-  final List<double>? coordinates;
-  final List<IconData> icons;
-
-  const _SuggestionEntry({
-    required this.name,
-    required this.id,
-    required this.coordinates,
-    required this.icons,
-  });
-}
 
 class RoutePlanForm extends StatefulWidget {
   final TextEditingController fromController;
@@ -61,6 +57,14 @@ class RoutePlanForm extends StatefulWidget {
   final ValueChanged<bool> onTicketWatchChanged;
   final ValueChanged<bool> onLoadingChanged;
 
+  final String? initialFromPlaceToken;
+  final String? initialToPlaceToken;
+  final List<double>? initialFromCoordinates;
+  final List<double>? initialToCoordinates;
+  final bool autofocusFrom;
+  final Function(String? token, List<double>? coordinates)? onFromPlaceChanged;
+  final Function(String? token, List<double>? coordinates)? onToPlaceChanged;
+
   const RoutePlanForm({
     super.key,
     required this.fromController,
@@ -77,6 +81,13 @@ class RoutePlanForm extends StatefulWidget {
     required this.onTransportModeToggle,
     required this.onTicketWatchChanged,
     required this.onLoadingChanged,
+    this.initialFromPlaceToken,
+    this.initialToPlaceToken,
+    this.initialFromCoordinates,
+    this.initialToCoordinates,
+    this.autofocusFrom = false,
+    this.onFromPlaceChanged,
+    this.onToPlaceChanged,
   });
 
   @override
@@ -90,14 +101,10 @@ class _RoutePlanFormState extends State<RoutePlanForm>
 
   bool _showAdvancedFields = false;
   bool _planForNow = true;
+  bool _isSwapping = false;
   final FocusNode _fromFocusNode = FocusNode();
   final FocusNode _toFocusNode = FocusNode();
-  Timer? _debounce;
-  bool _isLoadingSuggestions = false;
   bool _isLoadingPlan = false;
-  List<String> _suggestions = [];
-  List<List<IconData>> _suggestionIcons = [];
-  List<_SuggestionEntry> _suggestionEntries = [];
   String? _selectedFromPlaceToken;
   String? _selectedToPlaceToken;
   List<double>? _selectedFromCoordinates;
@@ -130,40 +137,128 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     'Szolnok',
   ];
 
+  void _onFromTextChanged() {
+    if (_isSwapping) return;
+    final text = widget.fromController.text.trim();
+    final currentTokenName = _selectedFromPlaceToken != null && _selectedFromPlaceToken!.contains('::')
+        ? _selectedFromPlaceToken!.split('::').first
+        : (_selectedFromPlaceToken ?? '');
+    if (text != currentTokenName && text != _selectedFromPlaceToken) {
+      _selectedFromPlaceToken = null;
+      _selectedFromCoordinates = null;
+      debugPrint('DEBUG RoutePlanForm: onFromTextChanged clears token. Calling onFromPlaceChanged(null, null)');
+      widget.onFromPlaceChanged?.call(null, null);
+    }
+  }
+
+  void _onToTextChanged() {
+    if (_isSwapping) return;
+    final text = widget.toController.text.trim();
+    final currentTokenName = _selectedToPlaceToken != null && _selectedToPlaceToken!.contains('::')
+        ? _selectedToPlaceToken!.split('::').first
+        : (_selectedToPlaceToken ?? '');
+    if (text != currentTokenName && text != _selectedToPlaceToken) {
+      _selectedToPlaceToken = null;
+      _selectedToCoordinates = null;
+      debugPrint('DEBUG RoutePlanForm: onToTextChanged clears token. Calling onToPlaceChanged(null, null)');
+      widget.onToPlaceChanged?.call(null, null);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    _selectedFromPlaceToken = widget.initialFromPlaceToken;
+    _selectedToPlaceToken = widget.initialToPlaceToken;
+    _selectedFromCoordinates = widget.initialFromCoordinates;
+    _selectedToCoordinates = widget.initialToCoordinates;
+
+    widget.fromController.addListener(_onFromTextChanged);
+    widget.toController.addListener(_onToTextChanged);
+
     _fromFocusNode.addListener(() {
       setState(() {});
-      if (_fromFocusNode.hasFocus) {
-        setState(() {
-          _activeSearchField = _ActiveSearchField.from;
-        });
-        _onQueryChanged(widget.fromController.text);
-      }
     });
     _toFocusNode.addListener(() {
       setState(() {});
-      if (_toFocusNode.hasFocus) {
-        setState(() {
-          _activeSearchField = _ActiveSearchField.to;
-        });
-        _onQueryChanged(widget.toController.text);
-      }
     });
+
+    if (widget.autofocusFrom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _fromFocusNode.requestFocus();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
+    widget.fromController.removeListener(_onFromTextChanged);
+    widget.toController.removeListener(_onToTextChanged);
     _fromFocusNode.dispose();
     _toFocusNode.dispose();
     super.dispose();
   }
 
+
+  bool _doubleListsEqual(List<double>? a, List<double>? b) {
+    if (identical(a, b)) return true;
+    if (a == null || b == null) return false;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   @override
   void didUpdateWidget(covariant RoutePlanForm oldWidget) {
     super.didUpdateWidget(oldWidget);
+    debugPrint('DEBUG RoutePlanForm didUpdateWidget running!');
+    debugPrint(' - oldWidget initialFromPlaceToken: ${oldWidget.initialFromPlaceToken}');
+    debugPrint(' - new widget initialFromPlaceToken: ${widget.initialFromPlaceToken}');
+    debugPrint(' - oldWidget initialToPlaceToken: ${oldWidget.initialToPlaceToken}');
+    debugPrint(' - new widget initialToPlaceToken: ${widget.initialToPlaceToken}');
+
+    if (widget.fromController != oldWidget.fromController) {
+      oldWidget.fromController.removeListener(_onFromTextChanged);
+      widget.fromController.addListener(_onFromTextChanged);
+    }
+    if (widget.toController != oldWidget.toController) {
+      oldWidget.toController.removeListener(_onToTextChanged);
+      widget.toController.addListener(_onToTextChanged);
+    }
+
+    if (widget.initialFromPlaceToken != oldWidget.initialFromPlaceToken) {
+      if (widget.initialFromPlaceToken != null && widget.initialFromPlaceToken == oldWidget.initialFromPlaceToken) {
+         debugPrint('!!! FIGYELEM: RoutePlanForm visszatölti a régi _selectedFromPlaceToken-t: ${widget.initialFromPlaceToken} !!!');
+      } else if (widget.initialFromPlaceToken != null) {
+         debugPrint('!!! FIGYELEM: RoutePlanForm új initialFromPlaceToken-t kapott és betölti: ${widget.initialFromPlaceToken} !!!');
+      }
+      _selectedFromPlaceToken = widget.initialFromPlaceToken;
+    }
+    if (widget.initialToPlaceToken != oldWidget.initialToPlaceToken) {
+      if (widget.initialToPlaceToken != null && widget.initialToPlaceToken == oldWidget.initialToPlaceToken) {
+         debugPrint('!!! FIGYELEM: RoutePlanForm visszatölti a régi _selectedToPlaceToken-t: ${widget.initialToPlaceToken} !!!');
+      } else if (widget.initialToPlaceToken != null) {
+         debugPrint('!!! FIGYELEM: RoutePlanForm új initialToPlaceToken-t kapott és betölti: ${widget.initialToPlaceToken} !!!');
+      }
+      _selectedToPlaceToken = widget.initialToPlaceToken;
+    }
+    if (!_doubleListsEqual(widget.initialFromCoordinates, oldWidget.initialFromCoordinates)) {
+      _selectedFromCoordinates = widget.initialFromCoordinates;
+    }
+    if (!_doubleListsEqual(widget.initialToCoordinates, oldWidget.initialToCoordinates)) {
+      _selectedToCoordinates = widget.initialToCoordinates;
+    }
+    if (widget.autofocusFrom != oldWidget.autofocusFrom && widget.autofocusFrom) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _fromFocusNode.requestFocus();
+        }
+      });
+    }
 
     final previousDate = oldWidget.selectedDate;
     final currentDate = widget.selectedDate;
@@ -186,6 +281,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   }
 
   void _swapRouteLocations() {
+    _isSwapping = true;
     setState(() {
       final tempText = widget.fromController.text;
       widget.fromController.text = widget.toController.text;
@@ -198,244 +294,12 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       final tempCoordinates = _selectedFromCoordinates;
       _selectedFromCoordinates = _selectedToCoordinates;
       _selectedToCoordinates = tempCoordinates;
-
-      _suggestions = const [];
-      _suggestionIcons = const [];
-      _suggestionEntries = const [];
-      _isLoadingSuggestions = false;
     });
+    widget.onFromPlaceChanged?.call(_selectedFromPlaceToken, _selectedFromCoordinates);
+    widget.onToPlaceChanged?.call(_selectedToPlaceToken, _selectedToCoordinates);
+    _isSwapping = false;
   }
 
-  void _onQueryChanged(String query) {
-    _debounce?.cancel();
-
-    final trimmedQuery = query.trim();
-    if (trimmedQuery.isEmpty) {
-      final name = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
-      setState(() {
-        _suggestions = [name];
-        _suggestionIcons = [[Icons.my_location]];
-        _suggestionEntries = [
-          _SuggestionEntry(
-            name: name,
-            id: 'CURRENT_LOCATION',
-            coordinates: null,
-            icons: const [Icons.my_location],
-          )
-        ];
-        _isLoadingSuggestions = false;
-      });
-      return;
-    }
-
-    if (trimmedQuery.length < 3) {
-      setState(() {
-        _suggestions = [];
-        _suggestionIcons = [];
-        _suggestionEntries = [];
-        _isLoadingSuggestions = false;
-      });
-      return;
-    }
-
-    _debounce = Timer(const Duration(milliseconds: 350), () {
-      _fetchSuggestions(trimmedQuery);
-    });
-  }
-
-  Future<void> _fetchSuggestions(String query) async {
-    setState(() {
-      _isLoadingSuggestions = true;
-    });
-
-    if (_useLocalSearch) {
-      final filtered = _localStationSuggestions
-          .where((name) => name.toLowerCase().contains(query.toLowerCase()))
-          .take(10)
-          .toList();
-
-      final entries = filtered
-          .map(
-            (name) => _SuggestionEntry(
-              name: name,
-              id: null,
-              coordinates: null,
-              icons: const [Icons.directions_bus],
-            ),
-          )
-          .toList();
-
-      setState(() {
-        _suggestions = entries.map((entry) => entry.name).toList();
-        _suggestionIcons = entries.map((entry) => entry.icons).toList();
-        _suggestionEntries = entries;
-        _isLoadingSuggestions = false;
-      });
-      return;
-    }
-
-    try {
-      final stationUri = Uri.parse(searchApiUrl).replace(queryParameters: {'q': query, 'limit': '10', 'lang': 'hu'});
-      final photonUri = Uri.parse('https://mavplusz.hu//photon/api').replace(queryParameters: {
-        'limit': '10',
-        'q': query,
-        'location_bias_scale': '0.1',
-        'osm_tag': '!place:region',
-        'zoom': '12',
-        'bbox': '16,45.273,23,48.7',
-        'lang': 'hu',
-      });
-
-      final results = await Future.wait([
-        http
-            .get(stationUri, headers: apiRequestHeaders)
-            .timeout(const Duration(seconds: 5))
-            .catchError((_) => http.Response('{"features":[]}', 500)),
-        http
-            .get(photonUri, headers: apiRequestHeaders)
-            .timeout(const Duration(seconds: 5))
-            .catchError((_) => http.Response('{"features":[]}', 500)),
-      ]);
-
-      final stationResponse = results[0];
-      final photonResponse = results[1];
-
-      final entries = <_SuggestionEntry>[];
-
-      // Prepend current location option
-      final currentLocName = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
-      entries.add(
-        _SuggestionEntry(
-          name: currentLocName,
-          id: 'CURRENT_LOCATION',
-          coordinates: null,
-          icons: const [Icons.my_location],
-        ),
-      );
-
-      // 1. Parse station suggestions
-      if (stationResponse.statusCode == 200) {
-        final dynamic body = jsonDecode(stationResponse.body);
-        if (body is Map && body['features'] is List) {
-          for (final item in body['features']) {
-            if (item is Map) {
-              final properties = item['properties'];
-              final geometry = item['geometry'];
-              String? id;
-              String? name;
-              List<double>? coord;
-              List<String> modes = const [];
-              final rawId = item['id'];
-              if (rawId is String) {
-                id = rawId;
-              }
-              if (properties is Map) {
-                final n = properties['name'];
-                if (n is String) name = n;
-                final m = properties['modes'];
-                if (m is List) {
-                  modes = m.whereType<String>().toList();
-                }
-              }
-              if (geometry is Map && geometry['coordinates'] is List) {
-                final c = geometry['coordinates'];
-                if (c.length == 2 && c[0] is num && c[1] is num) {
-                  coord = [c[0].toDouble(), c[1].toDouble()];
-                }
-              }
-              if (name != null) {
-                entries.add(
-                  _SuggestionEntry(
-                    name: name,
-                    id: id,
-                    coordinates: coord,
-                    icons: _iconsForModes(modes),
-                  ),
-                );
-              }
-            }
-          }
-        }
-      }
-
-      // 2. Parse Photon address suggestions
-      if (photonResponse.statusCode == 200) {
-        final dynamic body = jsonDecode(photonResponse.body);
-        if (body is Map && body['features'] is List) {
-          for (final item in body['features']) {
-            if (item is Map) {
-              final properties = item['properties'];
-              final geometry = item['geometry'];
-              List<double>? coord;
-              if (geometry is Map && geometry['coordinates'] is List) {
-                final c = geometry['coordinates'];
-                if (c.length == 2 && c[0] is num && c[1] is num) {
-                  coord = [c[0].toDouble(), c[1].toDouble()];
-                }
-              }
-              if (properties is Map && coord != null) {
-                final formattedName = _formatPhotonName(properties.cast<String, dynamic>());
-                final lat = coord[1];
-                final lon = coord[0];
-                entries.add(
-                  _SuggestionEntry(
-                    name: formattedName,
-                    id: '$lat,$lon',
-                    coordinates: coord,
-                    icons: const [Icons.place],
-                  ),
-                );
-              }
-            }
-          }
-        }
-      }
-
-      List<_SuggestionEntry> finalEntries = entries;
-
-      if (_deduplicateSuggestions) {
-        final seenByName = <String, int>{};
-        final dedupEntries = <_SuggestionEntry>[];
-
-        for (var i = 0; i < entries.length; i++) {
-          final entry = entries[i];
-          final existingIndex = seenByName[entry.name];
-
-          if (existingIndex == null) {
-            seenByName[entry.name] = dedupEntries.length;
-            dedupEntries.add(entry);
-          } else {
-            final existing = dedupEntries[existingIndex];
-            dedupEntries[existingIndex] = _SuggestionEntry(
-              name: existing.name,
-              id: existing.id ?? entry.id,
-              coordinates: existing.coordinates ?? entry.coordinates,
-              icons: _mergeUniqueIcons(existing.icons, entry.icons),
-            );
-          }
-        }
-
-        finalEntries = dedupEntries;
-      }
-
-      final limitedEntries = finalEntries.take(12).toList();
-
-      setState(() {
-        _suggestions = limitedEntries.map((entry) => entry.name).toList();
-        _suggestionIcons = limitedEntries.map((entry) => entry.icons).toList();
-        _suggestionEntries = limitedEntries;
-        _isLoadingSuggestions = false;
-      });
-    } catch (e) {
-      debugPrint('API exception: $e');
-      setState(() {
-        _suggestions = [];
-        _suggestionIcons = [];
-        _suggestionEntries = [];
-        _isLoadingSuggestions = false;
-      });
-    }
-  }
 
   Future<void> _submitPlanSearch() async {
     if (_isLoadingPlan) {
@@ -447,17 +311,50 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     });
     widget.onLoadingChanged(true);
 
+    final onSearchCallback = widget.onSearch;
+    final onLoadingChangedCallback = widget.onLoadingChanged;
+
     final result = await _fetchPlanResponse();
+
+    onLoadingChangedCallback(false);
+    onSearchCallback(result);
+
     if (mounted) {
       setState(() {
         _isLoadingPlan = false;
       });
     }
-    widget.onLoadingChanged(false);
-    widget.onSearch(result);
   }
 
   Future<PlanSearchResult> _fetchPlanResponse() async {
+    debugPrint('DEBUG RoutePlanForm _fetchPlanResponse (Keresés gomb callbackje) elindult!');
+    debugPrint(' - Aktuális _selectedFromPlaceToken: $_selectedFromPlaceToken');
+    debugPrint(' - Aktuális widget.fromController.text: ${widget.fromController.text}');
+    debugPrint(' - Aktuális _selectedToPlaceToken: $_selectedToPlaceToken');
+    debugPrint(' - Aktuális widget.toController.text: ${widget.toController.text}');
+    
+    final fromPlaceToken =
+        widget.initialFromPlaceToken ?? _selectedFromPlaceToken ?? widget.fromController.text.trim();
+    final toPlaceToken =
+        widget.initialToPlaceToken ?? _selectedToPlaceToken ?? widget.toController.text.trim();
+    final fromCoordinates =
+        widget.initialFromCoordinates ?? _selectedFromCoordinates;
+    final toCoordinates =
+        widget.initialToCoordinates ?? _selectedToCoordinates;
+
+    _isSwapping = true;
+    if (widget.initialFromPlaceToken != null && widget.initialFromPlaceToken!.contains('::')) {
+      final name = widget.initialFromPlaceToken!.split('::').first;
+      widget.fromController.text = name;
+    }
+    if (widget.initialToPlaceToken != null && widget.initialToPlaceToken!.contains('::')) {
+      final name = widget.initialToPlaceToken!.split('::').first;
+      widget.toController.text = name;
+    }
+    _isSwapping = false;
+
+    Map<String, dynamic>? variables;
+
     try {
       final now = DateTime.now();
       final selectedDate = _planForNow ? now : (widget.selectedDate ?? now);
@@ -470,12 +367,8 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           '${_twoDigits(selectedDate.year, padTo: 4)}-${_twoDigits(selectedDate.month)}-${_twoDigits(selectedDate.day)}';
       final timeString =
           '${_twoDigits(effectiveTime.hour)}:${_twoDigits(effectiveTime.minute)}';
-      final fromPlaceToken =
-          _selectedFromPlaceToken ?? widget.fromController.text.trim();
-      final toPlaceToken =
-          _selectedToPlaceToken ?? widget.toController.text.trim();
 
-      final variables = <String, dynamic>{
+      variables = <String, dynamic>{
         'arriveBy': arriveBy,
         'banned': <String, dynamic>{},
         'bikeReluctance': 1.0,
@@ -500,11 +393,13 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         'pageCursor': '',
       };
 
-      if (_selectedFromCoordinates != null || _selectedToCoordinates != null) {
+      if (fromCoordinates != null || toCoordinates != null) {
         debugPrint(
-          'Selected coords -> from: ${_selectedFromCoordinates ?? 'n/a'}, to: ${_selectedToCoordinates ?? 'n/a'}',
+          'Selected coords -> from: ${fromCoordinates ?? 'n/a'}, to: ${toCoordinates ?? 'n/a'}',
         );
       }
+
+      debugPrint('DEBUG RoutePlanForm: A végső payload ami elindul a szerver felé: $variables');
 
       final response = await _graphqlClient.execute(
         query: planQuery,
@@ -518,9 +413,13 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         return PlanSearchResult(
           hasMeaningfulResponse: false,
           query: planQuery,
-          requestVariables: Map<String, dynamic>.from(variables),
+          requestVariables: variables,
           responseText:
               'HTTP ${response.statusCode}\n${response.rawBody.isNotEmpty ? response.rawBody : AppTexts.apiNoResponseBody}',
+          fromPlaceToken: fromPlaceToken,
+          toPlaceToken: toPlaceToken,
+          fromCoordinates: fromCoordinates,
+          toCoordinates: toCoordinates,
         );
       }
 
@@ -530,7 +429,11 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           hasMeaningfulResponse: false,
           responseText: AppTexts.apiResponseNotJson,
           query: planQuery,
-          requestVariables: Map<String, dynamic>.from(variables),
+          requestVariables: variables,
+          fromPlaceToken: fromPlaceToken,
+          toPlaceToken: toPlaceToken,
+          fromCoordinates: fromCoordinates,
+          toCoordinates: toCoordinates,
         );
       }
 
@@ -540,8 +443,12 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           hasMeaningfulResponse: false,
           responseText: _prettyJson(bodyMap),
           query: planQuery,
-          requestVariables: Map<String, dynamic>.from(variables),
+          requestVariables: variables,
           responseJson: bodyMap,
+          fromPlaceToken: fromPlaceToken,
+          toPlaceToken: toPlaceToken,
+          fromCoordinates: fromCoordinates,
+          toCoordinates: toCoordinates,
         );
       }
 
@@ -551,8 +458,12 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           hasMeaningfulResponse: false,
           responseText: _prettyJson(bodyMap),
           query: planQuery,
-          requestVariables: Map<String, dynamic>.from(variables),
+          requestVariables: variables,
           responseJson: bodyMap,
+          fromPlaceToken: fromPlaceToken,
+          toPlaceToken: toPlaceToken,
+          fromCoordinates: fromCoordinates,
+          toCoordinates: toCoordinates,
         );
       }
 
@@ -564,9 +475,13 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         hasMeaningfulResponse: itineraries is List && itineraries.isNotEmpty,
         responseText: _prettyJson(bodyMap),
         query: planQuery,
-        requestVariables: Map<String, dynamic>.from(variables),
+        requestVariables: variables,
         responseJson: bodyMap,
         nextPageCursor: nextPageCursor,
+        fromPlaceToken: fromPlaceToken,
+        toPlaceToken: toPlaceToken,
+        fromCoordinates: fromCoordinates,
+        toCoordinates: toCoordinates,
       );
     } catch (e) {
       debugPrint('Plan API exception: $e');
@@ -574,6 +489,11 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         hasMeaningfulResponse: false,
         responseText: AppTexts.apiException(e.toString()),
         query: planQuery,
+        requestVariables: variables,
+        fromPlaceToken: fromPlaceToken,
+        toPlaceToken: toPlaceToken,
+        fromCoordinates: fromCoordinates,
+        toCoordinates: toCoordinates,
       );
     }
   }
@@ -668,42 +588,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     return modes.map((mode) => {'mode': mode}).toList();
   }
 
-  void _onSuggestionTap(int index) {
-    if (index < 0 || index >= _suggestionEntries.length) {
-      return;
-    }
-    final entry = _suggestionEntries[index];
-    if (entry.id == 'CURRENT_LOCATION') {
-      _setCurrentLocation(_activeSearchField == _ActiveSearchField.from);
-      return;
-    }
-    final token = entry.id == null ? entry.name : '${entry.name}::${entry.id}';
 
-    if (_activeSearchField == _ActiveSearchField.from) {
-      widget.fromController.text = entry.name;
-      widget.fromController.selection = TextSelection.fromPosition(
-        TextPosition(offset: entry.name.length),
-      );
-      _selectedFromPlaceToken = token;
-      _selectedFromCoordinates = entry.coordinates;
-      _fromFocusNode.unfocus();
-    } else if (_activeSearchField == _ActiveSearchField.to) {
-      widget.toController.text = entry.name;
-      widget.toController.selection = TextSelection.fromPosition(
-        TextPosition(offset: entry.name.length),
-      );
-      _selectedToPlaceToken = token;
-      _selectedToCoordinates = entry.coordinates;
-      _toFocusNode.unfocus();
-    }
-
-    setState(() {
-      _suggestions = [];
-      _suggestionIcons = [];
-      _suggestionEntries = [];
-      _activeSearchField = _ActiveSearchField.none;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -761,33 +646,54 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          TextField(
+                          AutocompleteSearchField(
                             controller: widget.fromController,
                             focusNode: _fromFocusNode,
                             key: const Key('search1'),
-                            decoration: InputDecoration(
-                              labelText: AppTexts.formDeparture,
-                              hintText: AppTexts.formHintCharCount,
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              prefixIcon: IconButton(
-                                icon: Icon(
-                                  Icons.my_location_rounded,
-                                  color: colorScheme.primary,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                onPressed: () => _setCurrentLocation(true),
-                                tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
+                            labelText: AppTexts.formDeparture,
+                            hintText: AppTexts.formHintCharCount,
+                            searchStops: true,
+                            searchAddresses: true,
+                            searchLines: false,
+                            isCurrentLocationEnabled: true,
+                            prefixIcon: IconButton(
+                              icon: Icon(
+                                Icons.my_location_rounded,
+                                color: colorScheme.primary,
                               ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              onPressed: () => _setCurrentLocation(true),
+                              tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
                             ),
-                            onChanged: (value) {
-                              _selectedFromPlaceToken = null;
-                              _selectedFromCoordinates = null;
-                              _onQueryChanged(value);
+                            onSuggestionSelected: (entry) {
+                              final token = entry.id == 'CURRENT_LOCATION'
+                                  ? null
+                                  : (entry.id == null ? entry.name : '${entry.name}::${entry.id}');
+                              if (entry.id == 'CURRENT_LOCATION') {
+                                _setCurrentLocation(true);
+                                return;
+                              }
+                              widget.fromController.text = entry.name;
+                              widget.fromController.selection = TextSelection.fromPosition(
+                                TextPosition(offset: entry.name.length),
+                              );
+                              setState(() {
+                                _selectedFromPlaceToken = token;
+                                _selectedFromCoordinates = entry.coordinates;
+                              });
+                              debugPrint('DEBUG RoutePlanForm: AutocompleteSearchField(from) onSuggestionSelected -> name: ${entry.name}, id: ${entry.id}, coords: ${entry.coordinates}, token: $token');
+                              debugPrint('DEBUG RoutePlanForm: Calling onFromPlaceChanged($token, ${entry.coordinates})');
+                              widget.onFromPlaceChanged?.call(token, entry.coordinates);
+                              _fromFocusNode.unfocus();
+                            },
+                            onClear: () {
+                              setState(() {
+                                _selectedFromPlaceToken = null;
+                                _selectedFromCoordinates = null;
+                              });
+                              debugPrint('DEBUG RoutePlanForm: from onClear -> Calling onFromPlaceChanged(null, null)');
+                              widget.onFromPlaceChanged?.call(null, null);
                             },
                           ),
                           Divider(
@@ -799,33 +705,54 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                             indent: 48,
                             endIndent: 48,
                           ),
-                          TextField(
+                          AutocompleteSearchField(
                             controller: widget.toController,
                             focusNode: _toFocusNode,
                             key: const Key('search2'),
-                            decoration: InputDecoration(
-                              labelText: AppTexts.formArrival,
-                              hintText: AppTexts.formHintCharCount,
-                              filled: true,
-                              fillColor: Colors.transparent,
-                              prefixIcon: IconButton(
-                                icon: Icon(
-                                  Icons.location_on_rounded,
-                                  color: colorScheme.primary,
-                                ),
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                onPressed: () => _setCurrentLocation(false),
-                                tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
+                            labelText: AppTexts.formArrival,
+                            hintText: AppTexts.formHintCharCount,
+                            searchStops: true,
+                            searchAddresses: true,
+                            searchLines: false,
+                            isCurrentLocationEnabled: true,
+                            prefixIcon: IconButton(
+                              icon: Icon(
+                                Icons.location_on_rounded,
+                                color: colorScheme.primary,
                               ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
+                              visualDensity: VisualDensity.compact,
+                              padding: EdgeInsets.zero,
+                              onPressed: () => _setCurrentLocation(false),
+                              tooltip: AppTexts.isHungarian ? 'Jelenlegi helyzet használata' : 'Use current location',
                             ),
-                            onChanged: (value) {
-                              _selectedToPlaceToken = null;
-                              _selectedToCoordinates = null;
-                              _onQueryChanged(value);
+                            onSuggestionSelected: (entry) {
+                              final token = entry.id == 'CURRENT_LOCATION'
+                                  ? null
+                                  : (entry.id == null ? entry.name : '${entry.name}::${entry.id}');
+                              if (entry.id == 'CURRENT_LOCATION') {
+                                _setCurrentLocation(false);
+                                return;
+                              }
+                              widget.toController.text = entry.name;
+                              widget.toController.selection = TextSelection.fromPosition(
+                                TextPosition(offset: entry.name.length),
+                              );
+                              setState(() {
+                                _selectedToPlaceToken = token;
+                                _selectedToCoordinates = entry.coordinates;
+                              });
+                              debugPrint('DEBUG RoutePlanForm: AutocompleteSearchField(to) onSuggestionSelected -> name: ${entry.name}, id: ${entry.id}, coords: ${entry.coordinates}, token: $token');
+                              debugPrint('DEBUG RoutePlanForm: Calling onToPlaceChanged($token, ${entry.coordinates})');
+                              widget.onToPlaceChanged?.call(token, entry.coordinates);
+                              _toFocusNode.unfocus();
+                            },
+                            onClear: () {
+                              setState(() {
+                                _selectedToPlaceToken = null;
+                                _selectedToCoordinates = null;
+                              });
+                              debugPrint('DEBUG RoutePlanForm: to onClear -> Calling onToPlaceChanged(null, null)');
+                              widget.onToPlaceChanged?.call(null, null);
                             },
                           ),
                         ],
@@ -867,107 +794,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                     ),
                   ],
                 ),
-                if (_isLoadingSuggestions)
-                  const Padding(
-                    padding: EdgeInsets.only(top: AppSpacing.md),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (_suggestions.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: AppSpacing.md),
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxHeight: 220),
-                      child: Card(
-                        child: ListView.separated(
-                          itemCount: _suggestions.length,
-                          separatorBuilder: (context, index) =>
-                              const Divider(height: 1),
-                          itemBuilder: (context, index) {
-                            final entry = _suggestionEntries[index];
-                            final suggestion = _suggestions[index];
-                            final vehicleTypes =
-                                index < _suggestionIcons.length
-                                ? _suggestionIcons[index]
-                                : const [Icons.directions_bus];
 
-                            final isCurrentLocation = entry.id == 'CURRENT_LOCATION';
-
-                            if (isCurrentLocation) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.15 : 0.25),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: colorScheme.primary.withValues(alpha: isDark ? 0.25 : 0.4),
-                                      width: 1.0,
-                                    ),
-                                  ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    leading: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.primary.withValues(alpha: 0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.my_location_rounded,
-                                        color: colorScheme.primary,
-                                        size: 20,
-                                      ),
-                                    ),
-                                    title: Text(
-                                      suggestion,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: colorScheme.primary,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      AppTexts.isHungarian
-                                          ? 'Pozíció meghatározása GPS-szel'
-                                          : 'Determine position using GPS',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: colorScheme.onPrimaryContainer.withValues(alpha: 0.7),
-                                      ),
-                                    ),
-                                    onTap: () => _onSuggestionTap(index),
-                                  ),
-                                ),
-                              );
-                            }
-
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              title: Row(
-                                children: [
-                                  ...vehicleTypes.map(
-                                    (iconData) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        right: 4,
-                                      ),
-                                      child: Icon(iconData, size: 24),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(child: Text(suggestion)),
-                                ],
-                              ),
-                              onTap: () => _onSuggestionTap(index),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
                 const SizedBox(height: AppSpacing.lg),
                 SegmentedButton<bool>(
                   segments: [
@@ -1454,71 +1281,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     }).toList();
   }
 
-  List<IconData> _iconsForModes(List<String> modes) {
-    if (modes.isEmpty) {
-      return const [Icons.directions_bus];
-    }
-
-    final mapped = <IconData>[];
-    for (final mode in modes) {
-      switch (mode) {
-        case 'RAIL':
-        case 'SUBURBAN_RAILWAY':
-          mapped.add(Icons.train);
-          break;
-        case 'RAIL_REPLACEMENT_BUS':
-          mapped.add(Icons.bus_alert);
-          break;
-        case 'BUS':
-          mapped.add(Icons.airport_shuttle);
-          break;
-        case 'COACH':
-          mapped.add(Icons.directions_bus);
-          break;
-        case 'SUBWAY':
-          mapped.add(Icons.directions_subway);
-          break;
-        case 'TRAM':
-        case 'TRAMTRAIN':
-          mapped.add(Icons.tram);
-          break;
-        case 'TROLLEYBUS':
-          mapped.add(Icons.directions_bus);
-          break;
-        case 'FERRY':
-          mapped.add(Icons.directions_boat);
-          break;
-      }
-    }
-
-    final unique = <IconData>[];
-    for (final icon in mapped) {
-      if (!unique.contains(icon)) {
-        unique.add(icon);
-      }
-    }
-
-    return unique.isEmpty ? const [Icons.directions_bus] : unique;
-  }
-
-  List<IconData> _mergeUniqueIcons(
-    List<IconData> first,
-    List<IconData> second,
-  ) {
-    final merged = <IconData>[...first];
-    for (final icon in second) {
-      if (!merged.contains(icon)) {
-        merged.add(icon);
-      }
-    }
-    return merged;
-  }
-
   Future<void> _setCurrentLocation(bool isFromField) async {
-    setState(() {
-      _isLoadingSuggestions = true;
-    });
-
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -1553,17 +1316,15 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           widget.fromController.text = name;
           _selectedFromPlaceToken = token;
           _selectedFromCoordinates = coords;
+          widget.onFromPlaceChanged?.call(token, coords);
           _fromFocusNode.unfocus();
         } else {
           widget.toController.text = name;
           _selectedToPlaceToken = token;
           _selectedToCoordinates = coords;
+          widget.onToPlaceChanged?.call(token, coords);
           _toFocusNode.unfocus();
         }
-        _suggestions = [];
-        _suggestionIcons = [];
-        _suggestionEntries = [];
-        _activeSearchField = _ActiveSearchField.none;
       });
     } catch (e) {
       if (mounted) {
@@ -1573,52 +1334,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingSuggestions = false;
-        });
-      }
     }
-  }
-
-  String _formatPhotonName(Map<String, dynamic> properties) {
-    final name = properties['name']?.toString() ?? '';
-    final street = properties['street']?.toString() ?? '';
-    final houseNumber = properties['housenumber']?.toString() ?? '';
-    final city = properties['city']?.toString() ?? '';
-    final postcode = properties['postcode']?.toString() ?? '';
-
-    // If name is just the house number, treat it as empty to avoid redundancy
-    final cleanName = (name.isNotEmpty && RegExp(r'^\d+$').hasMatch(name)) ? '' : name;
-
-    final parts = <String>[];
-
-    if (cleanName.isNotEmpty) {
-      parts.add(cleanName);
-      if (street.isNotEmpty) {
-        if (houseNumber.isNotEmpty) {
-          parts.add('$street $houseNumber');
-        } else {
-          parts.add(street);
-        }
-      }
-    } else if (street.isNotEmpty) {
-      if (houseNumber.isNotEmpty) {
-        parts.add('$street $houseNumber');
-      } else {
-        parts.add(street);
-      }
-    }
-
-    if (city.isNotEmpty && !parts.contains(city)) {
-      parts.add(city);
-    }
-
-    if (postcode.isNotEmpty) {
-      parts.add(postcode);
-    }
-
-    return parts.isEmpty ? (AppTexts.isHungarian ? 'Ismeretlen hely' : 'Unknown location') : parts.join(', ');
   }
 }
+

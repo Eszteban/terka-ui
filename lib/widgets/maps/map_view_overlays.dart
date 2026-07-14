@@ -65,14 +65,14 @@ extension _MapViewOverlays on _MapViewState {
         clipBehavior: Clip.none,
         children: [
           Container(
-            width: 22,
-            height: 22,
+            width: 15,
+            height: 15,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: circleColor,
-              border: Border.all(color: contentColor, width: 2),
+              border: Border.all(color: contentColor, width: 1.5),
             ),
-            child: Icon(Icons.apartment, size: 12, color: contentColor),
+            child: Icon(Icons.apartment, size: 9, color: contentColor),
           ),
           if (bearing != null)
             Positioned.fill(
@@ -81,10 +81,10 @@ extension _MapViewOverlays on _MapViewState {
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: Transform.translate(
-                    offset: const Offset(0, -3),
+                    offset: const Offset(0, 3.5),
                     child: Icon(
                       Icons.arrow_drop_up,
-                      size: 22,
+                      size: 16,
                       color: contentColor,
                     ),
                   ),

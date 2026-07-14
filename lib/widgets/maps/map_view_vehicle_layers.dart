@@ -1,7 +1,7 @@
 part of 'map_view.dart';
 
 extension _MapViewVehicleLayers on _MapViewState {
-  List<Widget> _buildMapLayers() {
+  List<Widget> _buildMapStopLayers() {
     final layers = <Widget>[];
 
     if (widget.hideGeneralStopsAndVehicles) {
@@ -24,66 +24,6 @@ extension _MapViewVehicleLayers on _MapViewState {
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _toggleStopLabel(stop),
                     child: _buildMapStopDot(stop.bearing),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      );
-    }
-
-    if (_vehicleMarkers.isNotEmpty) {
-      layers.add(
-        MarkerLayer(
-          markers: _vehicleMarkers
-              .where((vehicle) => _selectedVehicleMarkerId != vehicle.markerId)
-              .map(
-                (vehicle) => Marker(
-                  point: vehicle.point,
-                  width: 24,
-                  height: 24,
-                  alignment: Alignment.center,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () => _toggleVehicleLabel(vehicle.markerId),
-                    child: _buildVehicleDot(vehicle),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      );
-    }
-
-    if (_selectedVehicleMarkerId != null) {
-      layers.add(
-        MarkerLayer(
-          markers: _vehicleMarkers
-              .where((vehicle) => _selectedVehicleMarkerId == vehicle.markerId)
-              .map(
-                (vehicle) => Marker(
-                  point: vehicle.point,
-                  width: 320,
-                  height: 360,
-                  alignment: Alignment.center,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      Positioned(
-                        bottom: 192,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _consumeNextMapTapClose,
-                          child: _buildVehicleInfoCard(vehicle),
-                        ),
-                      ),
-                      GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onTap: () => _toggleVehicleLabel(vehicle.markerId),
-                        child: _buildVehicleDot(vehicle),
-                      ),
-                    ],
                   ),
                 ),
               )
@@ -120,6 +60,86 @@ extension _MapViewVehicleLayers on _MapViewState {
                         behavior: HitTestBehavior.opaque,
                         onTap: () => _toggleStopLabel(stop),
                         child: _buildMapStopDot(stop.bearing),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+    }
+
+    return layers;
+  }
+
+  List<Widget> _buildMapVehicleLayers() {
+    final layers = <Widget>[];
+
+    if (widget.hideGeneralStopsAndVehicles) {
+      return layers;
+    }
+
+    // Filter vehicles if selectedRouteName is specified (Vonal kirajzolásánál csak az adott vonalon közlekedő járatok!)
+    var vehiclesList = _vehicleMarkers;
+    if (widget.selectedRouteName != null) {
+      final targetRouteName = plainTextFromHtml(widget.selectedRouteName!).trim().toLowerCase();
+      vehiclesList = _vehicleMarkers.where((v) {
+        final vehicleRoute = plainTextFromHtml(v.routeShortName).trim().toLowerCase();
+        return vehicleRoute == targetRouteName;
+      }).toList();
+    }
+
+    if (vehiclesList.isNotEmpty) {
+      layers.add(
+        MarkerLayer(
+          markers: vehiclesList
+              .where((vehicle) => _selectedVehicleMarkerId != vehicle.markerId)
+              .map(
+                (vehicle) => Marker(
+                  point: vehicle.point,
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => _toggleVehicleLabel(vehicle.markerId),
+                    child: _buildVehicleDot(vehicle),
+                  ),
+                ),
+              )
+              .toList(),
+        ),
+      );
+    }
+
+    if (_selectedVehicleMarkerId != null) {
+      layers.add(
+        MarkerLayer(
+          markers: vehiclesList
+              .where((vehicle) => _selectedVehicleMarkerId == vehicle.markerId)
+              .map(
+                (vehicle) => Marker(
+                  point: vehicle.point,
+                  width: 320,
+                  height: 360,
+                  alignment: Alignment.center,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.center,
+                    children: [
+                      Positioned(
+                        bottom: 192,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _consumeNextMapTapClose,
+                          child: _buildVehicleInfoCard(vehicle),
+                        ),
+                      ),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => _toggleVehicleLabel(vehicle.markerId),
+                        child: _buildVehicleDot(vehicle),
                       ),
                     ],
                   ),

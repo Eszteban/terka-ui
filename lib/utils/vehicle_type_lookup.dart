@@ -40,16 +40,16 @@ class VehicleTypeLookup {
     "6193": "Siemens-VECTRON",
     "7193": "Siemens-VECTRON",
     "0187": "Bombardier-TRAXX",
-    "0241": "Softronic Transmontana",
-    "0242": "Softronic Transmontana",
-    "0400": "Softronic LEMA",
-    "1141": "ASEA / Csaurusz",
+    "0241": "Softronic-Transmontana",
+    "0242": "Softronic-Transmontana",
+    "0400": "Softronic-LEMA",
+    "1141": "ASEA-Csaurusz",
     "0430": "GANZ-MÁVAG-SZILI (GYSEV)",
     "1136": "Studenka Vagonka-IkerBZ",
     "1293": "Siemens-VECTRON MS (ÖBB)",
-    "0477": "ASEA / Csaurusz",
-    "0481": "Softronic LEMA (CFR)",
-    "0482": "Reloc ELASMO (CFR)",
+    "0477": "ASEA-Csaurusz",
+    "0481": "Softronic-LEMA (CFR)",
+    "0482": "Reloc-ELASMO (CFR)",
 
     // Dízelmozdonyok
     "0288": "M28 Mazsola",
@@ -69,6 +69,7 @@ class VehicleTypeLookup {
     "0127": "Studenka Vagonka-IP Bz",
     "1232": "Ludmilla (BR 232 / BR 233)",
     "0001": "Henschel-TME Viking",
+    "0618": "NOHAB-Di.3a",
 
     // Villamos motorvonatok
     "0414": "BDVmot Hernyó",

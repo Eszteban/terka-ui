@@ -24,6 +24,7 @@ class StopDetailsScreen extends StatefulWidget {
   final TripDetailsOpenRequestCallback? onOpenTripDetailsRequested;
   final bool closeAfterOpenTripRequest;
   final VoidCallback? onCloseRequested;
+  final void Function(String stopName, LatLng stopPoint, String stopId)? onPlanRouteToStop;
 
   const StopDetailsScreen({
     super.key,
@@ -35,6 +36,7 @@ class StopDetailsScreen extends StatefulWidget {
     this.onOpenTripDetailsRequested,
     this.closeAfterOpenTripRequest = true,
     this.onCloseRequested,
+    this.onPlanRouteToStop,
   });
 
   @override
@@ -323,6 +325,25 @@ class _StopDetailsScreenState extends State<StopDetailsScreen> {
           ),
         ),
         actions: [
+          if (widget.onPlanRouteToStop != null)
+            IconButton(
+              icon: const Icon(Icons.directions),
+              tooltip: AppTexts.isHungarian ? 'Útvonaltervezés ide' : 'Plan route here',
+              onPressed: () {
+                final lat = StopDetailsUtils.asNum(_stop?['lat'])?.toDouble() ?? widget.initialStopPoint?.latitude;
+                final lon = StopDetailsUtils.asNum(_stop?['lon'])?.toDouble() ?? widget.initialStopPoint?.longitude;
+                if (lat != null && lon != null) {
+                  widget.onPlanRouteToStop!(
+                    stopName,
+                    LatLng(lat, lon),
+                    widget.stopId,
+                  );
+                  if (widget.onCloseRequested == null && Navigator.of(context).canPop()) {
+                    Navigator.of(context).pop();
+                  }
+                }
+              },
+            ),
           if (_isUpdating)
             const SizedBox(
               width: 48,

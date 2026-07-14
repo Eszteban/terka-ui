@@ -43,6 +43,9 @@ class MapView extends StatefulWidget {
   final Function(String, String?, LatLng?, List<String>?)?
   onOpenStopDetailsRequested;
   final bool hideGeneralStopsAndVehicles;
+  final LatLng? searchHighlightPoint;
+  final void Function(String stopName, LatLng stopPoint, String stopId)? onPlanRouteToStop;
+  final String? selectedRouteName;
 
   const MapView({
     super.key,
@@ -58,6 +61,9 @@ class MapView extends StatefulWidget {
     this.onOpenTripDetailsRequested,
     this.onOpenStopDetailsRequested,
     this.hideGeneralStopsAndVehicles = false,
+    this.searchHighlightPoint,
+    this.onPlanRouteToStop,
+    this.selectedRouteName,
   });
 
   @override
@@ -163,6 +169,14 @@ class _MapViewState extends State<MapView> {
           return;
         }
         _fitToOverlayRoute();
+      });
+    }
+    if (widget.searchHighlightPoint != oldWidget.searchHighlightPoint &&
+        widget.searchHighlightPoint != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _mapController.move(widget.searchHighlightPoint!, 15);
+        }
       });
     }
   }
@@ -392,6 +406,9 @@ class _MapViewState extends State<MapView> {
   }
 
   List<String> _modesForZoom(double zoom) {
+    if (widget.selectedRouteName != null) {
+      return <String>[..._railModes, ..._coachModes, ..._localModes];
+    }
     final modes = <String>[..._railModes];
     if (zoom >= _coachMinZoom) {
       modes.addAll(_coachModes);
@@ -403,6 +420,9 @@ class _MapViewState extends State<MapView> {
   }
 
   int _maxVehiclesForZoom(double zoom) {
+    if (widget.selectedRouteName != null) {
+      return 1300;
+    }
     if (zoom < _coachMinZoom) {
       return 260;
     }
@@ -590,7 +610,7 @@ class _MapViewState extends State<MapView> {
                             ),
                           ],
                         ),
-                      ..._buildMapLayers(),
+                      ..._buildMapStopLayers(),
                       if (routeData != null && routeData.stops.isNotEmpty)
                         MarkerLayer(
                           markers: routeData.stops.map((stop) {
@@ -688,6 +708,7 @@ class _MapViewState extends State<MapView> {
                             );
                           }).toList(),
                         ),
+                      ..._buildMapVehicleLayers(),
                       if (routeVehicleMarker != null)
                         MarkerLayer(
                           markers: [
@@ -697,6 +718,22 @@ class _MapViewState extends State<MapView> {
                               height: 24,
                               alignment: Alignment.center,
                               child: _buildRouteVehicleDot(routeVehicleMarker),
+                            ),
+                          ],
+                        ),
+                      if (widget.searchHighlightPoint != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: widget.searchHighlightPoint!,
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
                             ),
                           ],
                         ),

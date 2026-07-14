@@ -20,6 +20,9 @@ class MainDesktopMapLayout extends StatelessWidget {
   final Function(String, String)? onOpenTripDetailsRequested;
   final Function(String, String?, LatLng?, List<String>?)? onOpenStopDetailsRequested;
   final bool hideGeneralStopsAndVehicles;
+  final LatLng? searchHighlightPoint;
+  final void Function(String stopName, LatLng stopPoint, String stopId)? onPlanRouteToStop;
+  final String? desktopSelectedRouteName;
 
   const MainDesktopMapLayout({
     super.key,
@@ -34,6 +37,9 @@ class MainDesktopMapLayout extends StatelessWidget {
     this.onOpenTripDetailsRequested,
     this.onOpenStopDetailsRequested,
     this.hideGeneralStopsAndVehicles = false,
+    this.searchHighlightPoint,
+    this.onPlanRouteToStop,
+    this.desktopSelectedRouteName,
   });
 
   Widget _buildDesktopOverlayPanel({
@@ -82,6 +88,9 @@ class MainDesktopMapLayout extends StatelessWidget {
             onOpenTripDetailsRequested: onOpenTripDetailsRequested,
             onOpenStopDetailsRequested: onOpenStopDetailsRequested,
             hideGeneralStopsAndVehicles: hideGeneralStopsAndVehicles,
+            searchHighlightPoint: searchHighlightPoint,
+            onPlanRouteToStop: onPlanRouteToStop,
+            selectedRouteName: desktopSelectedRouteName,
           ),
         ),
         if (showPlannerPanel)

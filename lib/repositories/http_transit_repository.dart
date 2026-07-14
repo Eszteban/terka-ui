@@ -125,51 +125,11 @@ Future<List<Map<String, dynamic>>?> fetchStopDetails({
 
   @override
   Future<Map<String, dynamic>?> fetchRoutePlans({
-    required String fromPlace,
-    required String toPlace,
-    required DateTime dateTime,
-    String? nextPageCursor,
+    required Map<String, dynamic> originalVariables,
+    required String nextPageCursor,
   }) {
-    final dateString =
-        '${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}';
-    final timeString =
-        '${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
-
-    final variables = <String, dynamic>{
-      'arriveBy': false,
-      'banned': <String, dynamic>{},
-      'bikeReluctance': 1.0,
-      'carReluctance': 1.0,
-      'date': dateString,
-      'fromPlace': fromPlace,
-      'modes': const [
-        {'mode': 'RAIL'},
-        {'mode': 'RAIL_REPLACEMENT_BUS'},
-        {'mode': 'SUBURBAN_RAILWAY'},
-        {'mode': 'TRAMTRAIN'},
-        {'mode': 'SUBWAY'},
-        {'mode': 'TRAM'},
-        {'mode': 'TROLLEYBUS'},
-        {'mode': 'BUS'},
-        {'mode': 'FERRY'},
-        {'mode': 'COACH'},
-      ],
-      'numItineraries': 15,
-      'preferred': <String, dynamic>{},
-      'time': timeString,
-      'toPlace': toPlace,
-      'unpreferred': <String, dynamic>{},
-      'walkReluctance': 1.0,
-      'walkSpeed': 1.3888888888888888,
-      'wheelchair': false,
-      'minTransferTime': 0,
-      'transitPassFilter': <String>[],
-      'comfortLevels': <String>[],
-      'searchParameters': <String>[],
-      'distributionChannel': 'ERTEKESITESI_CSATORNA#INTERNET',
-      'distributionSubChannel': 'ERTEKESITESI_ALCSATORNA#EMMA',
-      'pageCursor': nextPageCursor ?? '',
-    };
+    final variables = Map<String, dynamic>.from(originalVariables);
+    variables['pageCursor'] = nextPageCursor;
 
     return _apiService.fetchRoutePlans(
       query: planQuery,

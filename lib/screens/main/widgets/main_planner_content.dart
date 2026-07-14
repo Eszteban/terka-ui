@@ -31,6 +31,14 @@ class MainPlannerContent extends StatelessWidget {
   final ValueChanged<String> onTransportModeToggle;
   final ValueChanged<bool> onTicketWatchChanged;
 
+  final String? initialFromPlaceToken;
+  final String? initialToPlaceToken;
+  final List<double>? initialFromCoordinates;
+  final List<double>? initialToCoordinates;
+  final bool autofocusFrom;
+  final Function(String? token, List<double>? coordinates)? onFromPlaceChanged;
+  final Function(String? token, List<double>? coordinates)? onToPlaceChanged;
+
   const MainPlannerContent({
     super.key,
     required this.isDesktop,
@@ -50,6 +58,13 @@ class MainPlannerContent extends StatelessWidget {
     required this.onMaxWalkChanged,
     required this.onTransportModeToggle,
     required this.onTicketWatchChanged,
+    this.initialFromPlaceToken,
+    this.initialToPlaceToken,
+    this.initialFromCoordinates,
+    this.initialToCoordinates,
+    this.autofocusFrom = false,
+    this.onFromPlaceChanged,
+    this.onToPlaceChanged,
   });
 
   @override
@@ -91,6 +106,25 @@ class MainPlannerContent extends StatelessWidget {
                 },
                 ticketWatch: ticketWatch,
                 tickets: tickets,
+                fromController: fromController,
+                toController: toController,
+                selectedDate: selectedDate,
+                transfers: transfers,
+                maxWalk: maxWalk,
+                selectedTransportModes: selectedTransportModes,
+                onSearch: onSearch,
+                onLoadingChanged: onLoadingChanged,
+                onPickDate: onPickDate,
+                onTransfersChanged: onTransfersChanged,
+                onMaxWalkChanged: onMaxWalkChanged,
+                onTransportModeToggle: onTransportModeToggle,
+                onTicketWatchChanged: onTicketWatchChanged,
+                initialFromPlaceToken: initialFromPlaceToken,
+                initialToPlaceToken: initialToPlaceToken,
+                initialFromCoordinates: initialFromCoordinates,
+                initialToCoordinates: initialToCoordinates,
+                onFromPlaceChanged: onFromPlaceChanged,
+                onToPlaceChanged: onToPlaceChanged,
                 onShowOnMap: (payload) {
                   if (isDesktop) {
                     context.read<MapCubit>().showDesktopRouteOnBackgroundMap(
@@ -132,6 +166,13 @@ class MainPlannerContent extends StatelessWidget {
               onMaxWalkChanged: onMaxWalkChanged,
               onTransportModeToggle: onTransportModeToggle,
               onTicketWatchChanged: onTicketWatchChanged,
+              initialFromPlaceToken: initialFromPlaceToken,
+              initialToPlaceToken: initialToPlaceToken,
+              initialFromCoordinates: initialFromCoordinates,
+              initialToCoordinates: initialToCoordinates,
+              autofocusFrom: autofocusFrom,
+              onFromPlaceChanged: onFromPlaceChanged,
+              onToPlaceChanged: onToPlaceChanged,
             );
           },
         );

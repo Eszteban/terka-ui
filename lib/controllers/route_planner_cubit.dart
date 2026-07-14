@@ -16,6 +16,7 @@ class RoutePlannerState {
   final bool isLoadingMore;
   final String? nextPageCursor;
   final bool hasMeaningfulPlanResponse;
+  final Map<String, dynamic>? lastPlanVariables;
 
   const RoutePlannerState({
     this.planResponseJson,
@@ -28,6 +29,7 @@ class RoutePlannerState {
     required this.isLoadingMore,
     this.nextPageCursor,
     required this.hasMeaningfulPlanResponse,
+    this.lastPlanVariables,
   });
 
   factory RoutePlannerState.initial() {
@@ -56,6 +58,8 @@ class RoutePlannerState {
     String? nextPageCursor,
     bool clearNextPageCursor = false,
     bool? hasMeaningfulPlanResponse,
+    Map<String, dynamic>? lastPlanVariables,
+    bool clearLastPlanVariables = false,
   }) {
     return RoutePlannerState(
       planResponseJson: clearPlanResponseJson ? null : (planResponseJson ?? this.planResponseJson),
@@ -68,6 +72,7 @@ class RoutePlannerState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       nextPageCursor: clearNextPageCursor ? null : (nextPageCursor ?? this.nextPageCursor),
       hasMeaningfulPlanResponse: hasMeaningfulPlanResponse ?? this.hasMeaningfulPlanResponse,
+      lastPlanVariables: clearLastPlanVariables ? null : (lastPlanVariables ?? this.lastPlanVariables),
     );
   }
 }
@@ -115,6 +120,7 @@ class RoutePlannerCubit extends Cubit<RoutePlannerState> {
       lastPlanDateTime: dateTime,
       nextPageCursor: result.nextPageCursor,
       hasMeaningfulPlanResponse: result.hasMeaningfulResponse,
+      lastPlanVariables: vars,
     ));
   }
 
@@ -134,21 +140,16 @@ class RoutePlannerCubit extends Cubit<RoutePlannerState> {
       isPlanLoading: false,
       isLoadingMore: false,
       hasMeaningfulPlanResponse: false,
+      clearLastPlanVariables: true,
     ));
   }
 
   Future<bool> loadMorePlans() async {
     if (state.isLoadingMore) return false;
-    final fromPlace = state.lastFromPlace;
-    final toPlace = state.lastToPlace;
-    final dateTime = state.lastPlanDateTime;
     final cursor = state.nextPageCursor;
+    final lastVars = state.lastPlanVariables;
 
-    if (fromPlace == null ||
-        toPlace == null ||
-        dateTime == null ||
-        cursor == null ||
-        cursor.trim().isEmpty) {
+    if (cursor == null || cursor.trim().isEmpty || lastVars == null) {
       return false;
     }
 
@@ -156,9 +157,7 @@ class RoutePlannerCubit extends Cubit<RoutePlannerState> {
 
     try {
       final nextJson = await _transitRepository.fetchRoutePlans(
-        fromPlace: fromPlace,
-        toPlace: toPlace,
-        dateTime: dateTime,
+        originalVariables: lastVars,
         nextPageCursor: cursor,
       );
 

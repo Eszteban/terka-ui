@@ -15,6 +15,29 @@ class AboutScreen extends StatefulWidget {
 class _AboutScreenState extends State<AboutScreen> {
   String _version = '';
   String _appName = '';
+  int _eggCounter = 0;
+  bool _showFox = false;
+  bool _useComicSans = false;
+
+  void _onLogoTap() {
+    if (_showFox) return;
+    _eggCounter++;
+    if (_eggCounter >= 10) {
+      setState(() {
+        _showFox = true;
+        _useComicSans = true;
+      });
+      Future.delayed(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() {
+            _showFox = false;
+            _useComicSans = false;
+            _eggCounter = 0;
+          });
+        }
+      });
+    }
+  }
 
   @override
   void initState() {
@@ -192,38 +215,54 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.getScaffoldBackground(context),
-      appBar: AppBar(
-        title: Text(AppTexts.aboutTitle),
-        centerTitle: true,
-        leading: widget.onBack != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: widget.onBack,
-              )
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // A kikevert seed szín használata fehér/fekete helyett:
+    final logoColor = Theme.of(context).colorScheme.primary;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        textTheme: _useComicSans
+            ? Theme.of(context).textTheme.apply(fontFamily: 'Comic Sans MS')
             : null,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 12),
-              // App Icon & Info Header
-              Center(
+      child: Stack(
+        children: [
+          Scaffold(
+            backgroundColor: AppColors.getScaffoldBackground(context),
+            appBar: AppBar(
+              title: Text(AppTexts.aboutTitle),
+              centerTitle: true,
+              leading: widget.onBack != null
+                  ? IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: widget.onBack,
+                    )
+                  : null,
+            ),
+            body: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12),
+                    // App Icon & Info Header
+                    Center(
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: Colors.transparent,
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/icons/app_icon.png',
-                          width: 88,
-                          height: 88,
-                          fit: BoxFit.contain,
+                    GestureDetector(
+                      onTap: _onLogoTap,
+                      child: CircleAvatar(
+                        radius: 44,
+                        backgroundColor: Colors.transparent,
+                        child: ClipOval(
+                          child: Image.asset(
+                            'assets/icons/terka_logo_monochrome.png',
+                            width: 88,
+                            height: 88,
+                            fit: BoxFit.cover, // A contain helyett cover, így levágja a széleket és kitölti a kört
+                            color: logoColor,
+                          ),
                         ),
                       ),
                     ),
@@ -461,6 +500,27 @@ class _AboutScreenState extends State<AboutScreen> {
           ),
         ),
       ),
+      ),
+          IgnorePointer(
+            ignoring: true,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 500),
+                child: _showFox
+                    ? Image.asset(
+                        'assets/pics/spinning_fox.gif',
+                        key: const ValueKey('fox'),
+                        width: 350,
+                        height: 350,
+                        fit: BoxFit.contain,
+                      )
+                    : const SizedBox.shrink(key: ValueKey('empty')),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
+

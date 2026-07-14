@@ -18,7 +18,15 @@ import '../../models/pass_type.dart';
 import '../../repositories/ticket_repository.dart';
 import '../../injection_container.dart';
 import '../../widgets/forms/route_plan_form.dart';
+import '../../services/graphql/graphql_client.dart';
+import '../../services/graphql/graphql_queries.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../widgets/tables/route_planner_results_view.dart';
+import '../../widgets/line_badge.dart';
+import '../../widgets/forms/autocomplete_search_field.dart';
+import 'general_search_screen.dart';
+import '../../utils/markup_text_utils.dart' as markup;
+import '../../utils/stop_details_utils.dart';
 
 import 'widgets/main_desktop_map_layout.dart';
 import 'widgets/main_planner_content.dart';
@@ -66,6 +74,17 @@ class _MainScreenState extends State<MainScreen> {
   String? _activeStopName;
   LatLng? _activeStopPoint;
   List<String>? _activeGroupedStopIds;
+
+  LatLng? _searchHighlightPoint;
+  String? _searchHighlightName;
+  String? _selectedRouteName;
+  Color? _selectedRouteColor;
+  Color? _selectedRouteTextColor;
+
+  String? _preSelectedFromToken;
+  String? _preSelectedToToken;
+  List<double>? _preSelectedFromCoords;
+  List<double>? _preSelectedToCoords;
 
   double _currentSliderValue = 5;
   double _currentWalkingValue = 1000;
@@ -225,7 +244,273 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _clearDesktopRouteSelection() {
+    setState(() {
+      _selectedRouteName = null;
+      _selectedRouteColor = null;
+      _selectedRouteTextColor = null;
+      _searchHighlightPoint = null;
+      _searchHighlightName = null;
+    });
     _mapCubit.clearDesktopRouteSelection();
+  }
+
+  Future<void> _showRouteOnMap(Map<String, dynamic> rawRouteData) async {
+    final gtfsId = rawRouteData['gtfsId']?.toString();
+    final shortName = rawRouteData['shortName']?.toString() ?? '-';
+    final colorHex = rawRouteData['color']?.toString() ?? '0A84FF';
+    final textColorHex = rawRouteData['textColor']?.toString() ?? 'FFFFFF';
+
+    if (gtfsId == null) return;
+
+    final defaultColor = Theme.of(context).colorScheme.primary;
+
+    setState(() {
+      _selectedRouteName = shortName;
+      _selectedRouteColor = StopDetailsUtils.hexColor(colorHex);
+      _selectedRouteTextColor = StopDetailsUtils.hexColor(textColorHex);
+    });
+
+    try {
+      const queryStr = r'''
+        query RoutePattern($id: String!) {
+          route(id: $id) {
+            patterns {
+              geometry {
+                lat
+                lon
+              }
+              stops {
+                gtfsId
+                name
+                lat
+                lon
+              }
+            }
+          }
+        }
+      ''';
+
+      final response = await const GraphqlClient().execute(
+        query: queryStr,
+        variables: {'id': gtfsId},
+      );
+
+      if (response.isSuccess && response.json != null) {
+        final data = response.json!['data'];
+        final route = data is Map ? data['route'] : null;
+        final patterns = route is Map ? route['patterns'] : null;
+        if (patterns is List && patterns.isNotEmpty) {
+          final segments = <RouteSegment>[];
+          final stops = <RouteStopMarker>[];
+
+          for (final pattern in patterns) {
+            if (pattern is Map) {
+              final geom = pattern['geometry'];
+              final patternStops = pattern['stops'];
+
+              final points = <LatLng>[];
+              if (geom is List) {
+                for (final p in geom) {
+                  if (p is Map) {
+                    final lat = StopDetailsUtils.asNum(p['lat'])?.toDouble();
+                    final lon = StopDetailsUtils.asNum(p['lon'])?.toDouble();
+                    if (lat != null && lon != null) {
+                      points.add(LatLng(lat, lon));
+                    }
+                  }
+                }
+              }
+              if (points.isNotEmpty) {
+                segments.add(
+                  RouteSegment(
+                    points: points,
+                    color: _selectedRouteColor ?? defaultColor,
+                  ),
+                );
+              }
+
+              if (patternStops is List) {
+                for (final s in patternStops) {
+                  if (s is Map) {
+                    final sId = s['gtfsId']?.toString();
+                    final sName = s['name']?.toString() ?? '';
+                    final lat = StopDetailsUtils.asNum(s['lat'])?.toDouble();
+                    final lon = StopDetailsUtils.asNum(s['lon'])?.toDouble();
+                    if (sId != null && lat != null && lon != null) {
+                      if (!stops.any((marker) => marker.stopId == sId)) {
+                        stops.add(
+                          RouteStopMarker(
+                            stopId: sId,
+                            label: sName,
+                            point: LatLng(lat, lon),
+                            type: RouteStopType.transfer,
+                          ),
+                        );
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          if (segments.isNotEmpty) {
+            final routeOverlay = RouteMapData(
+              segments: segments,
+              stops: stops,
+            );
+
+            _showDesktopRouteOnBackgroundMap(
+              routeData: routeOverlay,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error showing route on map: $e');
+    }
+  }
+
+  Future<void> _planRouteToDestination(String name, LatLng coordinates, [String? stopId]) async {
+    bool gpsSuccess = false;
+    LatLng? currentLoc;
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        final permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.always || permission == LocationPermission.whileInUse) {
+          final position = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              timeLimit: Duration(seconds: 4),
+            ),
+          );
+          currentLoc = LatLng(position.latitude, position.longitude);
+          gpsSuccess = true;
+        }
+      }
+    } catch (_) {}
+
+    final gpsName = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
+    final destinationToken = stopId == null
+        ? '$name::${coordinates.latitude},${coordinates.longitude}'
+        : '$name::$stopId';
+
+    final localLoc = currentLoc;
+    if (gpsSuccess && localLoc != null) {
+      final fromToken = '$gpsName::${localLoc.latitude},${localLoc.longitude}';
+      setState(() {
+        _preSelectedFromToken = fromToken;
+        _preSelectedFromCoords = [localLoc.longitude, localLoc.latitude];
+        _searchController1.text = gpsName;
+
+        _preSelectedToToken = destinationToken;
+        _preSelectedToCoords = [coordinates.longitude, coordinates.latitude];
+        _searchController2.text = name;
+      });
+
+      _routePlannerCubit.setLoading(true);
+      _navigationCubit.navigateTo(MainSection.table);
+
+        Map<String, dynamic>? variables;
+        try {
+          final now = DateTime.now();
+          final dateString = '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+          final timeString = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+          variables = <String, dynamic>{
+            'arriveBy': false,
+            'banned': <String, dynamic>{},
+            'bikeReluctance': 1.0,
+            'carReluctance': 1.0,
+            'date': dateString,
+            'fromPlace': fromToken,
+            'modes': [{'mode': 'TRANSIT'}, {'mode': 'WALK'}],
+            'numItineraries': 15,
+            'preferred': <String, dynamic>{},
+            'time': timeString,
+            'toPlace': destinationToken,
+            'unpreferred': <String, dynamic>{},
+            'walkReluctance': 1.0,
+            'walkSpeed': 1.3888888888888888,
+            'wheelchair': false,
+            'minTransferTime': 0,
+            'transitPassFilter': <String>[],
+            'comfortLevels': <String>[],
+            'searchParameters': <String>[],
+            'distributionChannel': 'ERTEKESITESI_CSATORNA#INTERNET',
+            'distributionSubChannel': 'ERTEKESITESI_ALCSATORNA#EMMA',
+            'pageCursor': '',
+          };
+
+          final response = await const GraphqlClient().execute(
+            query: planQuery,
+            variables: variables,
+          );
+
+          if (response.isSuccess) {
+            final isHungarian = AppTexts.isHungarian;
+            final plan = response.json?['data']?['plan'];
+            final itineraries = plan?['itineraries'];
+            final bool hasMeaning = itineraries is List && itineraries.isNotEmpty;
+
+            _routePlannerCubit.setPlanResult(PlanSearchResult(
+              hasMeaningfulResponse: hasMeaning,
+              responseText: hasMeaning
+                  ? response.rawBody
+                  : (isHungarian
+                      ? 'Nem találtunk útvonalat. Kérjük, próbáld meg más beállításokkal vagy időponttal!'
+                      : 'No routes found. Please try with different settings or times!'),
+              query: planQuery,
+              requestVariables: variables,
+              responseJson: response.json,
+              nextPageCursor: plan?['pageCursor']?.toString(),
+              fromPlaceToken: fromToken,
+              toPlaceToken: destinationToken,
+              fromCoordinates: _preSelectedFromCoords,
+              toCoordinates: _preSelectedToCoords,
+            ));
+          } else {
+            _routePlannerCubit.setPlanResult(PlanSearchResult(
+              hasMeaningfulResponse: false,
+              responseText: AppTexts.isHungarian
+                  ? 'Hiba történt a tervezés során. Kérjük, próbáld újra!'
+                  : 'An error occurred during planning. Please try again!',
+              query: planQuery,
+              requestVariables: variables,
+              fromPlaceToken: fromToken,
+              toPlaceToken: destinationToken,
+              fromCoordinates: _preSelectedFromCoords,
+              toCoordinates: _preSelectedToCoords,
+            ));
+          }
+        } catch (e) {
+          _routePlannerCubit.setPlanResult(PlanSearchResult(
+            hasMeaningfulResponse: false,
+            responseText: e.toString(),
+            query: planQuery,
+            requestVariables: variables,
+            fromPlaceToken: fromToken,
+            toPlaceToken: destinationToken,
+            fromCoordinates: _preSelectedFromCoords,
+            toCoordinates: _preSelectedToCoords,
+          ));
+        } finally {
+          _routePlannerCubit.setLoading(false);
+        }
+    } else {
+      setState(() {
+        _preSelectedFromToken = null;
+        _preSelectedFromCoords = null;
+        _searchController1.text = '';
+
+        _preSelectedToToken = destinationToken;
+        _preSelectedToCoords = [coordinates.longitude, coordinates.latitude];
+        _searchController2.text = name;
+      });
+
+      _navigationCubit.navigateTo(MainSection.home);
+    }
   }
 
   RouteMapData _buildStopRouteMapData() {
@@ -265,8 +550,19 @@ class _MainScreenState extends State<MainScreen> {
       transfers: _currentSliderValue,
       maxWalk: _currentWalkingValue,
       selectedTransportModes: _selectedKozlekedes,
+      initialFromPlaceToken: _preSelectedFromToken,
+      initialToPlaceToken: _preSelectedToToken,
+      initialFromCoordinates: _preSelectedFromCoords,
+      initialToCoordinates: _preSelectedToCoords,
+      autofocusFrom: _preSelectedFromToken == null && _preSelectedToToken != null,
       onSearch: (PlanSearchResult result) {
         _routePlannerCubit.setPlanResult(result);
+        setState(() {
+          _preSelectedFromToken = result.fromPlaceToken;
+          _preSelectedToToken = result.toPlaceToken;
+          _preSelectedFromCoords = result.fromCoordinates;
+          _preSelectedToCoords = result.toCoordinates;
+        });
         if (isDesktop) {
           _mapCubit.clearDesktopRouteSelection();
         }
@@ -290,6 +586,22 @@ class _MainScreenState extends State<MainScreen> {
       onTicketWatchChanged: (value) {
         setState(() {
           _jegyfigyeles = value;
+        });
+      },
+      onFromPlaceChanged: (token, coords) {
+        debugPrint('DEBUG MainScreen: onFromPlaceChanged callback triggered with token: $token');
+        setState(() {
+          _preSelectedFromToken = token;
+          _preSelectedFromCoords = coords;
+          debugPrint('DEBUG MainScreen: setState updated _preSelectedFromToken to: $_preSelectedFromToken');
+        });
+      },
+      onToPlaceChanged: (token, coords) {
+        debugPrint('DEBUG MainScreen: onToPlaceChanged callback triggered with token: $token');
+        setState(() {
+          _preSelectedToToken = token;
+          _preSelectedToCoords = coords;
+          debugPrint('DEBUG MainScreen: setState updated _preSelectedToToken to: $_preSelectedToToken');
         });
       },
     );
@@ -398,6 +710,9 @@ class _MainScreenState extends State<MainScreen> {
             _navigationCubit.navigateTo(MainSection.tripDetails);
           },
           onCloseRequested: _handleBackNavigation,
+          onPlanRouteToStop: (stopName, stopPoint, stopId) {
+            _planRouteToDestination(stopName, stopPoint, stopId);
+          },
         );
       case MainSection.home:
       case MainSection.table:
@@ -416,7 +731,7 @@ class _MainScreenState extends State<MainScreen> {
       ],
       child: BlocListener<NavigationCubit, NavigationState>(
         listener: (context, state) {
-          _mapCubit.clearDesktopRouteSelection();
+          _clearDesktopRouteSelection();
           _loadTickets();
         },
         child: BlocBuilder<NavigationCubit, NavigationState>(
@@ -435,6 +750,8 @@ class _MainScreenState extends State<MainScreen> {
                 final horizontalPadding = isDesktop ? AppSpacing.xxl : AppSpacing.md;
                 final isMapFullscreen = _showMap;
                 final useDesktopMapLayout = isDesktop;
+                final colorScheme = Theme.of(context).colorScheme;
+                final isDark = Theme.of(context).brightness == Brightness.dark;
 
                 final isPhoneLandscape =
                     !isDesktop &&
@@ -511,8 +828,12 @@ class _MainScreenState extends State<MainScreen> {
                                   },
                                   hideGeneralStopsAndVehicles: state.currentSection == MainSection.tripDetails ||
                                       state.currentSection == MainSection.stopDetails ||
-                                      mapState.routeOverlayData.hasContent ||
-                                      mapState.selectedMapPayload != null,
+                                      (mapState.selectedMapPayload != null && _selectedRouteName == null),
+                                  searchHighlightPoint: _searchHighlightPoint,
+                                  onPlanRouteToStop: (stopName, stopPoint, stopId) {
+                                    _planRouteToDestination(stopName, stopPoint, stopId);
+                                  },
+                                  desktopSelectedRouteName: _selectedRouteName,
                                 )
                       : Row(
                           children: [
@@ -551,10 +872,241 @@ class _MainScreenState extends State<MainScreen> {
                                                   child: SizedBox.shrink(),
                                                 ),
                                               ),
-                                              const Expanded(
+                                              Expanded(
                                                 child: Stack(
                                                   children: [
-                                                    Positioned.fill(child: MapView()),
+                                                    Positioned.fill(
+                                                      child: MapView(
+                                                        controlsBottomInset: (_searchHighlightPoint != null || _selectedRouteName != null) ? 156.0 : 88.0,
+                                                        routeOverlayData: state.currentSection == MainSection.stopDetails
+                                                            ? _buildStopRouteMapData()
+                                                            : mapState.routeOverlayData,
+                                                        routeVehicleMarker: mapState.routeVehicleMarker,
+                                                        onShowTripOnBackgroundMap: (routeData, vehicleMarker) {
+                                                          _showDesktopRouteOnBackgroundMap(
+                                                            routeData: routeData,
+                                                            vehicleMarker: vehicleMarker,
+                                                          );
+                                                        },
+                                                        onOpenTripDetailsRequested: null,
+                                                        onOpenStopDetailsRequested: null,
+                                                        hideGeneralStopsAndVehicles: (state.currentSection == MainSection.tripDetails ||
+                                                            state.currentSection == MainSection.stopDetails ||
+                                                            (mapState.selectedMapPayload != null && _selectedRouteName == null)),
+                                                        searchHighlightPoint: _searchHighlightPoint,
+                                                        onPlanRouteToStop: (stopName, stopPoint, stopId) {
+                                                          _planRouteToDestination(stopName, stopPoint, stopId);
+                                                        },
+                                                        selectedRouteName: _selectedRouteName,
+                                                      ),
+                                                    ),
+                                                    if (_searchHighlightPoint != null && _searchHighlightName != null)
+                                                      Positioned(
+                                                        left: 16,
+                                                        right: 16,
+                                                        bottom: 88,
+                                                        child: Card(
+                                                          elevation: 6,
+                                                          shadowColor: Colors.black.withValues(alpha: 0.15),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(16),
+                                                            side: BorderSide(
+                                                              color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+                                                            ),
+                                                          ),
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                            child: Row(
+                                                              children: [
+                                                                Container(
+                                                                  padding: const EdgeInsets.all(8),
+                                                                  decoration: BoxDecoration(
+                                                                    color: colorScheme.primary.withValues(alpha: 0.1),
+                                                                    shape: BoxShape.circle,
+                                                                  ),
+                                                                  child: Icon(Icons.place, color: colorScheme.primary, size: 20),
+                                                                ),
+                                                                const SizedBox(width: 12),
+                                                                Expanded(
+                                                                  child: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Text(
+                                                                        _searchHighlightName!,
+                                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                                        maxLines: 1,
+                                                                        overflow: TextOverflow.ellipsis,
+                                                                      ),
+                                                                      Text(
+                                                                        AppTexts.isHungarian ? 'Kiválasztott hely' : 'Selected location',
+                                                                        style: TextStyle(
+                                                                          fontSize: 12,
+                                                                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                IconButton(
+                                                                  icon: Icon(Icons.directions, color: colorScheme.primary),
+                                                                  onPressed: () {
+                                                                    _planRouteToDestination(_searchHighlightName!, _searchHighlightPoint!);
+                                                                  },
+                                                                  tooltip: AppTexts.isHungarian ? 'Útvonaltervezés ide' : 'Plan route here',
+                                                                ),
+                                                                IconButton(
+                                                                  icon: const Icon(Icons.close),
+                                                                  onPressed: () {
+                                                                    setState(() {
+                                                                      _searchHighlightPoint = null;
+                                                                      _searchHighlightName = null;
+                                                                    });
+                                                                  },
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    if (_selectedRouteName != null)
+                                                      Positioned(
+                                                        left: 16,
+                                                        right: 16,
+                                                        bottom: 88,
+                                                        child: Card(
+                                                          elevation: 6,
+                                                          shadowColor: Colors.black.withValues(alpha: 0.15),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(16),
+                                                            side: BorderSide(
+                                                              color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+                                                            ),
+                                                          ),
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                            child: Row(
+                                                              children: [
+                                                                LineBadge(
+                                                                  lineLabel: markup.plainTextFromHtml(_selectedRouteName!).trim(),
+                                                                  routeColor: _selectedRouteColor ?? colorScheme.primary,
+                                                                  routeTextColor: _selectedRouteTextColor ?? Colors.white,
+                                                                  useSpanFont: markup.containsSpanMarkup(_selectedRouteName!),
+                                                                ),
+                                                                const SizedBox(width: 12),
+                                                                Expanded(
+                                                                  child: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Text(
+                                                                        AppTexts.isHungarian ? 'Járat kirajzolva' : 'Line plotted',
+                                                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                                      ),
+                                                                      Text(
+                                                                        AppTexts.isHungarian
+                                                                            ? 'Mutatás a térképen'
+                                                                            : 'Shown on the map',
+                                                                        style: TextStyle(
+                                                                          fontSize: 12,
+                                                                          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                IconButton(
+                                                                  icon: const Icon(Icons.close),
+                                                                  onPressed: _clearDesktopRouteSelection,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    Positioned(
+                                                      left: 16,
+                                                      right: 16,
+                                                      bottom: 16,
+                                                      child: GestureDetector(
+                                                        onTap: () async {
+                                                          final suggestion = await Navigator.of(context).push<SuggestionEntry>(
+                                                            MaterialPageRoute(builder: (_) => const GeneralSearchScreen()),
+                                                          );
+                                                          if (suggestion != null) {
+                                                            if (suggestion.type == SuggestionType.stop) {
+                                                              if (isDesktop) {
+                                                                setState(() {
+                                                                  _activeStopId = suggestion.id;
+                                                                  _activeStopName = suggestion.name;
+                                                                  _activeStopPoint = suggestion.coordinates != null
+                                                                      ? LatLng(suggestion.coordinates![1], suggestion.coordinates![0])
+                                                                      : null;
+                                                                  _activeGroupedStopIds = null;
+                                                                });
+                                                                _navigationCubit.navigateTo(MainSection.stopDetails);
+                                                              } else {
+                                                                if (context.mounted) {
+                                                                  Navigator.of(context).push(
+                                                                    MaterialPageRoute(
+                                                                      builder: (_) => StopDetailsScreen(
+                                                                        stopId: suggestion.id ?? '',
+                                                                        initialStopName: suggestion.name,
+                                                                        initialStopPoint: suggestion.coordinates != null
+                                                                            ? LatLng(suggestion.coordinates![1], suggestion.coordinates![0])
+                                                                            : null,
+                                                                        onPlanRouteToStop: (stopName, stopPoint, stopId) {
+                                                                          _planRouteToDestination(stopName, stopPoint, stopId);
+                                                                        },
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              }
+                                                            } else if (suggestion.type == SuggestionType.address && suggestion.coordinates != null) {
+                                                              setState(() {
+                                                                _searchHighlightPoint = LatLng(suggestion.coordinates![1], suggestion.coordinates![0]);
+                                                                _searchHighlightName = suggestion.name;
+                                                              });
+                                                            } else if (suggestion.type == SuggestionType.route && suggestion.rawData != null) {
+                                                              _showRouteOnMap(suggestion.rawData!);
+                                                            }
+                                                          }
+                                                        },
+                                                        child: Card(
+                                                          elevation: 6,
+                                                          shadowColor: Colors.black.withValues(alpha: 0.15),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(24),
+                                                            side: BorderSide(
+                                                              color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
+                                                            ),
+                                                          ),
+                                                          child: Padding(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                            child: Row(
+                                                              children: [
+                                                                Icon(Icons.search, color: colorScheme.primary),
+                                                                const SizedBox(width: 12),
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    AppTexts.isHungarian
+                                                                        ? 'Hova utazol?'
+                                                                        : 'Where to?',
+                                                                    style: TextStyle(
+                                                                      fontSize: 16,
+                                                                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                                                                      fontWeight: FontWeight.w500,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Icon(Icons.tune, color: colorScheme.primary),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
                                                   ],
                                                 ),
                                               ),
