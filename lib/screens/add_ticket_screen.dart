@@ -9,8 +9,11 @@ import '../injection_container.dart';
 import '../repositories/pass_type_repository.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
+import '../utils/layout_provider.dart';
 
-class AddTicketScreen extends StatefulWidget {
+class AddTicketScreen extends StatelessWidget {
   final TicketItem? ticket;
   final VoidCallback? onBack;
   final VoidCallback? onSaved;
@@ -23,10 +26,40 @@ class AddTicketScreen extends StatefulWidget {
   });
 
   @override
-  State<AddTicketScreen> createState() => _AddTicketScreenState();
+  Widget build(BuildContext context) {
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+    return DesktopSidebarWrapper(
+      child: Scaffold(
+        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        body: SafeArea(
+          child: AddTicketView(
+            ticket: ticket,
+            onBack: onBack,
+            onSaved: onSaved,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _AddTicketScreenState extends State<AddTicketScreen> {
+class AddTicketView extends StatefulWidget {
+  final TicketItem? ticket;
+  final VoidCallback? onBack;
+  final VoidCallback? onSaved;
+
+  const AddTicketView({
+    super.key,
+    this.ticket,
+    this.onBack,
+    this.onSaved,
+  });
+
+  @override
+  State<AddTicketView> createState() => _AddTicketViewState();
+}
+
+class _AddTicketViewState extends State<AddTicketView> {
   final _formKey = GlobalKey<FormState>();
   final _quantityController = TextEditingController();
   final _ticketStartController = TextEditingController();
@@ -339,12 +372,11 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
     final cardElevation = isDark ? 0.0 : 2.0;
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.ticket != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
+    return Column(
+      children: [
+        ScreenHeader(
+          title: Text(widget.ticket != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
+          onBack: () {
             if (widget.onBack != null) {
               widget.onBack!();
             } else {
@@ -352,9 +384,8 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
             }
           },
         ),
-      ),
-      body: SafeArea(
-        child: _isLoadingOptions
+        Expanded(
+          child: _isLoadingOptions
             ? const Center(child: CircularProgressIndicator())
             : _error != null
                 ? Center(
@@ -563,7 +594,8 @@ class _AddTicketScreenState extends State<AddTicketScreen> {
                       ),
                     ),
                   ),
-      ),
+        ),
+      ],
     );
   }
 }

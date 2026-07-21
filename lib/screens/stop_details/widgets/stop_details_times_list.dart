@@ -29,6 +29,7 @@ class StopDetailsTimesList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(12),
       itemCount: items.length,
+      shrinkWrap: true,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final departure = items[index];

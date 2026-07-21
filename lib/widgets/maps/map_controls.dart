@@ -1,6 +1,20 @@
 import 'package:flutter/material.dart';
 
-class MapControls extends StatelessWidget {
+class _MapControlButton {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color? iconColor;
+  final Widget? customIcon;
+
+  _MapControlButton({
+    required this.icon,
+    required this.onTap,
+    this.iconColor,
+    this.customIcon,
+  });
+}
+
+class MapControls extends StatefulWidget {
   static bool showUserLocation = true;
 
   final double controlsBottomInset;
@@ -36,100 +50,106 @@ class MapControls extends StatelessWidget {
   });
 
   @override
+  State<MapControls> createState() => _MapControlsState();
+}
+
+class _MapControlsState extends State<MapControls> {
+  bool _isExpanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final hasCompass = showRotationControls && isRotated;
-    final hasRotateToggle = showRotationControls;
-    final hasLocationToggle = onToggleLocationDot != null;
-    final hasMyLocation = showMyLocationButton;
+    final hasCompass = widget.showRotationControls && widget.isRotated;
+    final hasRotateToggle = widget.showRotationControls;
+    final hasLocationToggle = widget.onToggleLocationDot != null;
+    final hasMyLocation = widget.showMyLocationButton;
 
     final hasLeftColumn =
         hasCompass || hasRotateToggle || hasLocationToggle || hasMyLocation;
 
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+    final safeBottom = bottomPadding + 12 + widget.controlsBottomInset;
+
+    final buttons = <_MapControlButton>[];
+
+    if (hasLeftColumn) {
+      if (_isExpanded) {
+        if (widget.showRotationControls && widget.isRotated) {
+          buttons.add(_MapControlButton(
+            icon: Icons.explore,
+            onTap: widget.onResetNorth,
+          ));
+        }
+        if (widget.showRotationControls) {
+          buttons.add(_MapControlButton(
+            icon: widget.isRotationGestureEnabled
+                ? Icons.screen_rotation
+                : Icons.screen_lock_rotation,
+            iconColor: widget.isRotationGestureEnabled
+                ? Theme.of(context).colorScheme.primary
+                : null,
+            onTap: widget.onToggleRotation,
+          ));
+        }
+        if (widget.onToggleLocationDot != null) {
+          buttons.add(_MapControlButton(
+            icon: MapControls.showUserLocation
+                ? Icons.location_on
+                : Icons.location_off,
+            iconColor: MapControls.showUserLocation
+                ? Theme.of(context).colorScheme.primary
+                : null,
+            onTap: widget.onToggleLocationDot!,
+          ));
+        }
+        if (widget.showMyLocationButton) {
+          buttons.add(_MapControlButton(
+            icon: Icons.my_location,
+            customIcon: widget.isLocating
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Padding(
+                      padding: EdgeInsets.all(3.0),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
+            onTap: widget.onJumpToCurrentLocation,
+          ));
+        }
+        buttons.add(_MapControlButton(
+          icon: Icons.keyboard_arrow_down,
+          onTap: () => setState(() => _isExpanded = false),
+        ));
+      } else {
+        buttons.add(_MapControlButton(
+          icon: Icons.layers,
+          onTap: () => setState(() => _isExpanded = true),
+        ));
+      }
+    }
+
+    buttons.add(_MapControlButton(
+      icon: Icons.add,
+      onTap: widget.onZoomIn,
+    ));
+    buttons.add(_MapControlButton(
+      icon: Icons.remove,
+      onTap: widget.onZoomOut,
+    ));
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // Bottom-left column of FABs
-        if (hasLeftColumn)
-          Positioned(
-            left: 12,
-            bottom: 12 + controlsBottomInset,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showRotationControls) ...[
-                  if (isRotated) ...[
-                    FloatingActionButton.small(
-                      heroTag: null,
-                      onPressed: onResetNorth,
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      foregroundColor: Theme.of(context).colorScheme.onSurface,
-                      child: const Icon(Icons.explore),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  FloatingActionButton.small(
-                    heroTag: null,
-                    onPressed: onToggleRotation,
-                    backgroundColor: isRotationGestureEnabled
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surface,
-                    foregroundColor: isRotationGestureEnabled
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurface,
-                    child: Icon(
-                      isRotationGestureEnabled
-                          ? Icons.screen_rotation
-                          : Icons.screen_lock_rotation,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                if (onToggleLocationDot != null) ...[
-                  FloatingActionButton.small(
-                    heroTag: null,
-                    onPressed: onToggleLocationDot,
-                    backgroundColor: MapControls.showUserLocation
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.surface,
-                    foregroundColor: MapControls.showUserLocation
-                        ? Theme.of(context).colorScheme.onPrimary
-                        : Theme.of(context).colorScheme.onSurface,
-                    child: Icon(
-                      MapControls.showUserLocation
-                          ? Icons.location_on
-                          : Icons.location_off,
-                    ),
-                  ),
-                ],
-                if (showMyLocationButton) ...[
-                  const SizedBox(height: 8),
-                  FloatingActionButton.small(
-                    heroTag: null,
-                    onPressed: onJumpToCurrentLocation,
-                    backgroundColor: Theme.of(context).colorScheme.surface,
-                    foregroundColor: Theme.of(context).colorScheme.onSurface,
-                    child: isLocating
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.my_location),
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-        // Attribution Info Button
+        // Attribution Info Button (moved fully left since buttons moved to right)
         Positioned(
-          left: hasLeftColumn ? 64 : 12,
-          bottom: 12 + controlsBottomInset,
+          left: 12,
+          bottom: safeBottom,
           child: ClipOval(
             child: Material(
               color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.7),
               child: InkWell(
-                onTap: onShowAttribution,
+                onTap: widget.onShowAttribution,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Icon(
@@ -143,10 +163,10 @@ class MapControls extends StatelessWidget {
           ),
         ),
 
-        // Bottom-right zoom controls column
+        // Bottom-right controls column
         Positioned(
           right: 12,
-          bottom: 12 + controlsBottomInset,
+          bottom: safeBottom,
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
@@ -159,49 +179,39 @@ class MapControls extends StatelessWidget {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                    onTap: onZoomIn,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Icon(
-                        Icons.add,
-                        color: Theme.of(context).colorScheme.onSurface,
+            child: AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < buttons.length; i++) ...[
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.vertical(
+                          top: i == 0 ? const Radius.circular(12) : Radius.zero,
+                          bottom: i == buttons.length - 1 ? const Radius.circular(12) : Radius.zero,
+                        ),
+                        onTap: buttons[i].onTap,
+                        child: Padding(
+                          padding: const EdgeInsets.all(10.0),
+                          child: buttons[i].customIcon ?? Icon(
+                            buttons[i].icon,
+                            color: buttons[i].iconColor ?? Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                Container(
-                  width: 24,
-                  height: 1,
-                  color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                ),
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                    onTap: onZoomOut,
-                    child: Padding(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Icon(
-                        Icons.remove,
-                        color: Theme.of(context).colorScheme.onSurface,
+                    if (i < buttons.length - 1)
+                      Container(
+                        width: 24,
+                        height: 1,
+                        color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
                       ),
-                    ),
-                  ),
-                ),
-              ],
+                  ]
+                ],
+              ),
             ),
           ),
         ),
@@ -209,3 +219,4 @@ class MapControls extends StatelessWidget {
     );
   }
 }
+

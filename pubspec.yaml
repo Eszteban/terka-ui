@@ -1,7 +1,7 @@
 name: terka
 description: "Egy alkalmazás adathalászatra a MÁV szervereiről."
 publish_to: 'none'
-version: 26.29.1-f+262901
+version: 26.30.1-f+263001
 
 environment:
   sdk: ^3.11.0
@@ -21,6 +21,7 @@ dependencies:
   native_device_orientation: ^2.1.1
   get_it: ^9.2.1
   flutter_bloc: ^9.1.1
+  go_router: ^17.3.0
 
 dev_dependencies:
   flutter_test:

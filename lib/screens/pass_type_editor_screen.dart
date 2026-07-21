@@ -7,8 +7,11 @@ import '../repositories/ticket_repository.dart';
 import '../injection_container.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
+import '../utils/layout_provider.dart';
 
-class PassTypeEditorScreen extends StatefulWidget {
+class PassTypeEditorScreen extends StatelessWidget {
   final PassType? passType;
   final VoidCallback? onBack;
   final VoidCallback? onSaved;
@@ -21,10 +24,40 @@ class PassTypeEditorScreen extends StatefulWidget {
   });
 
   @override
-  State<PassTypeEditorScreen> createState() => _PassTypeEditorScreenState();
+  Widget build(BuildContext context) {
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+    return DesktopSidebarWrapper(
+      child: Scaffold(
+        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        body: SafeArea(
+          child: PassTypeEditorView(
+            passType: passType,
+            onBack: onBack,
+            onSaved: onSaved,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
+class PassTypeEditorView extends StatefulWidget {
+  final PassType? passType;
+  final VoidCallback? onBack;
+  final VoidCallback? onSaved;
+
+  const PassTypeEditorView({
+    super.key,
+    this.passType,
+    this.onBack,
+    this.onSaved,
+  });
+
+  @override
+  State<PassTypeEditorView> createState() => _PassTypeEditorViewState();
+}
+
+class _PassTypeEditorViewState extends State<PassTypeEditorView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _daysController = TextEditingController();
@@ -366,12 +399,11 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
     final cardElevation = isDark ? 0.0 : 2.0;
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.passType != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
+    return Column(
+      children: [
+        ScreenHeader(
+          title: Text(widget.passType != null ? AppTexts.managePassTypesEditTitle : AppTexts.managePassTypesNewTitle),
+          onBack: () {
             if (widget.onBack != null) {
               widget.onBack!();
             } else {
@@ -379,9 +411,8 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
             }
           },
         ),
-      ),
-      body: SafeArea(
-        child: _isLoading
+        Expanded(
+          child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
                 ? Center(child: Text(_error!))
@@ -403,7 +434,8 @@ class _PassTypeEditorScreenState extends State<PassTypeEditorScreen> {
                       ),
                     ),
                   ),
-      ),
+        ),
+      ],
     );
   }
 }

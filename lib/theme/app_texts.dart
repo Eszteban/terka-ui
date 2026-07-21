@@ -66,8 +66,8 @@ class AppTexts {
   static String version(String version) =>
       isHungarian ? 'Verzió: $version' : 'Version: $version';
   static String get aboutCreatedBy => isHungarian
-      ? 'Készítette: Baranyai Brúnó (R150)\n\nProbléma esetén írj ide: info.railway150@gmail.com'
-      : 'Created by: Brúnó Baranyai (R150)\n\nIn case of problems, write to: info.railway150@gmail.com';
+      ? 'Készítette: Baranyai Brúnó "Esztebán" \n\nProbléma esetén írj ide: terka@eszteban.hu'
+      : 'Created by: Brúnó "Esztebán" Baranyai \n\nIn case of problems, write to: terka@eszteban.hu';
   static String get specialThanks => isHungarian
       ? 'Nagy-Pálóczi Regőnek - "Ismeretlen járművek típusainak azonosításában nyújtott segitségéért"'
       : 'To Regő Nagy-Pálóczi - "For his help in identifying unknown vehicle types"';
@@ -96,11 +96,11 @@ class AppTexts {
   static String get aboutOpenStreetMap =>
       isHungarian ? 'OpenStreetMap' : 'OpenStreetMap';
   static String get aboutTypography =>
-      isHungarian ? 'Betűtípus' : 'Typography';
-  static String get aboutFontFamilyLabel => isHungarian ? 'Család' : 'Family';
+      isHungarian ? 'Betűtípus' : 'Font';
+  static String get aboutFontFamilyLabel => isHungarian ? 'Neve' : 'Family';
   static String get aboutFontExplanation => isHungarian
-      ? 'A MÁV Normalizált Rendszer (2007) hivatalos betűkészlete, melyet az alkalmazás a valósághű megálló- és járatkijelzőkhöz használ fel.'
-      : 'The official font family of the Hungarian State Railways (MÁV, 2007), used by the application for authentic stop and line indicators.';
+      ? 'A MÁV menetrendekben használt hivatalos betűkészlete, melyet az alkalmazás a valósághű megálló- és járatkijelzéshez használ fel.'
+      : 'The official font family of the Hungarian State Railways (MÁV), used by the application for authentic stop and line indicators.';
   static String get aboutUsedLibraries =>
       isHungarian ? 'Használt könyvtárak' : 'Used Libraries';
   static String get aboutUsedLibrariesSubtitle => isHungarian
@@ -291,6 +291,10 @@ class AppTexts {
   static String get profileAboutApp =>
       isHungarian ? 'Alkalmazás névjegye' : 'About Application';
   static String get profileLanguage => isHungarian ? 'Nyelv' : 'Language';
+  static String get profileLayoutMode => isHungarian ? 'Elrendezés' : 'Layout';
+  static String get profileLayoutMobile => isHungarian ? 'Mobil' : 'Mobile';
+  static String get profileLayoutAutomatic => isHungarian ? 'Auto' : 'Auto';
+  static String get profileLayoutTablet => isHungarian ? 'Tablet' : 'Tablet';
 
   // Main Screen
   static String get mainDefaultPlanResponse =>
@@ -407,6 +411,14 @@ class AppTexts {
       isHungarian ? 'Vonal-választó' : 'Line Selector';
   static String get stopLineFilterReset =>
       isHungarian ? 'Alaphelyzet' : 'Reset';
+
+  // Route Details Screen
+  static String get routeDetailsTitle =>
+      isHungarian ? 'Vonal adatai' : 'Route details';
+  static String get routeDetailsNotAvailable =>
+      isHungarian ? 'A vonal adatai nem érhetők el.' : 'Route details not available.';
+  static String get routeDetailsNotRunningToday =>
+      isHungarian ? 'Ma nem közlekedik' : 'Does not run today';
 
   // Trip Details Screen
   static String get trip => isHungarian ? 'Járat' : 'Trip';

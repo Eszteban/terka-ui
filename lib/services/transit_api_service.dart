@@ -24,6 +24,21 @@ class TransitApiService {
     return data is Map ? data.cast<String, dynamic>() : null;
   }
 
+  /// Fetches route details for [routeId].
+  Future<Map<String, dynamic>?> fetchRouteDetails({
+    required String routeId,
+  }) async {
+    final response = await _graphqlClient.execute(
+      query: routeDetailsQuery,
+      variables: {'id': routeId},
+    );
+    if (!response.isSuccess || response.json == null) {
+      return null;
+    }
+    final data = response.json!['data'];
+    return data is Map ? data.cast<String, dynamic>() : null;
+  }
+
   /// Fetches quick stop info for [stopId].
   Future<Map<String, dynamic>?> fetchStopQuickInfo({
     required String stopId,

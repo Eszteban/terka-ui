@@ -194,7 +194,10 @@ class TripDetailsMobileSheet extends StatelessWidget {
                             serviceDay: serviceDay,
                             onStopTap: onStopTap,
                           ),
-                          TripDetailsAdditionalInfo(trip: trip),
+                          TripDetailsAdditionalInfo(
+                            trip: trip,
+                            serviceDay: serviceDay,
+                          ),
                         ],
                       ),
                     ),

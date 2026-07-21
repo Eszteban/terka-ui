@@ -105,7 +105,8 @@ class TripDetailsTableView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: AlertsSection(alerts: combinedAlerts),
         ),
-        Expanded(
+        Flexible(
+          fit: FlexFit.loose,
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
@@ -116,7 +117,10 @@ class TripDetailsTableView extends StatelessWidget {
                   serviceDay: serviceDay,
                   onStopTap: onStopTap,
                 ),
-                TripDetailsAdditionalInfo(trip: trip),
+                TripDetailsAdditionalInfo(
+                  trip: trip,
+                  serviceDay: serviceDay,
+                ),
               ],
             ),
           ),

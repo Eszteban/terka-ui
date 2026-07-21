@@ -133,30 +133,43 @@ class StopDetailsTabs extends StatelessWidget {
             ],
           ),
           Expanded(
-            child: TabBarView(
-              children: [
-                StopDetailsTimesList(
-                  items: visibleArrivals,
-                  now: now,
-                  emptyMessage: AppTexts.stopNoArrivals,
-                  isArrivalView: true,
-                  onOpenTripDetails: onOpenTripDetails,
-                ),
-                StopDetailsTimesList(
-                  items: visibleDepartures,
-                  now: now,
-                  emptyMessage: AppTexts.stopNoDepartures,
-                  isArrivalView: false,
-                  onOpenTripDetails: onOpenTripDetails,
-                ),
-                StopDetailsSchedule(
-                  items: visibleDepartures,
-                  selectedLines: selectedLines,
-                  uniqueLines: uniqueLines,
-                  now: now,
-                  onOpenTripDetails: onOpenTripDetails,
-                ),
-              ],
+            child: Builder(
+              builder: (context) {
+                final tabController = DefaultTabController.of(context);
+                return AnimatedBuilder(
+                  animation: tabController,
+                  builder: (context, _) {
+                    final index = tabController.index;
+                    Widget content;
+                    if (index == 0) {
+                      content = StopDetailsTimesList(
+                        items: visibleArrivals,
+                        now: now,
+                        emptyMessage: AppTexts.stopNoArrivals,
+                        isArrivalView: true,
+                        onOpenTripDetails: onOpenTripDetails,
+                      );
+                    } else if (index == 1) {
+                      content = StopDetailsTimesList(
+                        items: visibleDepartures,
+                        now: now,
+                        emptyMessage: AppTexts.stopNoDepartures,
+                        isArrivalView: false,
+                        onOpenTripDetails: onOpenTripDetails,
+                      );
+                    } else {
+                      content = StopDetailsSchedule(
+                        items: visibleDepartures,
+                        selectedLines: selectedLines,
+                        uniqueLines: uniqueLines,
+                        now: now,
+                        onOpenTripDetails: onOpenTripDetails,
+                      );
+                    }
+                    return content;
+                  },
+                );
+              },
             ),
           ),
         ],

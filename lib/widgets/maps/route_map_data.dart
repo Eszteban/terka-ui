@@ -73,23 +73,27 @@ class RouteVehicleMarker {
   final String tripHeadsign;
   final bool tripHeadsignUsesSpanFont;
   final String vehicleInfoText;
-  final String? tripId;
+  final String tripId;
   final String? serviceDay;
+  final Map<String, dynamic>? rawVehicle;
+  final Map<String, dynamic>? rawTrip;
 
   const RouteVehicleMarker({
     required this.point,
     required this.headingDegrees,
     required this.markerColor,
     required this.markerTextColor,
-    this.lineLabel = '-',
-    this.lineLabelUsesSpanFont = false,
-    this.tripShortName = '-',
-    this.tripShortNameUsesSpanFont = false,
-    this.tripHeadsign = '-',
-    this.tripHeadsignUsesSpanFont = false,
-    this.vehicleInfoText = '',
-    this.tripId,
+    required this.lineLabel,
+    required this.lineLabelUsesSpanFont,
+    required this.tripShortName,
+    required this.tripShortNameUsesSpanFont,
+    required this.tripHeadsign,
+    required this.tripHeadsignUsesSpanFont,
+    required this.vehicleInfoText,
+    required this.tripId,
     this.serviceDay,
+    this.rawVehicle,
+    this.rawTrip,
   });
 
   @override
@@ -110,6 +114,7 @@ class RouteVehicleMarker {
           vehicleInfoText == other.vehicleInfoText &&
           tripId == other.tripId &&
           serviceDay == other.serviceDay;
+          // rawVehicle and rawTrip omitted from == as they might be deep
 
   @override
   int get hashCode => Object.hash(

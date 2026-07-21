@@ -169,7 +169,19 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   void initState() {
     super.initState();
     _selectedFromPlaceToken = widget.initialFromPlaceToken;
+    if (_selectedFromPlaceToken != null && _selectedFromPlaceToken!.contains('::')) {
+      widget.fromController.text = _selectedFromPlaceToken!.split('::').first;
+    } else if (_selectedFromPlaceToken != null) {
+      widget.fromController.text = _selectedFromPlaceToken!;
+    }
+
     _selectedToPlaceToken = widget.initialToPlaceToken;
+    if (_selectedToPlaceToken != null && _selectedToPlaceToken!.contains('::')) {
+      widget.toController.text = _selectedToPlaceToken!.split('::').first;
+    } else if (_selectedToPlaceToken != null) {
+      widget.toController.text = _selectedToPlaceToken!;
+    }
+
     _selectedFromCoordinates = widget.initialFromCoordinates;
     _selectedToCoordinates = widget.initialToCoordinates;
 
@@ -231,20 +243,28 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     }
 
     if (widget.initialFromPlaceToken != oldWidget.initialFromPlaceToken) {
-      if (widget.initialFromPlaceToken != null && widget.initialFromPlaceToken == oldWidget.initialFromPlaceToken) {
-         debugPrint('!!! FIGYELEM: RoutePlanForm visszatölti a régi _selectedFromPlaceToken-t: ${widget.initialFromPlaceToken} !!!');
-      } else if (widget.initialFromPlaceToken != null) {
-         debugPrint('!!! FIGYELEM: RoutePlanForm új initialFromPlaceToken-t kapott és betölti: ${widget.initialFromPlaceToken} !!!');
-      }
       _selectedFromPlaceToken = widget.initialFromPlaceToken;
+      _isSwapping = true;
+      if (_selectedFromPlaceToken != null && _selectedFromPlaceToken!.contains('::')) {
+        widget.fromController.text = _selectedFromPlaceToken!.split('::').first;
+      } else if (_selectedFromPlaceToken != null) {
+        widget.fromController.text = _selectedFromPlaceToken!;
+      } else {
+        widget.fromController.text = '';
+      }
+      _isSwapping = false;
     }
     if (widget.initialToPlaceToken != oldWidget.initialToPlaceToken) {
-      if (widget.initialToPlaceToken != null && widget.initialToPlaceToken == oldWidget.initialToPlaceToken) {
-         debugPrint('!!! FIGYELEM: RoutePlanForm visszatölti a régi _selectedToPlaceToken-t: ${widget.initialToPlaceToken} !!!');
-      } else if (widget.initialToPlaceToken != null) {
-         debugPrint('!!! FIGYELEM: RoutePlanForm új initialToPlaceToken-t kapott és betölti: ${widget.initialToPlaceToken} !!!');
-      }
       _selectedToPlaceToken = widget.initialToPlaceToken;
+      _isSwapping = true;
+      if (_selectedToPlaceToken != null && _selectedToPlaceToken!.contains('::')) {
+        widget.toController.text = _selectedToPlaceToken!.split('::').first;
+      } else if (_selectedToPlaceToken != null) {
+        widget.toController.text = _selectedToPlaceToken!;
+      } else {
+        widget.toController.text = '';
+      }
+      _isSwapping = false;
     }
     if (!_doubleListsEqual(widget.initialFromCoordinates, oldWidget.initialFromCoordinates)) {
       _selectedFromCoordinates = widget.initialFromCoordinates;
@@ -341,17 +361,6 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         widget.initialFromCoordinates ?? _selectedFromCoordinates;
     final toCoordinates =
         widget.initialToCoordinates ?? _selectedToCoordinates;
-
-    _isSwapping = true;
-    if (widget.initialFromPlaceToken != null && widget.initialFromPlaceToken!.contains('::')) {
-      final name = widget.initialFromPlaceToken!.split('::').first;
-      widget.fromController.text = name;
-    }
-    if (widget.initialToPlaceToken != null && widget.initialToPlaceToken!.contains('::')) {
-      final name = widget.initialToPlaceToken!.split('::').first;
-      widget.toController.text = name;
-    }
-    _isSwapping = false;
 
     Map<String, dynamic>? variables;
 
@@ -596,6 +605,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Center(
+      heightFactor: 1.0,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: AppSpacing.formMaxWidth),
         child: SingleChildScrollView(

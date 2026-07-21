@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../controllers/navigation_cubit.dart';
+import 'package:go_router/go_router.dart';
 import '../../theme/app_texts.dart';
 import '../../theme/app_tokens.dart';
 
@@ -10,7 +9,6 @@ class MainMobileDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final navCubit = context.read<NavigationCubit>();
 
     return Drawer(
       child: ColoredBox(
@@ -36,7 +34,7 @@ class MainMobileDrawer extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
-                navCubit.navigateTo(MainSection.home);
+                context.go('/');
               },
             ),
             ExpansionTile(
@@ -54,7 +52,7 @@ class MainMobileDrawer extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    navCubit.navigateTo(MainSection.stopDetails);
+                    // Usually this would go to a stops list, for now we can just close
                   },
                 ),
                 ListTile(
@@ -73,7 +71,7 @@ class MainMobileDrawer extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
-                navCubit.navigateTo(MainSection.news);
+                context.go('/news');
               },
             ),
             ListTile(
@@ -83,7 +81,7 @@ class MainMobileDrawer extends StatelessWidget {
               ),
               onTap: () {
                 Navigator.pop(context);
-                navCubit.navigateTo(MainSection.map);
+                context.go('/map');
               },
             ),
             ExpansionTile(
@@ -101,7 +99,7 @@ class MainMobileDrawer extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    navCubit.navigateTo(MainSection.tickets);
+                    context.go('/tickets');
                   },
                 ),
                 ListTile(
@@ -111,7 +109,7 @@ class MainMobileDrawer extends StatelessWidget {
                   ),
                   onTap: () {
                     Navigator.pop(context);
-                    navCubit.navigateTo(MainSection.addTicket);
+                    context.go('/tickets/add');
                   },
                 ),
               ],

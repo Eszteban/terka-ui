@@ -552,3 +552,65 @@ query SearchRoutes($name: String!) {
   }
 }
 ''';
+
+const String routeDetailsQuery = r'''
+query RouteDetails($id: String!) {
+  route(id: $id) {
+    gtfsId
+    shortName
+    longName
+    mode
+    color
+    textColor
+    agency {
+      name
+      url
+    }
+    alerts {
+      id
+      alertCause
+      alertHeaderText
+      alertDescriptionText
+      alertSeverityLevel
+      alertUrl
+      effectiveStartDate
+      effectiveEndDate
+      alertHeaderTextTranslations {
+        language
+        text
+      }
+      alertDescriptionTextTranslations {
+        language
+        text
+      }
+      alertUrlTranslations {
+        language
+        text
+      }
+    }
+    patterns {
+      name
+      headsign
+      patternGeometry {
+        length
+        points
+      }
+      stops {
+        gtfsId
+        name
+        lat
+        lon
+        bearing
+        platformCode
+      }
+      trips {
+        gtfsId
+        tripShortName
+        tripHeadsign
+        directionId
+        activeDates
+      }
+    }
+  }
+}
+''';

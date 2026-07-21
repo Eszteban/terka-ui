@@ -18,7 +18,7 @@ class RouteMappingUtils {
         shift += 5;
       } while (b >= 0x20 && index < encoded.length);
       final deltaLat = (value & 1) != 0 ? ~(value >> 1) : (value >> 1);
-      lat += deltaLat;
+      lat += deltaLat.toSigned(32);
 
       shift = 0;
       value = 0;
@@ -28,7 +28,7 @@ class RouteMappingUtils {
         shift += 5;
       } while (b >= 0x20 && index < encoded.length);
       final deltaLng = (value & 1) != 0 ? ~(value >> 1) : (value >> 1);
-      lng += deltaLng;
+      lng += deltaLng.toSigned(32);
 
       result.add(LatLng(lat / 1e5, lng / 1e5));
     }

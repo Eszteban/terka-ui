@@ -18,12 +18,22 @@ class SelectedItineraryMapPayload {
   final String title;
   final String subtitle;
   final List<SelectedItineraryLegDetail> legDetails;
+  
+  // New properties for full UI reproduction on mobile map
+  final Map<String, dynamic> itinerary;
+  final Map<String, String> summary;
+  final List<Widget> lineBadges;
+  final List<String> missingAgencies;
 
   const SelectedItineraryMapPayload({
     required this.routeData,
     required this.title,
     required this.subtitle,
     required this.legDetails,
+    required this.itinerary,
+    required this.summary,
+    required this.lineBadges,
+    required this.missingAgencies,
   });
 }
 
@@ -47,7 +57,6 @@ class RoutePlannerResultsView extends StatefulWidget {
 
   final String responseText;
   final ValueChanged<SelectedItineraryMapPayload> onShowOnMap;
-  final TripDetailsBackgroundMapCallback? onShowTripOnMap;
   final bool desktopInlineMapMode;
   final bool hasDesktopMapSelection;
   final bool canLoadMore;
@@ -82,7 +91,6 @@ class RoutePlannerResultsView extends StatefulWidget {
     super.key,
     required this.responseText,
     required this.onShowOnMap,
-    this.onShowTripOnMap,
     this.desktopInlineMapMode = false,
     this.hasDesktopMapSelection = false,
     this.canLoadMore = false,
@@ -114,163 +122,8 @@ class RoutePlannerResultsView extends StatefulWidget {
 
   @override
   State<RoutePlannerResultsView> createState() => _RoutePlannerResultsViewState();
-}
 
-class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
-  bool _isFormExpanded = false;
-
-
-  @override
-  Widget build(BuildContext context) {
-    final itineraries = RouteDataUtils.extractItineraries(widget.responseText);
-    final summaryLabel = _buildResultsHeader(itineraries);
-
-    if (widget.desktopInlineMapMode &&
-        !widget.hasDesktopMapSelection &&
-        itineraries.isNotEmpty) {
-      final firstItinerary = itineraries.first;
-      final firstSummary = RouteDataUtils.buildSummary(firstItinerary);
-      final firstMapData = _buildRouteMapData(firstItinerary);
-      if (firstMapData.hasContent) {
-        final firstPayload = _buildMapPayload(
-          firstItinerary,
-          firstSummary,
-          firstMapData,
-        );
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          widget.onShowOnMap(firstPayload);
-        });
-      }
-    }
-
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        if (widget.fromController != null && widget.toController != null) ...[
-          _buildCollapsibleFormPanel(context),
-          const SizedBox(height: 12),
-        ],
-        Text(summaryLabel, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
-        if (itineraries.isEmpty)
-          Card(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 220),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(widget.responseText),
-              ),
-            ),
-          )
-        else
-          ...List.generate(itineraries.length, (index) {
-            final itinerary = itineraries[index];
-            final summary = RouteDataUtils.buildSummary(itinerary);
-            final mapData = _buildRouteMapData(itinerary);
-            final lineBadges = _buildLineBadges(itinerary);
-            final mapPayload = _buildMapPayload(
-              itinerary,
-              summary,
-              mapData,
-            );
-
-            final colorScheme = Theme.of(context).colorScheme;
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-
-            final missingAgencies = widget.ticketWatch
-                ? TicketItem.getMissingTicketAgencies(itinerary, widget.tickets)
-                : const <String>[];
-            final hasTickets = widget.ticketWatch ? missingAgencies.isEmpty : false;
-            final borderSideColor = widget.ticketWatch
-                ? (hasTickets ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)))
-                : colorScheme.outlineVariant.withValues(alpha: 0.3);
-            final borderSideWidth = widget.ticketWatch ? 2.0 : 1.0;
-
-            return Padding(
-              padding: EdgeInsets.only(bottom: index < itineraries.length - 1 ? 12.0 : 0.0),
-              child: Card(
-                margin: const EdgeInsets.symmetric(vertical: 6),
-                clipBehavior: Clip.antiAlias,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: borderSideColor,
-                    width: borderSideWidth,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: ExpansionTile(
-                    shape: const Border(),
-                    collapsedShape: const Border(),
-                    tilePadding: EdgeInsets.zero,
-                    onExpansionChanged: widget.desktopInlineMapMode
-                        ? (expanded) {
-                            if (expanded && mapData.hasContent) {
-                              widget.onShowOnMap(mapPayload);
-                            }
-                          }
-                        : null,
-                    title: _buildBentoHeader(
-                      context,
-                      itinerary,
-                      summary,
-                      lineBadges,
-                      missingAgencies,
-                    ),
-                    childrenPadding: const EdgeInsets.fromLTRB(
-                      0,
-                      12,
-                      0,
-                      0,
-                    ),
-                    children: [
-                      ..._buildLegTiles(context, itinerary),
-                      if (!widget.desktopInlineMapMode) ...[
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: mapData.hasContent
-                                ? () => widget.onShowOnMap(mapPayload)
-                                : null,
-                            icon: const Icon(Icons.map),
-                            label: Text(AppTexts.tableShowOnMap),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-        if (itineraries.isNotEmpty && widget.canLoadMore)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: widget.isLoadingMore
-                    ? null
-                    : () => widget.onLoadMore?.call(),
-                child: widget.isLoadingMore
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : Text(AppTexts.tableLoadMore),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildBentoHeader(
+  static Widget buildBentoHeader(
     BuildContext context,
     Map<String, dynamic> itinerary,
     Map<String, String> summary,
@@ -471,10 +324,12 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
     );
   }
 
-  List<Widget> _buildLegTiles(
+  static List<Widget> buildLegTiles(
     BuildContext context,
-    Map<String, dynamic> itinerary,
-  ) {
+    Map<String, dynamic> itinerary, {
+    bool desktopInlineMapMode = false,
+    Function(String, String)? onOpenTripDetailsRequested,
+  }) {
     final legs = itinerary['legs'];
     if (legs is! List) {
       return [
@@ -493,13 +348,171 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
         leg: leg,
         nextLeg: nextLeg,
         serviceDay: '',
-        desktopInlineMapMode: widget.desktopInlineMapMode,
-        desktopBreakpoint: RoutePlannerResultsView._desktopBreakpoint,
-        onShowTripOnMap: widget.onShowTripOnMap,
-        onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
+        desktopInlineMapMode: desktopInlineMapMode,
+        desktopBreakpoint: _desktopBreakpoint,
+        onOpenTripDetailsRequested: onOpenTripDetailsRequested,
       );
     });
   }
+}
+
+class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
+  bool _isFormExpanded = false;
+
+
+  @override
+  Widget build(BuildContext context) {
+    final itineraries = RouteDataUtils.extractItineraries(widget.responseText);
+    final summaryLabel = _buildResultsHeader(itineraries);
+
+    if (widget.desktopInlineMapMode &&
+        !widget.hasDesktopMapSelection &&
+        itineraries.isNotEmpty) {
+      final firstItinerary = itineraries.first;
+      final firstSummary = RouteDataUtils.buildSummary(firstItinerary);
+      final firstMapData = _buildRouteMapData(firstItinerary);
+      final lineBadges = _buildLineBadges(firstItinerary);
+      final missingAgencies = widget.ticketWatch
+          ? TicketItem.getMissingTicketAgencies(firstItinerary, widget.tickets)
+          : const <String>[];
+      if (firstMapData.hasContent) {
+        final firstPayload = _buildMapPayload(
+          firstItinerary,
+          firstSummary,
+          firstMapData,
+          lineBadges,
+          missingAgencies,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onShowOnMap(firstPayload);
+        });
+      }
+    }
+
+    return ListView(
+      shrinkWrap: true,
+      padding: EdgeInsets.zero,
+      children: [
+        if (widget.fromController != null && widget.toController != null) ...[
+          _buildCollapsibleFormPanel(context),
+          const SizedBox(height: 12),
+        ],
+        Text(summaryLabel, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 16),
+        if (itineraries.isEmpty)
+          Card(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 220),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: SelectableText(widget.responseText),
+              ),
+            ),
+          )
+        else
+          ...List.generate(itineraries.length, (index) {
+            final itinerary = itineraries[index];
+            final summary = RouteDataUtils.buildSummary(itinerary);
+            final mapData = _buildRouteMapData(itinerary);
+            final lineBadges = _buildLineBadges(itinerary);
+            final missingAgencies = widget.ticketWatch
+                ? TicketItem.getMissingTicketAgencies(itinerary, widget.tickets)
+                : const <String>[];
+            final mapPayload = _buildMapPayload(
+              itinerary,
+              summary,
+              mapData,
+              lineBadges,
+              missingAgencies,
+            );
+
+            final colorScheme = Theme.of(context).colorScheme;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final hasTickets = widget.ticketWatch ? missingAgencies.isEmpty : false;
+            final borderSideColor = widget.ticketWatch
+                ? (hasTickets ? (isDark ? const Color(0xFF66BB6A) : const Color(0xFF2E7D32)) : (isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828)))
+                : colorScheme.outlineVariant.withValues(alpha: 0.3);
+            final borderSideWidth = widget.ticketWatch ? 2.0 : 1.0;
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: index < itineraries.length - 1 ? 12.0 : 0.0),
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(
+                    color: borderSideColor,
+                    width: borderSideWidth,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: ExpansionTile(
+                    shape: const Border(),
+                    collapsedShape: const Border(),
+                    tilePadding: EdgeInsets.zero,
+                    onExpansionChanged: widget.desktopInlineMapMode
+                        ? (expanded) {
+                            if (expanded && mapData.hasContent) {
+                              widget.onShowOnMap(mapPayload);
+                            }
+                          }
+                        : null,
+                    title: RoutePlannerResultsView.buildBentoHeader(
+                      context,
+                      itinerary,
+                      summary,
+                      lineBadges,
+                      missingAgencies,
+                    ),
+                    childrenPadding: const EdgeInsets.fromLTRB(
+                      0,
+                      12,
+                      0,
+                      0,
+                    ),
+                    children: [
+                      ...RoutePlannerResultsView.buildLegTiles(
+                        context,
+                        itinerary,
+                        desktopInlineMapMode: widget.desktopInlineMapMode,
+                        onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }),
+        if (itineraries.isNotEmpty && widget.canLoadMore)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.isLoadingMore
+                    ? null
+                    : () => widget.onLoadMore?.call(),
+                child: widget.isLoadingMore
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(AppTexts.tableLoadMore),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+
+
+
 
   List<Widget> _buildLineBadges(Map<String, dynamic> itinerary) {
     final legs = itinerary['legs'];
@@ -588,11 +601,21 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
       final legPoints = _extractLegPoints(leg);
       if (legPoints.length >= 2) {
         final mode = leg['mode']?.toString() ?? '';
+        final isWalk = mode.toUpperCase().trim() == 'WALK';
+
+        // debugPrint('--- Szakasz kezdete ---');
+        // debugPrint('Típus: ${isWalk ? 'Gyalogos' : 'Járat ($mode)'}');
+        // debugPrint('Koordináták száma: ${legPoints.length}');
+        // for (var p in legPoints) {
+        //   debugPrint('  [${p.latitude}, ${p.longitude}]');
+        // }
+        // debugPrint('--- Szakasz vége ---');
+
         segments.add(
           RouteSegment(
             points: legPoints,
             color: RouteMappingUtils.parseRouteColorForMap(leg),
-            isWalk: mode.toUpperCase().trim() == 'WALK',
+            isWalk: isWalk,
           ),
         );
       }
@@ -645,6 +668,8 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
     Map<String, dynamic> itinerary,
     Map<String, String> summary,
     RouteMapData routeData,
+    List<Widget> lineBadges,
+    List<String> missingAgencies,
   ) {
     final legs = itinerary['legs'];
     String fromName = AppTexts.unknown;
@@ -671,6 +696,10 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
         summary['end']!,
       ),
       legDetails: _buildLegDetails(itinerary),
+      itinerary: itinerary,
+      summary: summary,
+      lineBadges: lineBadges,
+      missingAgencies: missingAgencies,
     );
   }
 

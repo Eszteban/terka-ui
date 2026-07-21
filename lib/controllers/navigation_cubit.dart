@@ -14,6 +14,7 @@ enum MainSection {
   about,
   tripDetails,
   stopDetails,
+  routeDetails,
 }
 
 class NavigationState {

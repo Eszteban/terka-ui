@@ -9,9 +9,12 @@ import '../injection_container.dart';
 import '../repositories/pass_type_repository.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
+import '../utils/layout_provider.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import 'add_ticket_screen.dart';
 
-class TicketsScreen extends StatefulWidget {
+class TicketsScreen extends StatelessWidget {
   final VoidCallback? onBack;
   final ValueChanged<TicketItem>? onEditTicket;
 
@@ -22,10 +25,37 @@ class TicketsScreen extends StatefulWidget {
   });
 
   @override
-  State<TicketsScreen> createState() => _TicketsScreenState();
+  Widget build(BuildContext context) {
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+    return DesktopSidebarWrapper(
+      child: Scaffold(
+        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        body: SafeArea(
+          child: TicketsView(
+            onBack: onBack,
+            onEditTicket: onEditTicket,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _TicketsScreenState extends State<TicketsScreen> {
+class TicketsView extends StatefulWidget {
+  final VoidCallback? onBack;
+  final ValueChanged<TicketItem>? onEditTicket;
+
+  const TicketsView({
+    super.key,
+    this.onBack,
+    this.onEditTicket,
+  });
+
+  @override
+  State<TicketsView> createState() => _TicketsViewState();
+}
+
+class _TicketsViewState extends State<TicketsView> {
   final TicketRepository _ticketRepository = sl<TicketRepository>();
   List<TicketItem> _tickets = const [];
   List<PassType> _passTypes = const [];
@@ -69,7 +99,7 @@ class _TicketsScreenState extends State<TicketsScreen> {
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 700);
     final bool? updated;
     if (isDesktop) {
       updated = await showDialog<bool>(
@@ -177,127 +207,124 @@ class _TicketsScreenState extends State<TicketsScreen> {
     final cardElevation = isDark ? 0.0 : 2.0;
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppTexts.ticketsTitle),
-        leading: widget.onBack != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: widget.onBack,
-              )
-            : null,
-      ),
-      body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadTickets,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-              ? ListView(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  children: [
-                    Text(_error!, style: Theme.of(context).textTheme.bodyLarge),
-                    const SizedBox(height: AppSpacing.lg),
-                    FilledButton(
-                      onPressed: _loadTickets,
-                      child: Text(AppTexts.retry),
-                    ),
-                  ],
-                )
-              : _tickets.isEmpty
-              ? ListView(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  children: [
-                    Text(AppTexts.ticketsEmpty),
-                  ],
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(AppSpacing.lg),
-                  itemCount: _tickets.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.lg),
-                  itemBuilder: (context, index) {
-                    final ticket = _tickets[index];
-                    final isSingle = ticket.ticketType == 'vonaljegy';
-                    return Card(
-                      elevation: cardElevation,
-                      shadowColor: cardShadowColor,
-                      shape: bentoShape,
-                      color: cardColor,
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    ticket.getDisplayName(_passTypes),
-                                    style: Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                ),
-                                PopupMenuButton<String>(
-                                  icon: const Icon(Icons.more_vert),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _editTicket(ticket);
-                                    } else if (value == 'delete') {
-                                      _confirmDeleteTicket(ticket);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    PopupMenuItem<String>(
-                                      value: 'edit',
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.edit_outlined, size: 20),
-                                          const SizedBox(width: 8),
-                                          Text(AppTexts.ticketsModify),
-                                        ],
-                                      ),
-                                    ),
-                                    PopupMenuItem<String>(
-                                      value: 'delete',
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.delete_outline,
-                                            color: Theme.of(context).colorScheme.error,
-                                            size: 20,
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            AppTexts.ticketsDelete,
-                                            style: TextStyle(
-                                              color: Theme.of(context).colorScheme.error,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(AppTexts.ticketsType(ticket.ticketType)),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(AppTexts.ticketsStart(isSingle ? '-' : _formatDateTime(ticket.ticketStart))),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(AppTexts.ticketsEnd(isSingle ? '-' : _formatDateTime(ticket.ticketEnd))),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(AppTexts.ticketsQuantity(ticket.quantity?.toString() ?? '-')),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+    return Column(
+      children: [
+        ScreenHeader(
+          title: Text(AppTexts.ticketsTitle),
+          onBack: widget.onBack,
         ),
-      ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _loadTickets,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    children: [
+                      Text(_error!, style: Theme.of(context).textTheme.bodyLarge),
+                      const SizedBox(height: AppSpacing.lg),
+                      FilledButton(
+                        onPressed: _loadTickets,
+                        child: Text(AppTexts.retry),
+                      ),
+                    ],
+                  )
+                : _tickets.isEmpty
+                ? ListView(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    children: [
+                      Text(AppTexts.ticketsEmpty),
+                    ],
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    itemCount: _tickets.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.lg),
+                    itemBuilder: (context, index) {
+                      final ticket = _tickets[index];
+                      final isSingle = ticket.ticketType == 'vonaljegy';
+                      return Card(
+                        elevation: cardElevation,
+                        shadowColor: cardShadowColor,
+                        shape: bentoShape,
+                        color: cardColor,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      ticket.getDisplayName(_passTypes),
+                                      style: Theme.of(context).textTheme.titleMedium,
+                                    ),
+                                  ),
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onSelected: (value) {
+                                      if (value == 'edit') {
+                                        _editTicket(ticket);
+                                      } else if (value == 'delete') {
+                                        _confirmDeleteTicket(ticket);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      PopupMenuItem<String>(
+                                        value: 'edit',
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.edit_outlined, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(AppTexts.ticketsModify),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuItem<String>(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.delete_outline,
+                                              color: Theme.of(context).colorScheme.error,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              AppTexts.ticketsDelete,
+                                              style: TextStyle(
+                                                color: Theme.of(context).colorScheme.error,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(AppTexts.ticketsType(ticket.ticketType)),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(AppTexts.ticketsStart(isSingle ? '-' : _formatDateTime(ticket.ticketStart))),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(AppTexts.ticketsEnd(isSingle ? '-' : _formatDateTime(ticket.ticketEnd))),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(AppTexts.ticketsQuantity(ticket.quantity?.toString() ?? '-')),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }

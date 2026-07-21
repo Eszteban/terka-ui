@@ -81,6 +81,7 @@ class StopDetailsSchedule extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: sortedHours.length,
+      shrinkWrap: true,
       separatorBuilder: (context, index) => Divider(
         color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
         height: 16,

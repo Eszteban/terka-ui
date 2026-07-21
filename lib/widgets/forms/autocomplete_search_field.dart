@@ -79,11 +79,13 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
   bool _isLoadingSuggestions = false;
   List<SuggestionEntry> _suggestionEntries = [];
   late final FocusNode _internalFocusNode;
+  bool _showSuggestionsOverlay = false;
 
   @override
   void initState() {
     super.initState();
     _internalFocusNode = widget.focusNode ?? FocusNode();
+    _showSuggestionsOverlay = _internalFocusNode.hasFocus;
     _internalFocusNode.addListener(_onFocusChange);
   }
 
@@ -121,11 +123,21 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
   }
 
   void _onFocusChange() {
-    if (mounted) {
-      setState(() {});
-      if (_internalFocusNode.hasFocus) {
+    if (_internalFocusNode.hasFocus) {
+      if (mounted) {
+        setState(() {
+          _showSuggestionsOverlay = true;
+        });
         _onQueryChanged(widget.controller.text);
       }
+    } else {
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (mounted) {
+          setState(() {
+            _showSuggestionsOverlay = false;
+          });
+        }
+      });
     }
   }
 
@@ -263,7 +275,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
       // 2. Photon address geocoder search
       Future<void>? addressFuture;
       if (widget.searchAddresses) {
-        final photonUri = Uri.parse('https://mavplusz.hu//photon/api').replace(queryParameters: {
+        final photonUri = Uri.parse(photonApiUrl).replace(queryParameters: {
           'limit': '10',
           'q': query,
           'location_bias_scale': '0.1',
@@ -485,7 +497,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
         );
 
     final showSuggestions = widget.onSuggestionsChanged == null &&
-        _internalFocusNode.hasFocus &&
+        _showSuggestionsOverlay &&
         (_suggestionEntries.isNotEmpty || _isLoadingSuggestions);
 
     return Column(
@@ -694,6 +706,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
         widget.onSuggestionSelected(entry);
         setState(() {
           _suggestionEntries = [];
+          _showSuggestionsOverlay = false;
         });
       },
     );

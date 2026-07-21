@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:go_router/go_router.dart';
+
+import 'core/router/app_router.dart';
 import 'screens/main/main_screen.dart';
 import 'theme/app_tokens.dart';
+import 'utils/layout_provider.dart';
 import 'theme/app_texts.dart';
+
+enum AppLayoutMode { mobile, automatic, tablet }
 
 class TerkaApp extends StatefulWidget {
   const TerkaApp({super.key});
@@ -11,46 +17,122 @@ class TerkaApp extends StatefulWidget {
   State<TerkaApp> createState() => _TerkaAppState();
 }
 
+const bool forceTabletLayout = bool.fromEnvironment('FORCE_TABLET_LAYOUT', defaultValue: false);
+
 class _TerkaAppState extends State<TerkaApp> {
   static const String _themeModePreferenceKey = 'theme_mode';
   static const String _languagePreferenceKey = 'language';
+  static const String _layoutModePreferenceKey = 'layout_mode';
 
-  ThemeMode _themeMode = ThemeMode.system;
-  AppLanguage _language = AppLanguage.hu;
+  final ValueNotifier<ThemeMode> _themeMode = ValueNotifier(ThemeMode.system);
+  final ValueNotifier<AppLanguage> _language = ValueNotifier(AppLanguage.hu);
+  final ValueNotifier<AppLayoutMode> _layoutMode = ValueNotifier(forceTabletLayout ? AppLayoutMode.tablet : AppLayoutMode.automatic);
+
+  late final GoRouter _router;
 
   @override
   void initState() {
     super.initState();
     _loadThemeMode();
     _loadLanguage();
+    _loadLayoutMode();
+    _router = AppRouter.createRouter(
+      themeModeNotifier: _themeMode,
+      onThemeModeChanged: _setThemeMode,
+      languageNotifier: _language,
+      onLanguageChanged: _setLanguage,
+      layoutModeNotifier: _layoutMode,
+      onLayoutModeChanged: _setLayoutMode,
+    );
+  }
+
+  @override
+  void dispose() {
+    _themeMode.dispose();
+    _language.dispose();
+    _layoutMode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     final rawLang = prefs.getString(_languagePreferenceKey);
     if (rawLang == 'en') {
-      setState(() {
-        _language = AppLanguage.en;
-        AppTexts.setLanguage(AppLanguage.en);
-      });
+      _language.value = AppLanguage.en;
+      AppTexts.setLanguage(AppLanguage.en);
     } else {
-      setState(() {
-        _language = AppLanguage.hu;
-        AppTexts.setLanguage(AppLanguage.hu);
-      });
+      _language.value = AppLanguage.hu;
+      AppTexts.setLanguage(AppLanguage.hu);
     }
   }
 
   Future<void> _setLanguage(AppLanguage lang) async {
-    if (_language == lang) {
+    if (_language.value == lang) {
       return;
     }
-    setState(() {
-      _language = lang;
-      AppTexts.setLanguage(lang);
-    });
+    _language.value = lang;
+    AppTexts.setLanguage(lang);
+    
+    // We still need to rebuild TerkaApp for localization updates
+    setState(() {});
+    
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languagePreferenceKey, lang == AppLanguage.en ? 'en' : 'hu');
+  }
+
+  Future<void> _loadLayoutMode() async {
+    if (forceTabletLayout) return;
+    
+    final prefs = await SharedPreferences.getInstance();
+    final rawMode = prefs.getString(_layoutModePreferenceKey);
+    if (rawMode == null) {
+      return;
+    }
+
+    final resolvedMode = _layoutModeFromString(rawMode);
+    if (!mounted) {
+      return;
+    }
+
+    _layoutMode.value = resolvedMode;
+  }
+
+  Future<void> _setLayoutMode(AppLayoutMode mode) async {
+    if (forceTabletLayout) return;
+    
+    if (_layoutMode.value == mode) {
+      return;
+    }
+
+    _layoutMode.value = mode;
+    // Layout changes might need app-level rebuilds
+    setState(() {});
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_layoutModePreferenceKey, _layoutModeToString(mode));
+  }
+
+  AppLayoutMode _layoutModeFromString(String value) {
+    switch (value) {
+      case 'mobile':
+        return AppLayoutMode.mobile;
+      case 'tablet':
+        return AppLayoutMode.tablet;
+      case 'automatic':
+      default:
+        return AppLayoutMode.automatic;
+    }
+  }
+
+  String _layoutModeToString(AppLayoutMode mode) {
+    switch (mode) {
+      case AppLayoutMode.mobile:
+        return 'mobile';
+      case AppLayoutMode.tablet:
+        return 'tablet';
+      case AppLayoutMode.automatic:
+        return 'automatic';
+    }
   }
 
   Future<void> _loadThemeMode() async {
@@ -65,19 +147,19 @@ class _TerkaAppState extends State<TerkaApp> {
       return;
     }
 
-    setState(() {
-      _themeMode = resolvedMode;
-    });
+    _themeMode.value = resolvedMode;
+    // Trigger MaterialApp rebuild for theme
+    setState(() {});
   }
 
   Future<void> _setThemeMode(ThemeMode mode) async {
-    if (_themeMode == mode) {
+    if (_themeMode.value == mode) {
       return;
     }
 
-    setState(() {
-      _themeMode = mode;
-    });
+    _themeMode.value = mode;
+    // Trigger MaterialApp rebuild for theme
+    setState(() {});
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModePreferenceKey, _themeModeToString(mode));
@@ -117,7 +199,8 @@ class _TerkaAppState extends State<TerkaApp> {
       brightness: Brightness.dark,
     );
 
-    return MaterialApp(
+    return MaterialApp.router(
+      routerConfig: _router,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: lightColorScheme,
@@ -216,14 +299,19 @@ class _TerkaAppState extends State<TerkaApp> {
           ),
         ),
       ),
-      themeMode: _themeMode,
+      themeMode: _themeMode.value,
+      themeAnimationDuration: const Duration(milliseconds: 300),
+      themeAnimationCurve: Curves.easeInOut,
+      locale: _language.value == AppLanguage.hu
+          ? const Locale('hu')
+          : const Locale('en'),
       debugShowCheckedModeBanner: false,
-      home: MainScreen(
-        selectedThemeMode: _themeMode,
-        onThemeModeChanged: _setThemeMode,
-        selectedLanguage: _language,
-        onLanguageChanged: _setLanguage,
-      ),
+      builder: (context, child) {
+        return LayoutProvider(
+          mode: _layoutMode.value,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

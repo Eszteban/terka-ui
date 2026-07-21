@@ -289,17 +289,25 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                     final suggestion = _suggestions[index];
                     
                     Widget leading;
+                    String titleText = markup.plainTextFromHtml(suggestion.name);
+                    
                     if (suggestion.type == SuggestionType.route && suggestion.rawData != null) {
                       final raw = suggestion.rawData!;
                       final colorHex = raw['color']?.toString() ?? '0A84FF';
                       final textColorHex = raw['textColor']?.toString() ?? 'FFFFFF';
                       final shortName = raw['shortName']?.toString() ?? '-';
+                      final plainShortName = markup.plainTextFromHtml(shortName).trim();
+                      
                       leading = LineBadge(
-                        lineLabel: markup.plainTextFromHtml(shortName).trim(),
+                        lineLabel: plainShortName,
                         routeColor: StopDetailsUtils.hexColor(colorHex),
                         routeTextColor: StopDetailsUtils.hexColor(textColorHex),
                         useSpanFont: markup.containsSpanMarkup(shortName),
                       );
+                      
+                      if (titleText.startsWith('$plainShortName - ')) {
+                        titleText = titleText.substring(plainShortName.length + 3).trim();
+                      }
                     } else {
                       final iconColor = colorScheme.primary;
                       if (suggestion.icons.length > 1) {
@@ -324,7 +332,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                     return ListTile(
                       leading: leading,
                       title: Text(
-                        markup.plainTextFromHtml(suggestion.name),
+                        titleText,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(

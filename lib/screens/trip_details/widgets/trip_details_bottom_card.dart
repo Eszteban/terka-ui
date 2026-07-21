@@ -7,6 +7,7 @@ class TripDetailsBottomCard extends StatelessWidget {
   final Map<String, dynamic> trip;
   final Color routeColor;
   final Color routeTextColor;
+  final String serviceDay;
   final VoidCallback onBack;
 
   const TripDetailsBottomCard({
@@ -14,6 +15,7 @@ class TripDetailsBottomCard extends StatelessWidget {
     required this.trip,
     required this.routeColor,
     required this.routeTextColor,
+    required this.serviceDay,
     required this.onBack,
   });
 
@@ -67,6 +69,15 @@ class TripDetailsBottomCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(info.vehicleInfoText, textAlign: TextAlign.center),
+            const SizedBox(height: 4),
+            Text(
+              '${AppTexts.isHungarian ? "Dátum:" : "Date:"} $serviceDay',
+              style: TextStyle(
+                fontSize: 12,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,

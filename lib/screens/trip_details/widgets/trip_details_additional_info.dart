@@ -5,10 +5,12 @@ import '../../../theme/app_texts.dart';
 
 class TripDetailsAdditionalInfo extends StatelessWidget {
   final Map<String, dynamic> trip;
+  final String serviceDay;
 
   const TripDetailsAdditionalInfo({
     super.key,
     required this.trip,
+    required this.serviceDay,
   });
 
   Future<void> _launchUrl(BuildContext context, String urlString) async {
@@ -176,6 +178,32 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
               ),
             ),
           ],
+          
+          // Service Day Row
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.event,
+                  size: 18,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${AppTexts.isHungarian ? "Kiválasztott nap:" : "Selected day:"} $serviceDay',
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: colorScheme.onSurface,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           // Wheelchair Accessibility Row
           Padding(

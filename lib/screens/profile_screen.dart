@@ -1,17 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
+import '../app.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
+import '../utils/layout_provider.dart';
 import 'add_ticket_screen.dart';
 import 'about_screen.dart';
 import 'tickets_screen.dart';
 import 'manage_pass_types_screen.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
 
 class ProfileScreen extends StatefulWidget {
   final ThemeMode selectedThemeMode;
   final ValueChanged<ThemeMode> onThemeModeChanged;
   final AppLanguage selectedLanguage;
   final ValueChanged<AppLanguage> onLanguageChanged;
+  final AppLayoutMode selectedLayoutMode;
+  final ValueChanged<AppLayoutMode> onLayoutModeChanged;
   final VoidCallback? onOpenTickets;
   final VoidCallback? onOpenAddTicket;
   final VoidCallback? onOpenManagePassTypes;
@@ -23,6 +29,8 @@ class ProfileScreen extends StatefulWidget {
     required this.onThemeModeChanged,
     required this.selectedLanguage,
     required this.onLanguageChanged,
+    required this.selectedLayoutMode,
+    required this.onLayoutModeChanged,
     this.onOpenTickets,
     this.onOpenAddTicket,
     this.onOpenManagePassTypes,
@@ -36,16 +44,37 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   static const _desktopBreakpoint = 600.0;
 
+  late ThemeMode _localThemeMode;
+  late AppLayoutMode _localLayoutMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _localThemeMode = widget.selectedThemeMode;
+    _localLayoutMode = widget.selectedLayoutMode;
+  }
+
+  @override
+  void didUpdateWidget(ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedThemeMode != oldWidget.selectedThemeMode) {
+      _localThemeMode = widget.selectedThemeMode;
+    }
+    if (widget.selectedLayoutMode != oldWidget.selectedLayoutMode) {
+      _localLayoutMode = widget.selectedLayoutMode;
+    }
+  }
+
   Future<void> _openTickets() async {
     if (widget.onOpenTickets != null) {
       widget.onOpenTickets!();
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: _desktopBreakpoint);
     if (isDesktop) {
       await _showDesktopSurface<void>(
-        child: const TicketsScreen(),
+        child: TicketsScreen(onBack: () => Navigator.of(context).pop()),
         maxWidth: 760,
         maxHeight: 760,
       );
@@ -54,7 +83,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const TicketsScreen()));
+    ).push(MaterialPageRoute(builder: (_) => TicketsScreen(onBack: () => Navigator.of(context).pop())));
   }
 
   Future<void> _openAddTicket() async {
@@ -63,10 +92,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: _desktopBreakpoint);
     if (isDesktop) {
       await _showDesktopSurface<void>(
-        child: const AddTicketScreen(),
+        child: AddTicketScreen(onBack: () => Navigator.of(context).pop()),
         maxWidth: 760,
         maxHeight: 760,
       );
@@ -75,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const AddTicketScreen()));
+    ).push(MaterialPageRoute(builder: (_) => AddTicketScreen(onBack: () => Navigator.of(context).pop())));
   }
 
   Future<void> _openManagePassTypes() async {
@@ -84,10 +113,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: _desktopBreakpoint);
     if (isDesktop) {
       await _showDesktopSurface<void>(
-        child: const ManagePassTypesScreen(),
+        child: ManagePassTypesScreen(onBack: () => Navigator.of(context).pop()),
         maxWidth: 760,
         maxHeight: 760,
       );
@@ -96,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const ManagePassTypesScreen()));
+    ).push(MaterialPageRoute(builder: (_) => ManagePassTypesScreen(onBack: () => Navigator.of(context).pop())));
   }
 
   Future<void> _openAbout() async {
@@ -105,10 +134,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > _desktopBreakpoint;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: _desktopBreakpoint);
     if (isDesktop) {
       await _showDesktopSurface<void>(
-        child: const AboutScreen(),
+        child: AboutScreen(onBack: () => Navigator.of(context).pop()),
         maxWidth: 760,
         maxHeight: 620,
       );
@@ -117,7 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const AboutScreen()));
+    ).push(MaterialPageRoute(builder: (_) => AboutScreen(onBack: () => Navigator.of(context).pop())));
   }
 
   Future<T?> _showDesktopSurface<T>({
@@ -156,9 +185,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cardElevation = isDark ? 0.0 : 2.0;
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
-    return ListView(
-      children: [
-        const SizedBox(height: AppSpacing.sm),
+    return DesktopSidebarWrapper(
+      child: ListView(
+        children: [
+          const SizedBox(height: AppSpacing.sm),
         Card(
           elevation: cardElevation,
           shadowColor: cardShadowColor,
@@ -216,13 +246,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ],
-                  selected: {widget.selectedThemeMode},
+                  selected: {_localThemeMode},
                   onSelectionChanged: (selection) {
                     if (selection.isNotEmpty) {
+                      setState(() {
+                        _localThemeMode = selection.first;
+                      });
                       widget.onThemeModeChanged(selection.first);
                     }
                   },
                 ),
+                if (!forceTabletLayout) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  Text(AppTexts.profileLayoutMode, style: textTheme.titleMedium),
+                  const SizedBox(height: AppSpacing.sm),
+                  SegmentedButton<AppLayoutMode>(
+                    style: SegmentedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                    ),
+                    segments: [
+                      ButtonSegment<AppLayoutMode>(
+                        value: AppLayoutMode.mobile,
+                        icon: const Icon(Icons.phone_iphone),
+                        label: Text(
+                          AppTexts.profileLayoutMobile,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      ButtonSegment<AppLayoutMode>(
+                        value: AppLayoutMode.automatic,
+                        icon: const Icon(Icons.autorenew),
+                        label: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            AppTexts.profileLayoutAutomatic,
+                            maxLines: 1,
+                            softWrap: false,
+                          ),
+                        ),
+                      ),
+                      ButtonSegment<AppLayoutMode>(
+                        value: AppLayoutMode.tablet,
+                        icon: const Icon(Icons.tablet_mac),
+                        label: Text(
+                          AppTexts.profileLayoutTablet,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                    selected: {_localLayoutMode},
+                    onSelectionChanged: (selection) {
+                      if (selection.isNotEmpty) {
+                        setState(() {
+                          _localLayoutMode = selection.first;
+                        });
+                        widget.onLayoutModeChanged(selection.first);
+                      }
+                    },
+                  ),
+                ],
                 const SizedBox(height: AppSpacing.md),
                 Text(AppTexts.profileLanguage, style: textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.sm),
@@ -303,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
-    );
+    ));
   }
 }
 

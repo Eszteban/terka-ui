@@ -1,18 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../theme/app_texts.dart';
 import '../theme/app_tokens.dart';
+import '../theme/app_texts.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
+import '../utils/layout_provider.dart';
 
-class AboutScreen extends StatefulWidget {
+class AboutScreen extends StatelessWidget {
   final VoidCallback? onBack;
+
   const AboutScreen({super.key, this.onBack});
 
   @override
-  State<AboutScreen> createState() => _AboutScreenState();
+  Widget build(BuildContext context) {
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+    return DesktopSidebarWrapper(
+      child: Scaffold(
+        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        body: SafeArea(
+          child: AboutView(
+            onBack: onBack,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _AboutScreenState extends State<AboutScreen> {
+class AboutView extends StatefulWidget {
+  final VoidCallback? onBack;
+
+  const AboutView({super.key, this.onBack});
+
+  @override
+  State<AboutView> createState() => _AboutViewState();
+}
+
+class _AboutViewState extends State<AboutView> {
   String _version = '';
   String _appName = '';
   int _eggCounter = 0;
@@ -215,7 +240,6 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     // A kikevert seed szín használata fehér/fekete helyett:
     final logoColor = Theme.of(context).colorScheme.primary;
 
@@ -227,19 +251,14 @@ class _AboutScreenState extends State<AboutScreen> {
       ),
       child: Stack(
         children: [
-          Scaffold(
-            backgroundColor: AppColors.getScaffoldBackground(context),
-            appBar: AppBar(
-              title: Text(AppTexts.aboutTitle),
-              centerTitle: true,
-              leading: widget.onBack != null
-                  ? IconButton(
-                      icon: const Icon(Icons.arrow_back),
-                      onPressed: widget.onBack,
-                    )
-                  : null,
-            ),
-            body: SingleChildScrollView(
+          Column(
+            children: [
+              ScreenHeader(
+                title: Text(AppTexts.aboutTitle),
+                onBack: widget.onBack,
+              ),
+              Expanded(
+                child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -307,7 +326,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () => _openLink(
-                          'mailto:info.railway150@gmail.com?subject=TERKA',
+                          'mailto:terka@eszteban.hu',
                         ),
                         icon: const Icon(Icons.email_outlined, size: 18),
                         label: Text(
@@ -451,26 +470,51 @@ class _AboutScreenState extends State<AboutScreen> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
-                            showLicensePage(
-                              context: context,
-                              applicationName: _appName.isNotEmpty
-                                  ? _appName
-                                  : AppTexts.aboutAppName,
-                              applicationVersion: _version,
-                              applicationIcon: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: CircleAvatar(
-                                  radius: 28,
-                                  backgroundColor: Colors.transparent,
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      'assets/icons/app_icon.png',
-                                      width: 56,
-                                      height: 56,
-                                      fit: BoxFit.contain,
-                                    ),
+                            final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+                            final icon = Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: CircleAvatar(
+                                radius: 28,
+                                backgroundColor: Colors.transparent,
+                                child: ClipOval(
+                                  child: Image.asset(
+                                    'assets/icons/app_icon.png',
+                                    width: 56,
+                                    height: 56,
+                                    fit: BoxFit.contain,
                                   ),
                                 ),
+                              ),
+                            );
+
+                            if (!isDesktop) {
+                              showLicensePage(
+                                context: context,
+                                applicationName: _appName.isNotEmpty ? _appName : AppTexts.aboutAppName,
+                                applicationVersion: _version,
+                                applicationIcon: icon,
+                              );
+                              return;
+                            }
+
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) {
+                                  final licensePage = LicensePage(
+                                    applicationName: _appName.isNotEmpty ? _appName : AppTexts.aboutAppName,
+                                    applicationVersion: _version,
+                                    applicationIcon: icon,
+                                  );
+
+                                  return DesktopSidebarWrapper(
+                                    child: Theme(
+                                      data: Theme.of(context).copyWith(
+                                        scaffoldBackgroundColor: Colors.transparent,
+                                      ),
+                                      child: licensePage,
+                                    ),
+                                  );
+                                },
                               ),
                             );
                           },
@@ -501,6 +545,9 @@ class _AboutScreenState extends State<AboutScreen> {
         ),
       ),
       ),
+      ],
+      ),
+
           IgnorePointer(
             ignoring: true,
             child: Center(

@@ -6,6 +6,10 @@ abstract class TransitRepository {
     required String serviceDay,
   });
 
+  Future<Map<String, dynamic>?> fetchRouteDetails({
+    required String routeId,
+  });
+
   Future<TripStopQuickInfo?> fetchStopQuickInfo({
     required String stopId,
     required String fallbackName,

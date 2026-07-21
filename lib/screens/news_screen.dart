@@ -4,6 +4,9 @@ import '../models/news_item.dart';
 import '../repositories/news_repository.dart';
 import '../injection_container.dart';
 import '../theme/app_texts.dart';
+import '../utils/layout_provider.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -34,7 +37,7 @@ class _NewsScreenState extends State<NewsScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
-    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600);
 
     return FutureBuilder<List<NewsItem>>(
       future: _newsFuture,
@@ -192,9 +195,10 @@ class _NewsScreenState extends State<NewsScreen> {
           );
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        return DesktopSidebarWrapper(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Text(
               AppTexts.newsTitle,
               style: const TextStyle(
@@ -220,7 +224,7 @@ class _NewsScreenState extends State<NewsScreen> {
               ),
             ),
           ],
-        );
+        ));
       },
     );
   }

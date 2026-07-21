@@ -54,12 +54,16 @@ class TripStopTimesList extends StatelessWidget {
               : null;
 
           final scheduledArr = stopTime.scheduledArrival;
-          final realtimeArr = stopTime.realtimeArrival;
           final arrDelay = stopTime.arrivalDelay;
+          final realtimeArr = (scheduledArr != null && arrDelay != null)
+              ? scheduledArr + arrDelay
+              : stopTime.realtimeArrival;
 
           final scheduledDep = stopTime.scheduledDeparture;
-          final realtimeDep = stopTime.realtimeDeparture;
           final depDelay = stopTime.departureDelay;
+          final realtimeDep = (scheduledDep != null && depDelay != null)
+              ? scheduledDep + depDelay
+              : stopTime.realtimeDeparture;
 
           final isRealtime = stopTime.isRealtime;
 

@@ -39,7 +39,7 @@ class RealtimeTimeText extends StatelessWidget {
       color = mutedTextColor;
     } else if (!isRealtime) {
       color = baseTextColor;
-    } else if (scheduled == realtime || scheduled == null || realtime == null) {
+    } else if (scheduled == realtime || (scheduled == null && realtime == null)) {
       color = Colors.green;
     } else {
       color = (delay ?? 0) > 0

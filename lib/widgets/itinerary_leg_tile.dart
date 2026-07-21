@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_texts.dart';
 import '../utils/route_data_utils.dart';
+import '../utils/layout_provider.dart';
 import '../utils/route_mapping_utils.dart';
 import '../utils/markup_text_utils.dart';
 import '../utils/adaptive_dialog_utils.dart';
@@ -15,7 +16,6 @@ class ItineraryLegTile extends StatelessWidget {
   final String serviceDay;
   final bool desktopInlineMapMode;
   final double desktopBreakpoint;
-  final TripDetailsBackgroundMapCallback? onShowTripOnMap;
   final Function(String, String)? onOpenTripDetailsRequested;
 
   const ItineraryLegTile({
@@ -25,7 +25,6 @@ class ItineraryLegTile extends StatelessWidget {
     required this.serviceDay,
     this.desktopInlineMapMode = false,
     this.desktopBreakpoint = 600,
-    this.onShowTripOnMap,
     this.onOpenTripDetailsRequested,
   });
 
@@ -295,7 +294,7 @@ class ItineraryLegTile extends StatelessWidget {
 
     final isDesktop =
         desktopInlineMapMode &&
-        MediaQuery.of(context).size.width > desktopBreakpoint;
+        LayoutProvider.isDesktop(context, breakpoint: desktopBreakpoint);
 
     if (isDesktop) {
       await showAdaptiveDetailsDialog<void>(
@@ -303,7 +302,6 @@ class ItineraryLegTile extends StatelessWidget {
         child: TripDetailsScreen(
           tripId: tripId,
           serviceDay: serviceDay,
-          onShowOnBackgroundMap: onShowTripOnMap,
         ),
       );
       return;
@@ -314,7 +312,6 @@ class ItineraryLegTile extends StatelessWidget {
         builder: (_) => TripDetailsScreen(
           tripId: tripId,
           serviceDay: serviceDay,
-          onShowOnBackgroundMap: onShowTripOnMap,
         ),
       ),
     );

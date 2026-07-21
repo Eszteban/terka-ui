@@ -5,9 +5,12 @@ import '../repositories/pass_type_repository.dart';
 import '../injection_container.dart';
 import '../theme/app_tokens.dart';
 import '../theme/app_texts.dart';
+import '../utils/layout_provider.dart';
+import '../widgets/layout/screen_header.dart';
+import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import 'pass_type_editor_screen.dart';
 
-class ManagePassTypesScreen extends StatefulWidget {
+class ManagePassTypesScreen extends StatelessWidget {
   final VoidCallback? onBack;
   final ValueChanged<PassType?>? onOpenPassTypeEditor;
 
@@ -18,10 +21,37 @@ class ManagePassTypesScreen extends StatefulWidget {
   });
 
   @override
-  State<ManagePassTypesScreen> createState() => _ManagePassTypesScreenState();
+  Widget build(BuildContext context) {
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
+    return DesktopSidebarWrapper(
+      child: Scaffold(
+        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        body: SafeArea(
+          child: ManagePassTypesView(
+            onBack: onBack,
+            onOpenPassTypeEditor: onOpenPassTypeEditor,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
+class ManagePassTypesView extends StatefulWidget {
+  final VoidCallback? onBack;
+  final ValueChanged<PassType?>? onOpenPassTypeEditor;
+
+  const ManagePassTypesView({
+    super.key,
+    this.onBack,
+    this.onOpenPassTypeEditor,
+  });
+
+  @override
+  State<ManagePassTypesView> createState() => _ManagePassTypesViewState();
+}
+
+class _ManagePassTypesViewState extends State<ManagePassTypesView> {
   final PassTypeRepository _passTypeRepository = sl<PassTypeRepository>();
   List<PassType> _passTypes = [];
   bool _isLoading = true;
@@ -51,7 +81,7 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
       return;
     }
 
-    final isDesktop = MediaQuery.of(context).size.width > 700;
+    final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 700);
     final bool? result;
     if (isDesktop) {
       result = await showDialog<bool>(
@@ -126,18 +156,16 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
     final cardElevation = isDark ? 0.0 : 2.0;
     final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(AppTexts.managePassTypesTitle),
-        leading: widget.onBack != null
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: widget.onBack,
-              )
-            : null,
-      ),
-      body: SafeArea(
-        child: _isLoading
+    return Column(
+      children: [
+        ScreenHeader(
+          title: Text(AppTexts.managePassTypesTitle),
+          onBack: widget.onBack,
+        ),
+        Expanded(
+          child: Stack(
+            children: [
+              _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _passTypes.isEmpty
                 ? Center(child: Text(AppTexts.managePassTypesEmpty))
@@ -221,12 +249,19 @@ class _ManagePassTypesScreenState extends State<ManagePassTypesScreen> {
                       );
                     },
                   ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _openPassTypeEditor(),
-        tooltip: AppTexts.managePassTypesNew,
-        child: const Icon(Icons.add),
-      ),
+            Positioned(
+              bottom: 16,
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: () => _openPassTypeEditor(),
+                tooltip: AppTexts.managePassTypesNew,
+                child: const Icon(Icons.add),
+              ),
+            ),
+          ],
+        ),
+        ),
+      ],
     );
   }
 }

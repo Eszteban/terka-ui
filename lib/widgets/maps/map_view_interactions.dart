@@ -1,6 +1,205 @@
 part of 'map_view.dart';
 
 extension _MapViewInteractions on _MapViewState {
+  void _handleMapInteraction(TapPosition tapPosition, LatLng point) async {
+    context.read<MapCubit>().setSearchHighlight(point, null);
+
+    if (widget.onPlanRouteFromMap == null) return;
+    
+    final defaultName = AppTexts.isHungarian ? 'Kijelölt hely' : 'Selected location';
+    String finalName = defaultName;
+    try {
+      final uri = Uri.parse(photonReverseApiUrl).replace(queryParameters: {
+        'lat': point.latitude.toString(),
+        'lon': point.longitude.toString(),
+        'lang': AppTexts.isHungarian ? 'hu' : 'en',
+      });
+      final response = await http.get(uri).timeout(const Duration(milliseconds: 1200));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body is Map && body['features'] is List && (body['features'] as List).isNotEmpty) {
+           final firstFeature = body['features'][0];
+           if (firstFeature is Map && firstFeature['properties'] is Map) {
+              final formatted = _formatReversePhotonName(firstFeature['properties'].cast<String, dynamic>());
+              if (formatted.isNotEmpty) {
+                 finalName = formatted;
+                 if (mounted) {
+                   context.read<MapCubit>().setSearchHighlight(point, null);
+                 }
+              }
+           }
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    
+    if (LayoutProvider.isDesktop(context)) {
+      await _showDesktopContextMenu(tapPosition.global, point, finalName);
+    } else {
+      await _showMobileBottomSheet(point, finalName);
+    }
+    
+    if (mounted) {
+      context.read<MapCubit>().clearSearchHighlight();
+    }
+  }
+
+  Future<void> _showDesktopContextMenu(Offset globalPosition, LatLng point, String name) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    await showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        globalPosition.dx,
+        globalPosition.dy,
+        globalPosition.dx,
+        globalPosition.dy,
+      ),
+      items: <PopupMenuEntry<dynamic>>[
+        PopupMenuItem(
+          enabled: false,
+          child: Text(
+            name,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem(
+          onTap: () {
+            widget.onPlanRouteFromMap?.call(name, point, false);
+          },
+          child: Row(
+            children: [
+              Icon(Icons.trip_origin, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(AppTexts.isHungarian ? 'Tervezés innen' : 'Plan from here'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          onTap: () {
+            widget.onPlanRouteFromMap?.call(name, point, true);
+          },
+          child: Row(
+            children: [
+              Icon(Icons.place, color: colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(AppTexts.isHungarian ? 'Tervezés ide' : 'Plan here'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showMobileBottomSheet(LatLng point, String name) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.surface.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
+            boxShadow: isDark
+                ? []
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, -4),
+                    ),
+                  ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 42,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: colorScheme.outlineVariant,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.place, color: colorScheme.primary, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}',
+                            style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          widget.onPlanRouteFromMap?.call(name, point, false);
+                        },
+                        icon: const Icon(Icons.trip_origin),
+                        label: Text(AppTexts.isHungarian ? 'Tervezés innen' : 'Plan from here'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          widget.onPlanRouteFromMap?.call(name, point, true);
+                        },
+                        icon: const Icon(Icons.directions),
+                        label: Text(AppTexts.isHungarian ? 'Tervezés ide' : 'Plan here'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _refreshVehiclesForVisibleBounds() async {
     if (!mounted) {
       return;
@@ -348,6 +547,7 @@ extension _MapViewInteractions on _MapViewState {
       _selectedStopMarkerId = null;
       _selectedStopQuickInfo = null;
       _isLoadingSelectedStopQuickInfo = false;
+      _isRouteVehicleLabelVisible = false;
       if (_selectedVehicleMarkerId == markerId) {
         _selectedVehicleMarkerId = null;
       } else {
@@ -362,6 +562,7 @@ extension _MapViewInteractions on _MapViewState {
     final isSame = _selectedStopMarkerId == stop.stopId;
     refreshState(() {
       _selectedVehicleMarkerId = null;
+      _isRouteVehicleLabelVisible = false;
       if (isSame) {
         _selectedStopMarkerId = null;
         _selectedStopQuickInfo = null;
@@ -525,13 +726,22 @@ extension _MapViewInteractions on _MapViewState {
     if (_useDesktopDialogs) {
       await showAdaptiveDetailsDialog<void>(
         context: context,
-        child: StopDetailsScreen(
-          stopId: stop.stopId,
-          initialStopName: stop.name,
-          initialStopPoint: stop.point,
-          groupedStopIds: groupedIds,
-          onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
-          onPlanRouteToStop: widget.onPlanRouteToStop,
+        child: BlocProvider(
+          create: (context) => StopDetailsCubit(
+            transitRepository: sl<TransitRepository>(),
+            mapCubit: context.read<MapCubit>(),
+            stopId: stop.stopId,
+            initialStopPoint: stop.point,
+            initialStopName: stop.name,
+            groupedStopIds: groupedIds,
+          ),
+          child: StopDetailsScreen(
+            stopId: stop.stopId,
+            initialStopName: stop.name,
+            initialStopPoint: stop.point,
+            groupedStopIds: groupedIds,
+            onPlanRouteToStop: widget.onPlanRouteToStop,
+          ),
         ),
       );
       return;
@@ -539,13 +749,22 @@ extension _MapViewInteractions on _MapViewState {
 
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => StopDetailsScreen(
-          stopId: stop.stopId,
-          initialStopName: stop.name,
-          initialStopPoint: stop.point,
-          groupedStopIds: groupedIds,
-          onShowTripOnBackgroundMap: widget.onShowTripOnBackgroundMap,
-          onPlanRouteToStop: widget.onPlanRouteToStop,
+        builder: (_) => BlocProvider(
+          create: (context) => StopDetailsCubit(
+            transitRepository: sl<TransitRepository>(),
+            mapCubit: context.read<MapCubit>(),
+            stopId: stop.stopId,
+            initialStopPoint: stop.point,
+            initialStopName: stop.name,
+            groupedStopIds: groupedIds,
+          ),
+          child: StopDetailsScreen(
+            stopId: stop.stopId,
+            initialStopName: stop.name,
+            initialStopPoint: stop.point,
+            groupedStopIds: groupedIds,
+            onPlanRouteToStop: widget.onPlanRouteToStop,
+          ),
         ),
       ),
     );
@@ -556,6 +775,7 @@ extension _MapViewInteractions on _MapViewState {
     final isSame = _selectedStopMarkerId == stop.stopId;
     refreshState(() {
       _selectedVehicleMarkerId = null;
+      _isRouteVehicleLabelVisible = false;
       if (isSame) {
         _selectedStopMarkerId = null;
         _selectedStopQuickInfo = null;
@@ -588,5 +808,41 @@ extension _MapViewInteractions on _MapViewState {
     Timer(const Duration(milliseconds: 120), () {
       _suppressNextMapTapClose = false;
     });
+  }
+  String _formatReversePhotonName(Map<String, dynamic> properties) {
+    final name = properties['name']?.toString() ?? '';
+    final street = properties['street']?.toString() ?? '';
+    final houseNumber = properties['housenumber']?.toString() ?? '';
+    final city = properties['city']?.toString() ?? '';
+    final postcode = properties['postcode']?.toString() ?? '';
+
+    final cleanName = (name.isNotEmpty && RegExp(r'^\d+$').hasMatch(name)) ? '' : name;
+    final parts = <String>[];
+
+    if (cleanName.isNotEmpty) {
+      parts.add(cleanName);
+      if (street.isNotEmpty) {
+        if (houseNumber.isNotEmpty) {
+          parts.add('$street $houseNumber');
+        } else {
+          parts.add(street);
+        }
+      }
+    } else if (street.isNotEmpty) {
+      if (houseNumber.isNotEmpty) {
+        parts.add('$street $houseNumber');
+      } else {
+        parts.add(street);
+      }
+    }
+
+    if (city.isNotEmpty && !parts.contains(city)) {
+      parts.add(city);
+    }
+    if (postcode.isNotEmpty) {
+      parts.add(postcode);
+    }
+
+    return parts.isEmpty ? '' : parts.join(', ');
   }
 }

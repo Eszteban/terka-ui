@@ -59,10 +59,7 @@ class TripDetailsUtils {
       return DateTime.fromMillisecondsSinceEpoch(intValue * 1000);
     }
 
-    final serviceDate = parseServiceDay(serviceDay);
-    if (serviceDate == null) {
-      return null;
-    }
+    final serviceDate = parseServiceDay(serviceDay) ?? DateTime.now();
     final hours = intValue ~/ 3600;
     final minutes = (intValue % 3600) ~/ 60;
     final seconds = intValue % 60;
@@ -296,6 +293,71 @@ class TripDetailsUtils {
     return RouteMapData(segments: segments, stops: stops);
   }
 
+  static RouteMapData buildRouteMapData(Map<String, dynamic> route) {
+    final segments = <RouteSegment>[];
+    final stops = <RouteStopMarker>[];
+    final addedStopIds = <String>{};
+
+    final patterns = route['patterns'];
+    if (patterns is List && patterns.isNotEmpty) {
+      for (final pattern in patterns) {
+        if (pattern is Map) {
+          final shape = pattern['patternGeometry'];
+          if (shape is Map && shape['points'] is String) {
+            final points = decodePolyline(shape['points']);
+            if (points.isNotEmpty) {
+              final rColor = hexColor(route['color']?.toString() ?? '0A84FF');
+              final rTextColor = hexColor(route['textColor']?.toString() ?? 'FFFFFF');
+              segments.add(
+                RouteSegment(
+                  points: points,
+                  color: resolvedPolylineColor(routeColor: rColor, routeTextColor: rTextColor),
+                ),
+              );
+            }
+          }
+
+          final patternStops = pattern['stops'];
+          if (patternStops is List) {
+            for (var i = 0; i < patternStops.length; i++) {
+              final stop = patternStops[i];
+              if (stop is Map) {
+                final stopId = stop['gtfsId']?.toString();
+                if (stopId != null && addedStopIds.add(stopId)) {
+                  final lat = stop['lat'];
+                  final lon = stop['lon'];
+                  if (lat is num && lon is num) {
+                    final name = stop['name']?.toString() ?? '';
+                    final bearing = stop['bearing'] is num ? (stop['bearing'] as num).toDouble() : null;
+                    final platformCode = stop['platformCode']?.toString().trim();
+                    
+                    final type = i == 0
+                        ? RouteStopType.start
+                        : (i == patternStops.length - 1
+                            ? RouteStopType.end
+                            : RouteStopType.transfer);
+
+                    stops.add(
+                      RouteStopMarker(
+                        point: LatLng(lat.toDouble(), lon.toDouble()),
+                        label: plainText(name),
+                        type: type,
+                        stopId: stopId,
+                        bearing: bearing,
+                        platformCode: platformCode != null && platformCode.isNotEmpty ? platformCode : null,
+                      ),
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return RouteMapData(segments: segments, stops: stops);
+  }
+
   static RouteVehicleMarker? buildTripVehicleMarker(
     Map<String, dynamic> trip,
     String tripId,
@@ -338,6 +400,8 @@ class TripDetailsUtils {
       tripHeadsignUsesSpanFont: info.tripHeadsignUsesSpanFont,
       vehicleInfoText: info.vehicleInfoText,
       tripId: tripId,
+      rawVehicle: vehicle,
+      rawTrip: trip,
     );
   }
 
@@ -449,3 +513,4 @@ class TripDetailsUtils {
     );
   }
 }
+

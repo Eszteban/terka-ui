@@ -1,6 +1,25 @@
-// Kereső API endpoint konstans
-const String searchApiUrl = 'https://mavplusz.hu/otp2-backend/otp/routers/default/geocode/stations';
-const String planApiUrl = 'https://mavplusz.hu/otp2-backend/otp/routers/default/index/graphql';
+const bool useProxy = bool.fromEnvironment('USE_PROXY', defaultValue: true);
+const String proxyBaseUrl = String.fromEnvironment('PROXY_URL', defaultValue: 'http://eszteban.hu/api/mav_api_proxy_tester.php');
+
+String get searchApiUrl => useProxy 
+    ? '$proxyBaseUrl?endpoint=stations' 
+    : 'https://mavplusz.hu/otp2-backend/otp/routers/default/geocode/stations';
+
+String get planApiUrl => useProxy 
+    ? '$proxyBaseUrl?endpoint=graphql' 
+    : 'https://mavplusz.hu/otp2-backend/otp/routers/default/index/graphql';
+
+String get photonApiUrl => useProxy 
+    ? '$proxyBaseUrl?endpoint=photon' 
+    : 'https://mavplusz.hu/photon/api';
+
+String get photonReverseApiUrl => useProxy 
+    ? '$proxyBaseUrl?endpoint=photon-reverse' 
+    : 'https://mavplusz.hu/photon/reverse';
+
+String get rssApiUrl => useProxy 
+    ? '$proxyBaseUrl?endpoint=rss' 
+    : 'https://www.mavcsoport.hu/mavinform/rss.xml';
 
 const Map<String, String> apiRequestHeaders = {
 	'Content-Type': 'application/json',

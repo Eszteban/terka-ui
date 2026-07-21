@@ -4,14 +4,14 @@ import 'package:html_unescape/html_unescape.dart';
 import '../models/news_item.dart';
 import '../theme/app_texts.dart';
 import 'news_repository.dart';
+import '../constants/search_api.dart';
 
 class RssNewsRepository implements NewsRepository {
-  static const String _rssUrl = 'https://www.mavcsoport.hu/mavinform/rss.xml';
   final _unescape = HtmlUnescape();
 
   @override
   Future<List<NewsItem>> fetchNews() async {
-    final response = await http.get(Uri.parse(_rssUrl));
+    final response = await http.get(Uri.parse(rssApiUrl));
     if (response.statusCode != 200) {
       throw Exception(AppTexts.newsLoadFailed);
     }

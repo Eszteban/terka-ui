@@ -27,6 +27,18 @@ class HttpTransitRepository implements TransitRepository {
   }
 
   @override
+  Future<Map<String, dynamic>?> fetchRouteDetails({
+    required String routeId,
+  }) async {
+    final rawData = await _apiService.fetchRouteDetails(
+      routeId: routeId,
+    );
+    if (rawData == null) return null;
+    final routeNode = rawData['route'];
+    return routeNode is Map ? routeNode.cast<String, dynamic>() : null;
+  }
+
+  @override
   Future<TripStopQuickInfo?> fetchStopQuickInfo({
     required String stopId,
     required String fallbackName,

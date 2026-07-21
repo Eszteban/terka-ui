@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
+import 'layout_provider.dart';
 
 Future<T?> showAdaptiveDetailsDialog<T>({
   required BuildContext context,
   required Widget child,
 }) {
   final size = MediaQuery.of(context).size;
-  final isDesktop = size.shortestSide > 600;
+  final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600);
   final orientation = NativeDeviceOrientationReader.orientation(context);
   final isPhoneLandscape = !isDesktop &&
       (orientation == NativeDeviceOrientation.landscapeLeft ||
@@ -50,16 +51,24 @@ Future<T?> showAdaptiveDetailsDialog<T>({
   }
 
   // Fallback to standard desktop/tablet centered dialog
+  final padding = MediaQuery.of(context).viewPadding;
+  final safeMaxHeight = (size.height - padding.top - padding.bottom - 48).clamp(0.0, 860.0);
+
   return showDialog<T>(
     context: context,
     builder: (_) => Dialog(
       clipBehavior: Clip.antiAlias,
-      insetPadding: const EdgeInsets.symmetric(
-        horizontal: 24,
-        vertical: 24,
+      insetPadding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24 + padding.top,
+        bottom: 24 + padding.bottom,
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 920, maxHeight: 860),
+        constraints: BoxConstraints(
+          maxWidth: 560,
+          maxHeight: safeMaxHeight,
+        ),
         child: child,
       ),
     ),
