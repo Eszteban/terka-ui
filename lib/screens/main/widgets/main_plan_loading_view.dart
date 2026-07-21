@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class MainPlanLoadingView extends StatefulWidget {
   const MainPlanLoadingView({super.key});
@@ -43,12 +44,12 @@ class _MainPlanLoadingViewState extends State<MainPlanLoadingView>
         return Opacity(
           opacity: opacity,
           child: ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             itemCount: 3,
-            separatorBuilder: (context, index) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.md),
             itemBuilder: (context, index) {
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 6),
+                margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -57,7 +58,7 @@ class _MainPlanLoadingViewState extends State<MainPlanLoadingView>
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -72,7 +73,7 @@ class _MainPlanLoadingViewState extends State<MainPlanLoadingView>
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Container(
                             width: 180,
                             height: 16,
@@ -83,10 +84,10 @@ class _MainPlanLoadingViewState extends State<MainPlanLoadingView>
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       // Bento Grid Skeleton
                       _buildSkeletonTile(skeletonColor, height: 80),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: AppSpacing.xs),
                       _buildSkeletonTile(skeletonColor, height: 60),
                     ],
                   ),

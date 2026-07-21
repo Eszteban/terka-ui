@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../theme/app_texts.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TopNavbar extends StatefulWidget {
   final bool isDesktop;
@@ -58,7 +58,7 @@ class _TopNavbarState extends State<TopNavbar> {
       return FilledButton.tonal(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.none),
           minimumSize: const Size(0, 40),
           elevation: 0,
         ),
@@ -66,7 +66,7 @@ class _TopNavbarState extends State<TopNavbar> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
@@ -107,7 +107,7 @@ class _TopNavbarState extends State<TopNavbar> {
       return Padding(
         padding: EdgeInsets.only(
           top: topPadding + 16,
-          left: 16,
+          left: AppSpacing.lg,
         ),
         child: Align(
           alignment: Alignment.topLeft,
@@ -116,7 +116,7 @@ class _TopNavbarState extends State<TopNavbar> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: pillColor,
                   borderRadius: BorderRadius.circular(32),
@@ -125,7 +125,7 @@ class _TopNavbarState extends State<TopNavbar> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
+                      color: AppColors.black.withValues(alpha: 0.05),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -134,7 +134,7 @@ class _TopNavbarState extends State<TopNavbar> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     _showFox
                         ? Image.asset(
                             'assets/pics/spinning_fox.gif',
@@ -151,17 +151,17 @@ class _TopNavbarState extends State<TopNavbar> {
                               color: colorScheme.primary,
                             ),
                           ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: AppSpacing.lg),
                     Container(
                       width: 1,
                       height: 24,
                       color: colorScheme.outlineVariant.withValues(alpha: 0.5),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     ...List<Widget>.generate(navItems.length, (index) {
                       final item = navItems[index];
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                         child: _buildDesktopNavButton(
                           context: context,
                           label: item.label,

@@ -9,12 +9,13 @@ import '../../controllers/stop_details_cubit.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../../widgets/layout/screen_header.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../utils/adaptive_dialog_utils.dart';
 import '../../utils/layout_provider.dart';
 
 import 'widgets/stop_details_mobile_sheet.dart';
 import 'widgets/stop_details_tabs.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopDetailsScreen extends StatelessWidget {
   static const double desktopBreakpoint = 600;
@@ -189,6 +190,15 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(AppTexts.stopErrorUpdate(state.refreshError!))),
           );
+        } else if (state is StopDetailsError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTexts.stopNotFound(widget.stopId))),
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/');
+          }
         }
       },
       builder: (context, state) {
@@ -256,7 +266,7 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
                   ),
                 if (isRefreshing)
                   const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                     child: SizedBox(
                       width: 24,
                       height: 24,
@@ -280,17 +290,7 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
     }
 
     if (state is StopDetailsError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(state.message, textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      );
+      return const SizedBox.shrink();
     }
 
     if (state is StopDetailsLoaded) {
@@ -328,7 +328,7 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
               .toList()
           : departuresOnly;
 
-      final isMobile = MediaQuery.of(context).size.width <= StopDetailsScreen.desktopBreakpoint;
+      final isMobile = !LayoutProvider.isDesktop(context, breakpoint: StopDetailsScreen.desktopBreakpoint);
 
       if (isMobile) {
         return StopDetailsMobileSheet(

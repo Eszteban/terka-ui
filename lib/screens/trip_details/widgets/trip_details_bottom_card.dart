@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../utils/trip_details_utils.dart';
 import '../../../widgets/line_badge.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripDetailsBottomCard extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -26,20 +27,20 @@ class TripDetailsBottomCard extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: colorScheme.surface.withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(16),
           border: isDark
-              ? Border.all(color: Colors.white.withValues(alpha: 0.08))
+              ? Border.all(color: AppColors.white.withValues(alpha: 0.08))
               : null,
           boxShadow: isDark
               ? []
               : [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: AppColors.black.withValues(alpha: 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -57,7 +58,7 @@ class TripDetailsBottomCard extends StatelessWidget {
                   routeTextColor: routeTextColor,
                   useSpanFont: info.lineUsesSpanFont,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     '${info.tripShortName} - ${info.tripHeadsign}',
@@ -67,9 +68,9 @@ class TripDetailsBottomCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xs),
             Text(info.vehicleInfoText, textAlign: TextAlign.center),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '${AppTexts.isHungarian ? "Dátum:" : "Date:"} $serviceDay',
               style: TextStyle(
@@ -78,7 +79,7 @@ class TripDetailsBottomCard extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton(

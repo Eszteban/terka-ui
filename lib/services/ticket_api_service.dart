@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ticket_item.dart';
 import '../models/auth_results.dart';
 import '../models/ticket_options.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import 'graphql/graphql_client.dart';
 
 class TicketApiService {

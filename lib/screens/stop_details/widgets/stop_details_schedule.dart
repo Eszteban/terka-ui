@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../utils/stop_details_utils.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/departure_card.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopDetailsSchedule extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -28,7 +29,7 @@ class StopDetailsSchedule extends StatelessWidget {
     if (items.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Text(
             AppTexts.stopNoDepartures,
             textAlign: TextAlign.center,
@@ -63,7 +64,7 @@ class StopDetailsSchedule extends StatelessWidget {
     if (grouped.isEmpty) {
       return Center(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Text(
             AppTexts.stopNoDepartures,
             textAlign: TextAlign.center,
@@ -79,7 +80,7 @@ class StopDetailsSchedule extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ListView.separated(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       itemCount: sortedHours.length,
       shrinkWrap: true,
       separatorBuilder: (context, index) => Divider(
@@ -97,7 +98,7 @@ class StopDetailsSchedule extends StatelessWidget {
               Container(
                 width: 48,
                 alignment: Alignment.topCenter,
-                padding: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.only(top: AppSpacing.sm),
                 decoration: BoxDecoration(
                   border: Border(
                     right: BorderSide(
@@ -115,10 +116,10 @@ class StopDetailsSchedule extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -146,7 +147,7 @@ class StopDetailsSchedule extends StatelessWidget {
                             context: context,
                             barrierDismissible: true,
                             barrierLabel: 'Dismiss',
-                            barrierColor: Colors.black.withValues(alpha: 0.15),
+                            barrierColor: AppColors.black.withValues(alpha: 0.15),
                             transitionDuration: const Duration(milliseconds: 350),
                             pageBuilder: (context, anim1, anim2) {
                               return _TimetablePopup(
@@ -223,29 +224,29 @@ class _MinuteItem extends StatelessWidget {
     if (isRealtime) {
       final delay = StopDetailsUtils.asNum(departure['departureDelay']) ?? 0;
       if (delay == 0) {
-        realtimeColor = isDark ? Colors.green.shade300 : Colors.green.shade700;
+        realtimeColor = isDark ? AppColors.green.shade300 : AppColors.green.shade700;
       } else if (delay < 0) {
-        realtimeColor = isDark ? Colors.blue.shade300 : Colors.blue.shade700;
+        realtimeColor = isDark ? AppColors.blue.shade300 : AppColors.blue.shade700;
       } else {
-        realtimeColor = isDark ? Colors.red.shade300 : Colors.red.shade700;
+        realtimeColor = isDark ? AppColors.red.shade300 : AppColors.red.shade700;
       }
     }
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
           decoration: BoxDecoration(
             border: Border.all(
-              color: isDark ? Colors.white.withValues(alpha: 0.12) : Colors.black.withValues(alpha: 0.08),
+              color: isDark ? AppColors.white.withValues(alpha: 0.12) : AppColors.black.withValues(alpha: 0.08),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(8),
-            color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01),
+            color: isDark ? AppColors.white.withValues(alpha: 0.02) : AppColors.black.withValues(alpha: 0.01),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -259,19 +260,19 @@ class _MinuteItem extends StatelessWidget {
                 ),
               ),
               if (isWheelchair || isBike) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.xs),
                 if (isWheelchair)
                   Icon(
                     Icons.accessible,
                     size: 13,
-                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
+                    color: isDark ? AppColors.blue.shade300 : AppColors.blue.shade700,
                   ),
                 if (isBike) ...[
-                  if (isWheelchair) const SizedBox(width: 2),
+                  if (isWheelchair) const SizedBox(width: AppSpacing.none),
                   Icon(
                     Icons.directions_bike,
                     size: 13,
-                    color: isDark ? Colors.green.shade300 : Colors.green.shade700,
+                    color: isDark ? AppColors.green.shade300 : AppColors.green.shade700,
                   ),
                 ],
               ],
@@ -322,7 +323,7 @@ class _TimetablePopupState extends State<_TimetablePopup> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xl),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: DepartureCard(

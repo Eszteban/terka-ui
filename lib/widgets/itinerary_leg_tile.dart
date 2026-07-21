@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../utils/route_data_utils.dart';
 import '../utils/layout_provider.dart';
 import '../utils/route_mapping_utils.dart';
@@ -7,6 +7,7 @@ import '../utils/markup_text_utils.dart';
 import '../utils/adaptive_dialog_utils.dart';
 import '../screens/trip_details/trip_details_screen.dart';
 import '../extensions/string_html_cleaner.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class ItineraryLegTile extends StatelessWidget {
   static const String _spanFontFamily = 'MNR2007';
@@ -65,7 +66,7 @@ class ItineraryLegTile extends StatelessWidget {
 
     final leftTile = Container(
       width: 80,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: isWalkLeg
             ? (isDark
@@ -96,7 +97,7 @@ class ItineraryLegTile extends StatelessWidget {
                   : routeColor,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           if (isWalkLeg)
             Icon(
               _iconForMode(mode),
@@ -107,8 +108,8 @@ class ItineraryLegTile extends StatelessWidget {
             _containsSpanMarkup(lineNumber)
                 ? Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 0,
-                      vertical: 0,
+                      horizontal: AppSpacing.none,
+                      vertical: AppSpacing.none,
                     ),
                     decoration: BoxDecoration(
                       color: routeColor,
@@ -128,8 +129,8 @@ class ItineraryLegTile extends StatelessWidget {
                   )
                 : Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs,
                     ),
                     decoration: BoxDecoration(
                       color: routeColor,
@@ -144,7 +145,7 @@ class ItineraryLegTile extends StatelessWidget {
                       ),
                     ),
                   ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             duration,
             textAlign: TextAlign.center,
@@ -161,7 +162,7 @@ class ItineraryLegTile extends StatelessWidget {
     );
 
     final rightTile = Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: isDark
             ? colorScheme.surfaceContainerLowest.withValues(alpha: 0.5)
@@ -184,7 +185,7 @@ class ItineraryLegTile extends StatelessWidget {
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -212,7 +213,7 @@ class ItineraryLegTile extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               Icon(
@@ -220,7 +221,7 @@ class ItineraryLegTile extends StatelessWidget {
                 size: 12,
                 color: colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 '$startTime - $endTime',
                 style: subtitleStyle?.copyWith(
@@ -231,7 +232,7 @@ class ItineraryLegTile extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           if (isWalkLeg)
             Text(
               waitMinutes != null && waitMinutes > 0
@@ -255,9 +256,9 @@ class ItineraryLegTile extends StatelessWidget {
     );
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         child: InkWell(
           onTap: canOpenTrip
               ? () => _openTripDetails(
@@ -272,7 +273,7 @@ class ItineraryLegTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 leftTile,
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(child: rightTile),
               ],
             ),

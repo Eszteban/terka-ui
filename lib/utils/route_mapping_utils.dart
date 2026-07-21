@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class RouteMappingUtils {
   static List<LatLng> decodePolyline(String encoded) {
@@ -69,7 +70,7 @@ class RouteMappingUtils {
         }
       }
     }
-    return Colors.blue;
+    return AppColors.blue;
   }
 
   static Color parseRouteColorForMap(Map<String, dynamic> leg) {
@@ -91,7 +92,7 @@ class RouteMappingUtils {
         return routeColor;
       }
     }
-    return Colors.blue;
+    return AppColors.blue;
   }
 
   static Color parseRouteTextColor(
@@ -113,6 +114,6 @@ class RouteMappingUtils {
 
   static Color idealTextColor(Color backgroundColor) {
     final brightness = ThemeData.estimateBrightnessForColor(backgroundColor);
-    return brightness == Brightness.dark ? Colors.white : Colors.black;
+    return brightness == Brightness.dark ? AppColors.white : AppColors.black;
   }
 }

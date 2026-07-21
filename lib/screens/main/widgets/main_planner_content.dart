@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../models/ticket_item.dart';
 import '../../../widgets/forms/route_plan_form.dart';
 import '../../../controllers/route_planner_cubit.dart';

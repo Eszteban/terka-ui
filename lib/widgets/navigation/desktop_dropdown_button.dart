@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class DesktopDropdownButton extends StatelessWidget {
   final String title;

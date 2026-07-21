@@ -26,12 +26,23 @@ import '../../screens/add_ticket_screen.dart';
 import '../../screens/manage_pass_types_screen.dart';
 import '../../screens/pass_type_editor_screen.dart';
 import '../../screens/about_screen.dart';
+import 'transparent_route.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey =
     GlobalKey<NavigatorState>();
 
 class AppRouter {
+    static Page<dynamic> _buildPage(BuildContext context, GoRouterState state, Widget child) {
+    if (LayoutProvider.isDesktop(context)) {
+      return TransparentPage(
+        key: state.pageKey,
+        child: child,
+      );
+    }
+    return MaterialPage(key: state.pageKey, child: child);
+  }
+
   static final RouteObserver<ModalRoute<void>> routeObserver =
       RouteObserver<ModalRoute<void>>();
 
@@ -46,6 +57,14 @@ class AppRouter {
     return GoRouter(
       navigatorKey: _rootNavigatorKey,
       initialLocation: '/',
+      errorBuilder: (context, state) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          context.go('/');
+        });
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      },
       routes: [
         ShellRoute(
           navigatorKey: _shellNavigatorKey,
@@ -56,7 +75,7 @@ class AppRouter {
           routes: [
             GoRoute(
               path: '/',
-              builder: (context, state) {
+              pageBuilder: (context, state) => _buildPage(context, state, Builder(builder: (context) {
                 final isDesktop = LayoutProvider.isDesktop(context);
                 final queryParams = state.uri.queryParameters;
                 return HomeScreen(
@@ -66,15 +85,15 @@ class AppRouter {
                   initialFromCoords: queryParams['fromCoords'],
                   initialToCoords: queryParams['toCoords'],
                 );
-              },
+              })),
             ),
             GoRoute(
               path: '/map',
-              builder: (context, state) => const SizedBox.shrink(),
+              pageBuilder: (context, state) => _buildPage(context, state, const SizedBox.shrink()),
             ),
             GoRoute(
               path: '/plan',
-              builder: (context, state) {
+              pageBuilder: (context, state) => _buildPage(context, state, Builder(builder: (context) {
                 final queryParams = state.uri.queryParameters;
                 return PlanScreen(
                   from: queryParams['from'],
@@ -87,11 +106,11 @@ class AppRouter {
                   modes: queryParams['modes'],
                   ticketWatch: queryParams['ticketWatch'],
                 );
-              },
+              })),
             ),
             GoRoute(
               path: '/stop/:stopId',
-              builder: (context, state) {
+              pageBuilder: (context, state) => _buildPage(context, state, Builder(builder: (context) {
                 final mapCubit = context.read<MapCubit>();
                 final stopId = state.pathParameters['stopId']!;
 
@@ -133,7 +152,7 @@ class AppRouter {
                     },
                   ),
                 );
-              },
+              })),
             ),
             GoRoute(
               path: '/routes/:routeId',
@@ -144,7 +163,7 @@ class AppRouter {
             ),
             GoRoute(
               path: '/route/:routeId',
-              builder: (context, state) {
+              pageBuilder: (context, state) => _buildPage(context, state, Builder(builder: (context) {
                 final mapCubit = context.read<MapCubit>();
                 final routeId = state.pathParameters['routeId']!;
                 return BlocProvider(
@@ -175,11 +194,11 @@ class AppRouter {
                     },
                   ),
                 );
-              },
+              })),
             ),
             GoRoute(
               path: '/trip/:tripId',
-              builder: (context, state) {
+              pageBuilder: (context, state) => _buildPage(context, state, Builder(builder: (context) {
                 final mapCubit = context.read<MapCubit>();
                 final tripId = state.pathParameters['tripId']!;
                 final rawServiceDay =
@@ -214,15 +233,15 @@ class AppRouter {
                     },
                   ),
                 );
-              },
+              })),
             ),
             GoRoute(
               path: '/news',
-              builder: (context, state) => const NewsScreen(),
+              pageBuilder: (context, state) => _buildPage(context, state, const NewsScreen()),
             ),
             GoRoute(
               path: '/profile',
-              builder: (context, state) => ValueListenableBuilder<ThemeMode>(
+              pageBuilder: (context, state) => _buildPage(context, state, ValueListenableBuilder<ThemeMode>(
                 valueListenable: themeModeNotifier,
                 builder: (context, themeMode, _) =>
                     ValueListenableBuilder<AppLanguage>(
@@ -246,11 +265,11 @@ class AppRouter {
                             ),
                           ),
                     ),
-              ),
+              )),
             ),
             GoRoute(
               path: '/tickets',
-              builder: (context, state) => TicketsScreen(
+              pageBuilder: (context, state) => _buildPage(context, state, TicketsScreen(
                 onBack: () {
                   if (context.canPop())
                     context.pop();
@@ -260,11 +279,11 @@ class AppRouter {
                 onEditTicket: (ticket) {
                   context.push('/tickets/add', extra: ticket);
                 },
-              ),
+              )),
             ),
             GoRoute(
               path: '/tickets/add',
-              builder: (context, state) => AddTicketScreen(
+              pageBuilder: (context, state) => _buildPage(context, state, AddTicketScreen(
                 ticket: state.extra as dynamic,
                 onBack: () {
                   if (context.canPop())
@@ -278,11 +297,11 @@ class AppRouter {
                   else
                     context.go('/tickets');
                 },
-              ),
+              )),
             ),
             GoRoute(
               path: '/pass-types',
-              builder: (context, state) => ManagePassTypesScreen(
+              pageBuilder: (context, state) => _buildPage(context, state, ManagePassTypesScreen(
                 onBack: () {
                   if (context.canPop())
                     context.pop();
@@ -292,11 +311,11 @@ class AppRouter {
                 onOpenPassTypeEditor: (passType) {
                   context.push('/pass-types/edit', extra: passType);
                 },
-              ),
+              )),
             ),
             GoRoute(
               path: '/pass-types/edit',
-              builder: (context, state) => PassTypeEditorScreen(
+              pageBuilder: (context, state) => _buildPage(context, state, PassTypeEditorScreen(
                 passType: state.extra as dynamic,
                 onBack: () {
                   if (context.canPop())
@@ -310,18 +329,18 @@ class AppRouter {
                   else
                     context.go('/pass-types');
                 },
-              ),
+              )),
             ),
             GoRoute(
               path: '/about',
-              builder: (context, state) => AboutScreen(
+              pageBuilder: (context, state) => _buildPage(context, state, AboutScreen(
                 onBack: () {
                   if (context.canPop())
                     context.pop();
                   else
                     context.go('/profile');
                 },
-              ),
+              )),
             ),
           ],
         ),

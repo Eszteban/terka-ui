@@ -10,7 +10,7 @@ import '../../widgets/tables/route_planner_results_view.dart';
 import '../../models/ticket_item.dart';
 import '../../repositories/ticket_repository.dart';
 import '../../injection_container.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../widgets/forms/route_plan_form.dart';
 import 'package:terka/screens/main/widgets/main_selected_map_card.dart';
 
@@ -301,6 +301,9 @@ class _PlanScreenState extends State<PlanScreen> {
       },
     );
 
-    return DesktopSidebarWrapper(child: content);
+    return DesktopSidebarWrapper(
+      applyPaddingOnMobile: true,
+      child: content,
+    );
   }
 }

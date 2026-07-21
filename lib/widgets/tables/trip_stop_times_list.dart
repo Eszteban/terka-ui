@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../../utils/trip_details_utils.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../realtime_time_text.dart';
 import '../alerts_section.dart';
 import '../../models/trip_stop_time.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripStopTimesList extends StatelessWidget {
   final List<TripStopTime> stopTimes;
@@ -24,9 +25,14 @@ class TripStopTimesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: DataTable(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double timeColumnWidth = 100.0;
+        final double dataTablePadding = 48.0; 
+        final double availableWidthForStop = constraints.maxWidth - timeColumnWidth - dataTablePadding;
+        final double stopColumnWidth = availableWidthForStop > 120.0 ? availableWidthForStop : 120.0;
+
+        return DataTable(
         columnSpacing: 12,
         dataRowMinHeight: 48,
         dataRowMaxHeight: 64,
@@ -137,7 +143,7 @@ class TripStopTimesList extends StatelessWidget {
                   tooltipType: 'arrival',
                   customTooltip: customTooltipMsg,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSpacing.none),
                 RealtimeTimeText(
                   scheduled: scheduledDep,
                   realtime: realtimeDep,
@@ -178,11 +184,11 @@ class TripStopTimesList extends StatelessWidget {
                                   ),
                                 ),
                                 if (platformCode.isNotEmpty) ...[
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: AppSpacing.xs),
                                   Container(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
+                                      horizontal: AppSpacing.xs,
+                                      vertical: AppSpacing.none,
                                     ),
                                     decoration: BoxDecoration(
                                       color: Theme.of(context)
@@ -213,11 +219,11 @@ class TripStopTimesList extends StatelessWidget {
                                 ),
                               ),
                               if (platformCode.isNotEmpty) ...[
-                                const SizedBox(width: 6),
+                                const SizedBox(width: AppSpacing.xs),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
+                                    horizontal: AppSpacing.xs,
+                                    vertical: AppSpacing.none,
                                   ),
                                   decoration: BoxDecoration(
                                     color: Theme.of(context)
@@ -244,7 +250,7 @@ class TripStopTimesList extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               stopWidget,
-                              const SizedBox(height: 2),
+                              const SizedBox(height: AppSpacing.none),
                               Text(
                                 restrictionText,
                                 style: TextStyle(
@@ -258,7 +264,7 @@ class TripStopTimesList extends StatelessWidget {
                         : stopWidget;
 
                     return SizedBox(
-                      width: 240,
+                      width: stopColumnWidth,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -266,14 +272,14 @@ class TripStopTimesList extends StatelessWidget {
                             child: contentWidget,
                           ),
                           if (hasAlerts) ...[
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSpacing.xs),
                             InkWell(
                               onTap: () {
                                 _showStopAlertsDialog(context, stopName, alertsList);
                               },
                               child: const Icon(
                                 Icons.warning_amber_rounded,
-                                color: Colors.orange,
+                                color: AppColors.orange,
                                 size: 18,
                               ),
                             ),
@@ -288,8 +294,8 @@ class TripStopTimesList extends StatelessWidget {
             ],
           );
         }).toList(),
-      ),
-    );
+      );
+    });
   }
 
   void _showStopAlertsDialog(
@@ -313,8 +319,8 @@ class TripStopTimesList extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('OK'),
+              onPressed: () => Navigator.pop(context),
+              child: Text(AppTexts.ok),
             ),
           ],
         );

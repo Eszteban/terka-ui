@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../widgets/forms/autocomplete_search_field.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../utils/markup_text_utils.dart' as markup;
 import '../../widgets/line_badge.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class GeneralSearchScreen extends StatefulWidget {
   const GeneralSearchScreen({super.key});
@@ -47,7 +48,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
               title: Row(
                 children: [
                   Icon(Icons.tune, color: colorScheme.primary),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     AppTexts.isHungarian ? 'Keresési szűrők' : 'Search filters',
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -148,11 +149,11 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
         ),
         titleSpacing: 0,
         title: Padding(
-          padding: const EdgeInsets.only(right: 8.0),
+          padding: const EdgeInsets.only(right: AppSpacing.sm),
           child: Container(
             height: 44,
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: AppColors.transparent,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
                 color: colorScheme.outlineVariant.withValues(alpha: 0.5),
@@ -160,7 +161,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
             ),
             child: Row(
               children: [
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: AutocompleteSearchField(
                     controller: _searchController,
@@ -188,7 +189,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                       prefixIcon: Icon(
                         Icons.search,
                         color: colorScheme.onSurfaceVariant,
@@ -220,7 +221,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                   tooltip: AppTexts.isHungarian ? 'Keresési szűrők' : 'Search filters',
                   onPressed: () => _showFilterDialog(context),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: AppSpacing.xs),
               ],
             ),
           ),
@@ -242,7 +243,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                         size: 64,
                         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
                         AppTexts.isHungarian
                             ? 'Írj be legalább 3 karaktert a kereséshez'
@@ -266,7 +267,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
                         size: 64,
                         color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
                         AppTexts.isHungarian
                             ? 'Nincs találat'
@@ -282,7 +283,7 @@ class _GeneralSearchScreenState extends State<GeneralSearchScreen> {
             else
               Expanded(
                 child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   itemCount: _suggestions.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {

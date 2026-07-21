@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/maps/plan_map_view.dart';
 import '../../../widgets/tables/route_planner_results_view.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class SelectedItineraryMapScreen extends StatelessWidget {
   static const double _mobileSheetMinSize = 0.16;
@@ -55,7 +56,7 @@ class SelectedItineraryMapScreen extends StatelessWidget {
                       controller: scrollController,
                       physics: const ClampingScrollPhysics(),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -69,7 +70,7 @@ class SelectedItineraryMapScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             RoutePlannerResultsView.buildBentoHeader(
                               context,
                               payload.itinerary,
@@ -77,14 +78,14 @@ class SelectedItineraryMapScreen extends StatelessWidget {
                               payload.lineBadges,
                               payload.missingAgencies,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                           ],
                         ),
                       ),
                     ),
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.none, AppSpacing.md, AppSpacing.xl),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

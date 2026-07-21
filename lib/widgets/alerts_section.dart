@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:html_unescape/html_unescape.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class AlertsSection extends StatelessWidget {
   final List<dynamic>? alerts;
@@ -95,7 +96,7 @@ class AlertsSection extends StatelessWidget {
     final baseAlertColor = isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00);
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -108,11 +109,11 @@ class AlertsSection extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
+          dividerColor: AppColors.transparent,
         ),
         child: ExpansionTile(
           initiallyExpanded: false,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.none),
           leading: Icon(
             Icons.notification_important_rounded,
             color: baseAlertColor,
@@ -124,10 +125,10 @@ class AlertsSection extends StatelessWidget {
               fontWeight: FontWeight.bold,
               fontSize: 14,
               letterSpacing: 0.5,
-              color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+              color: isDark ? AppColors.white.withValues(alpha: 0.9) : AppColors.black.withValues(alpha: 0.87),
             ),
           ),
-          childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+          childrenPadding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.none, AppSpacing.sm, AppSpacing.sm),
           children: validAlerts.map((dynamic a) {
             final alert = a as Map<String, dynamic>;
             final rawHeader = alert['alertHeaderText']?.toString().trim() ?? '';
@@ -161,7 +162,7 @@ class AlertsSection extends StatelessWidget {
             final timeRangeStr = _formatTimeRange(start, end);
 
             return Card(
-              margin: const EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -180,7 +181,7 @@ class AlertsSection extends StatelessWidget {
                       header.isNotEmpty ? header : AppTexts.alertDefaultHeader,
                       TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white : Colors.black87,
+                        color: isDark ? AppColors.white : AppColors.black.withValues(alpha: 0.87),
                         fontSize: 14,
                         fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
                       ),
@@ -192,11 +193,11 @@ class AlertsSection extends StatelessWidget {
                         timeRangeStr,
                         style: TextStyle(
                           fontSize: 11,
-                          color: isDark ? Colors.white70 : Colors.black54,
+                          color: isDark ? AppColors.white.withValues(alpha: 0.70) : AppColors.black.withValues(alpha: 0.54),
                         ),
                       )
                     : null,
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                childrenPadding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.none, AppSpacing.lg, AppSpacing.md),
                 expandedAlignment: Alignment.topLeft,
                 expandedCrossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -208,7 +209,7 @@ class AlertsSection extends StatelessWidget {
                           TextStyle(
                             fontSize: 13.5,
                             height: 1.4,
-                            color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                            color: isDark ? AppColors.white.withValues(alpha: 0.9) : AppColors.black.withValues(alpha: 0.87),
                             fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
                           ),
                         ),
@@ -216,14 +217,14 @@ class AlertsSection extends StatelessWidget {
                     ),
                   ],
                   if (url.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.sm),
                     Align(
                       alignment: Alignment.centerRight,
                       child: TextButton.icon(
                         onPressed: () => _launchUrl(context, url),
                         style: TextButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
                         ),
                         icon: const Icon(Icons.open_in_new, size: 14),
                         label: Text(

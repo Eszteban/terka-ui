@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class LineBadge extends StatelessWidget {
   static const String spanFontFamily = 'MNR2007';
@@ -21,8 +22,8 @@ class LineBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: useSpanFont
-          ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0)
-          : const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          ? const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none)
+          : const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: routeColor,
         borderRadius: BorderRadius.circular(6),

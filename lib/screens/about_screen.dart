@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../utils/layout_provider.dart';
@@ -16,8 +16,9 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     return DesktopSidebarWrapper(
+      backgroundAlpha: 1.0,
       child: Scaffold(
-        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        backgroundColor: AppColors.transparent,
         body: SafeArea(
           child: AboutView(
             onBack: onBack,
@@ -100,12 +101,12 @@ class _AboutViewState extends State<AboutView> {
     required List<Widget> children,
   }) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 0,
       color: AppColors.getSurface(context),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -116,7 +117,7 @@ class _AboutViewState extends State<AboutView> {
                   color: Theme.of(context).colorScheme.primary,
                   size: 28,
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +154,7 @@ class _AboutViewState extends State<AboutView> {
 
   Widget _buildInfoRow(String label, String value, {String? url}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -187,7 +188,7 @@ class _AboutViewState extends State<AboutView> {
                     ),
                   ),
                   if (url != null) ...[
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSpacing.xs),
                     Icon(
                       Icons.open_in_new,
                       size: 13,
@@ -205,7 +206,7 @@ class _AboutViewState extends State<AboutView> {
 
   Widget _buildPackageChip(String name, String license) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: AppColors.getSurfaceVariant(context),
         borderRadius: BorderRadius.circular(20),
@@ -217,9 +218,9 @@ class _AboutViewState extends State<AboutView> {
             name,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: AppSpacing.xs),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.none),
             decoration: BoxDecoration(
               color: AppColors.seed.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(4),
@@ -260,11 +261,11 @@ class _AboutViewState extends State<AboutView> {
               Expanded(
                 child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.md),
                     // App Icon & Info Header
                     Center(
                 child: Column(
@@ -273,7 +274,7 @@ class _AboutViewState extends State<AboutView> {
                       onTap: _onLogoTap,
                       child: CircleAvatar(
                         radius: 44,
-                        backgroundColor: Colors.transparent,
+                        backgroundColor: AppColors.transparent,
                         child: ClipOval(
                           child: Image.asset(
                             'assets/icons/terka_logo_monochrome.png',
@@ -285,7 +286,7 @@ class _AboutViewState extends State<AboutView> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.lg),
                     Text(
                       _appName.isNotEmpty
                           ? AppTexts.aboutDescription(_appName)
@@ -295,7 +296,7 @@ class _AboutViewState extends State<AboutView> {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       AppTexts.version(_version.isNotEmpty ? _version : '-'),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -308,7 +309,7 @@ class _AboutViewState extends State<AboutView> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
 
               // Készítő Card
               _buildCard(
@@ -321,7 +322,7 @@ class _AboutViewState extends State<AboutView> {
                     style: const TextStyle(fontSize: 14, height: 1.4),
                     textAlign: TextAlign.start,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       ElevatedButton.icon(
@@ -343,7 +344,7 @@ class _AboutViewState extends State<AboutView> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       ElevatedButton.icon(
                         onPressed: () =>
                             _openLink('https://github.com/Eszteban/terka-ui'),
@@ -428,7 +429,7 @@ class _AboutViewState extends State<AboutView> {
                 subtitle: '',
                 children: [
                   _buildInfoRow(AppTexts.aboutFontFamilyLabel, 'MNR2007 (MÁV)'),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     AppTexts.aboutFontExplanation,
                     style: TextStyle(
@@ -462,9 +463,9 @@ class _AboutViewState extends State<AboutView> {
                       _buildPackageChip('shared_preferences', 'BSD'),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.lg),
                   const Divider(height: 1, thickness: 1),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.md),
                   Row(
                     children: [
                       Expanded(
@@ -472,10 +473,10 @@ class _AboutViewState extends State<AboutView> {
                           onPressed: () {
                             final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
                             final icon = Padding(
-                              padding: const EdgeInsets.all(12.0),
+                              padding: const EdgeInsets.all(AppSpacing.md),
                               child: CircleAvatar(
                                 radius: 28,
-                                backgroundColor: Colors.transparent,
+                                backgroundColor: AppColors.transparent,
                                 child: ClipOval(
                                   child: Image.asset(
                                     'assets/icons/app_icon.png',
@@ -509,7 +510,7 @@ class _AboutViewState extends State<AboutView> {
                                   return DesktopSidebarWrapper(
                                     child: Theme(
                                       data: Theme.of(context).copyWith(
-                                        scaffoldBackgroundColor: Colors.transparent,
+                                        scaffoldBackgroundColor: AppColors.transparent,
                                       ),
                                       child: licensePage,
                                     ),
@@ -539,7 +540,7 @@ class _AboutViewState extends State<AboutView> {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),

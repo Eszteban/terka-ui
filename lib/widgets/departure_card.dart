@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../utils/stop_details_utils.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import 'line_badge.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class DepartureCard extends StatelessWidget {
   static const String spanFontFamily = 'MNR2007';
@@ -71,26 +72,26 @@ class DepartureCard extends StatelessWidget {
     final arrDelay = StopDetailsUtils.asNum(departure['arrivalDelay']);
     final isArrivalOnTime = (arrDelay ?? 0) == 0;
     final realtimeArrivalColor = isPast
-        ? Colors.grey
+        ? AppColors.grey
         : !isRealtime
-            ? (isDark ? Colors.white : Colors.black)
+            ? (isDark ? AppColors.white : AppColors.black)
             : isArrivalOnTime
-                ? Colors.green
+                ? AppColors.green
                 : (arrDelay ?? 0) < 0
-                    ? Colors.blue
-                    : Colors.red;
+                    ? AppColors.blue
+                    : AppColors.red;
 
     final depDelay = StopDetailsUtils.asNum(departure['departureDelay']);
     final isDepartureOnTime = (depDelay ?? 0) == 0;
     final realtimeDepartureColor = isPast
-        ? Colors.grey
+        ? AppColors.grey
         : !isRealtime
-            ? (isDark ? Colors.white : Colors.black)
+            ? (isDark ? AppColors.white : AppColors.black)
             : isDepartureOnTime
-                ? Colors.green
+                ? AppColors.green
                 : (depDelay ?? 0) < 0
-                    ? Colors.blue
-                    : Colors.red;
+                    ? AppColors.blue
+                    : AppColors.red;
 
     final platformCode = departure['stop'] is Map
         ? (departure['stop']['platformCode']?.toString().trim() ?? '')
@@ -136,7 +137,7 @@ class DepartureCard extends StatelessWidget {
               StopDetailsUtils.formatTime(scheduledTime),
               style: TextStyle(
                 decoration: TextDecoration.lineThrough,
-                color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                color: isPast ? AppColors.grey : (isDark ? AppColors.white.withValues(alpha: 0.54) : AppColors.black.withValues(alpha: 0.54)),
                 fontSize: 12,
               ),
             ),
@@ -165,27 +166,27 @@ class DepartureCard extends StatelessWidget {
     final labelText = isArrivalView ? AppTexts.stopArrivals : AppTexts.stopDepartures;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
+        border: isDark ? Border.all(color: AppColors.white.withValues(alpha: 0.08)) : null,
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
-        color: Colors.transparent,
+        color: AppColors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -201,7 +202,7 @@ class DepartureCard extends StatelessWidget {
                   ),
                   useSpanFont: routeShortNameUsesSpanFont,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,24 +227,24 @@ class DepartureCard extends StatelessWidget {
                               ),
                             ),
                             if (isWheelchair) ...[
-                              const WidgetSpan(child: SizedBox(width: 6)),
+                              const WidgetSpan(child: SizedBox(width: AppSpacing.xs)),
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
                                 child: Icon(
                                   Icons.accessible,
                                   size: headsignUsesSpanFont ? 20 : 18,
-                                  color: isPast ? Colors.grey : Colors.blue,
+                                  color: isPast ? AppColors.grey : AppColors.blue,
                                 ),
                               ),
                             ],
                             if (isBike) ...[
-                              const WidgetSpan(child: SizedBox(width: 6)),
+                              const WidgetSpan(child: SizedBox(width: AppSpacing.xs)),
                               WidgetSpan(
                                 alignment: PlaceholderAlignment.middle,
                                 child: Icon(
                                   Icons.directions_bike,
                                   size: headsignUsesSpanFont ? 20 : 18,
-                                  color: isPast ? Colors.grey : Colors.green,
+                                  color: isPast ? AppColors.grey : AppColors.green,
                                 ),
                               ),
                             ],
@@ -251,11 +252,11 @@ class DepartureCard extends StatelessWidget {
                         ),
                       ),
                       if (hasPlatformCode) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           AppTexts.stopPlatform(platformCode),
                           style: TextStyle(
-                            color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                            color: isPast ? AppColors.grey : (isDark ? AppColors.white.withValues(alpha: 0.54) : AppColors.black.withValues(alpha: 0.54)),
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
@@ -264,7 +265,7 @@ class DepartureCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSpacing.md),
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -275,10 +276,10 @@ class DepartureCard extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isPast ? Colors.grey : (isDark ? Colors.white54 : Colors.black54),
+                        color: isPast ? AppColors.grey : (isDark ? AppColors.white.withValues(alpha: 0.54) : AppColors.black.withValues(alpha: 0.54)),
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSpacing.none),
                     timeWidget,
                   ],
                 ),

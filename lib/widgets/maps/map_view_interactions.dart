@@ -9,7 +9,9 @@ extension _MapViewInteractions on _MapViewState {
     final defaultName = AppTexts.isHungarian ? 'Kijelölt hely' : 'Selected location';
     String finalName = defaultName;
     try {
-      final uri = Uri.parse(photonReverseApiUrl).replace(queryParameters: {
+      final baseUri = Uri.parse(photonReverseApiUrl);
+      final uri = baseUri.replace(queryParameters: {
+        ...baseUri.queryParameters,
         'lat': point.latitude.toString(),
         'lon': point.longitude.toString(),
         'lang': AppTexts.isHungarian ? 'hu' : 'en',
@@ -74,7 +76,7 @@ extension _MapViewInteractions on _MapViewState {
           child: Row(
             children: [
               Icon(Icons.trip_origin, color: colorScheme.primary),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(AppTexts.isHungarian ? 'Tervezés innen' : 'Plan from here'),
             ],
           ),
@@ -86,7 +88,7 @@ extension _MapViewInteractions on _MapViewState {
           child: Row(
             children: [
               Icon(Icons.place, color: colorScheme.primary),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(AppTexts.isHungarian ? 'Tervezés ide' : 'Plan here'),
             ],
           ),
@@ -101,19 +103,19 @@ extension _MapViewInteractions on _MapViewState {
 
     await showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.transparent,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: colorScheme.surface.withValues(alpha: 0.95),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: isDark ? Border.all(color: Colors.white.withValues(alpha: 0.08)) : null,
+            border: isDark ? Border.all(color: AppColors.white.withValues(alpha: 0.08)) : null,
             boxShadow: isDark
                 ? []
                 : [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color: AppColors.black.withValues(alpha: 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, -4),
                     ),
@@ -134,18 +136,18 @@ extension _MapViewInteractions on _MapViewState {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.lg),
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
                         color: colorScheme.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(Icons.place, color: colorScheme.primary, size: 24),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,7 +167,7 @@ extension _MapViewInteractions on _MapViewState {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xl),
                 Row(
                   children: [
                     Expanded(
@@ -178,7 +180,7 @@ extension _MapViewInteractions on _MapViewState {
                         label: Text(AppTexts.isHungarian ? 'Tervezés innen' : 'Plan from here'),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () {
@@ -191,7 +193,7 @@ extension _MapViewInteractions on _MapViewState {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
               ],
             ),
           ),

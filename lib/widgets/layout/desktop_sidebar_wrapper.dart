@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_tokens.dart';
 import '../../utils/layout_provider.dart';
 
 class DesktopSidebarWrapper extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final double backgroundAlpha;
+  final bool applyPaddingOnMobile;
 
   const DesktopSidebarWrapper({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(AppSpacing.lg),
+    this.backgroundAlpha = 0.84,
+    this.applyPaddingOnMobile = false,
   });
 
   @override
@@ -17,7 +21,7 @@ class DesktopSidebarWrapper extends StatelessWidget {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     
     if (!isDesktop) {
-      return child;
+      return applyPaddingOnMobile ? Padding(padding: padding, child: child) : child;
     }
 
     final colorScheme = Theme.of(context).colorScheme;
@@ -30,7 +34,7 @@ class DesktopSidebarWrapper extends StatelessWidget {
         ),
         child: Container(
           decoration: BoxDecoration(
-            color: AppColors.getSurface(context).withValues(alpha: 0.84),
+            color: AppColors.getSurface(context).withValues(alpha: backgroundAlpha),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: colorScheme.outlineVariant.withValues(alpha: 0.7),
@@ -38,7 +42,7 @@ class DesktopSidebarWrapper extends StatelessWidget {
           ),
           clipBehavior: Clip.antiAlias,
           child: Material(
-            color: Colors.transparent,
+            color: AppColors.transparent,
             child: Padding(
               padding: padding,
               child: child,

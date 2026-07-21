@@ -38,7 +38,7 @@ jobs:
 
       # 5. Lépés: Az APK legyártása Release (optimalizált) módban
       - name: APK buildelése
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=USE_PROXY=false
 
       # 6. Lépés: A legenerált APK feltöltése a GitHub Releases-be
       - name: GitHub Release létrehozása és APK csatolása

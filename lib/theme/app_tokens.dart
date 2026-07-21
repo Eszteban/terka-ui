@@ -6,6 +6,16 @@ class AppColors {
   // A márka alapköve (Material 3 Seed)
   static const Color seed = Color(0xFF8D4B20);
   static const Color white = Color(0xFFFFFFFF);
+  static const Color black = Color(0xFF000000);
+  static const Color transparent = Colors.transparent;
+  static const MaterialColor grey = Colors.grey;
+  static const MaterialColor red = Colors.red;
+  static const MaterialColor green = Colors.green;
+  static const MaterialColor blue = Colors.blue;
+  static const MaterialColor orange = Colors.orange;
+  static const MaterialColor amber = Colors.amber;
+  static const MaterialColor teal = Colors.teal;
+  static const MaterialColor deepPurple = Colors.deepPurple;
 
   // --- VILÁGOS MÓD (Light Mode Tokens) ---
   static const Color lightScaffoldBackground = Color(0xFFF8F1E8);

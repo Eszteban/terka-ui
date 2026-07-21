@@ -7,8 +7,8 @@ import '../models/auth_results.dart';
 import '../repositories/ticket_repository.dart';
 import '../injection_container.dart';
 import '../repositories/pass_type_repository.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../utils/layout_provider.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
@@ -28,8 +28,9 @@ class TicketsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     return DesktopSidebarWrapper(
+      backgroundAlpha: 1.0,
       child: Scaffold(
-        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        backgroundColor: AppColors.transparent,
         body: SafeArea(
           child: TicketsView(
             onBack: onBack,
@@ -106,7 +107,7 @@ class _TicketsViewState extends State<TicketsView> {
         context: context,
         builder: (_) => Dialog(
           clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 760, maxHeight: 760),
             child: AddTicketScreen(ticket: ticket),
@@ -203,9 +204,9 @@ class _TicketsViewState extends State<TicketsView> {
         width: 1,
       ),
     );
-    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
     final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Column(
       children: [
@@ -280,7 +281,7 @@ class _TicketsViewState extends State<TicketsView> {
                                         child: Row(
                                           children: [
                                             const Icon(Icons.edit_outlined, size: 20),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(width: AppSpacing.sm),
                                             Text(AppTexts.ticketsModify),
                                           ],
                                         ),
@@ -294,7 +295,7 @@ class _TicketsViewState extends State<TicketsView> {
                                               color: Theme.of(context).colorScheme.error,
                                               size: 20,
                                             ),
-                                            const SizedBox(width: 8),
+                                            const SizedBox(width: AppSpacing.sm),
                                             Text(
                                               AppTexts.ticketsDelete,
                                               style: TextStyle(

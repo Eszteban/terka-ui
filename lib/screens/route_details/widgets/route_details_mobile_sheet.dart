@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/maps/map_view.dart';
 import '../../../widgets/line_badge.dart';
 import '../../../utils/stop_details_utils.dart';
 import '../../../utils/trip_details_utils.dart';
 import 'route_trip_card.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class RouteDetailsMobileSheet extends StatelessWidget {
   static const double _mobileSheetMinSize = 0.16;
@@ -48,7 +49,7 @@ class RouteDetailsMobileSheet extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             badge,
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.sm),
             Flexible(
               child: Text(
                 plainLongName,
@@ -115,7 +116,7 @@ class RouteDetailsMobileSheet extends StatelessWidget {
                 controller: scrollController,
                 physics: const ClampingScrollPhysics(),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -129,16 +130,16 @@ class RouteDetailsMobileSheet extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: AppSpacing.sm),
                       Center(
                         child: Text(
                           AppTexts.tripSwipeInstruction,
                           style: Theme.of(context).textTheme.labelLarge,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       headerTitleWidget,
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       _buildTripsList(),
                     ],
                   ),
@@ -187,7 +188,7 @@ class RouteDetailsMobileSheet extends StatelessWidget {
     });
 
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xl),
       itemCount: allTrips.length,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),

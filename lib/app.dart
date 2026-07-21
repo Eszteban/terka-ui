@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import 'core/router/app_router.dart';
 import 'screens/main/main_screen.dart';
-import 'theme/app_tokens.dart';
+import 'package:terka/theme/app_tokens.dart';
 import 'utils/layout_provider.dart';
-import 'theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 
 enum AppLayoutMode { mobile, automatic, tablet }
 

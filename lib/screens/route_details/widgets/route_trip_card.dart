@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class RouteTripCard extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -28,7 +29,7 @@ class RouteTripCard extends StatelessWidget {
 
     return Card(
       elevation: runsToday ? 1 : 0,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: runsToday
@@ -42,7 +43,7 @@ class RouteTripCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
             children: [
               Expanded(
@@ -59,7 +60,7 @@ class RouteTripCard extends StatelessWidget {
                       ),
                     ),
                     if (!runsToday) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         AppTexts.routeDetailsNotRunningToday,
                         style: theme.textTheme.bodySmall?.copyWith(

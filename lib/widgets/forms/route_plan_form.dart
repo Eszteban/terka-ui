@@ -8,8 +8,8 @@ import '../../controllers/plan_response_controller.dart';
 import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 
-import '../../theme/app_texts.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 import 'autocomplete_search_field.dart';
 
 enum _ActiveSearchField { none, from, to }
@@ -612,7 +612,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
           child: Padding(
             padding: const EdgeInsets.symmetric(
               vertical: AppSpacing.md,
-              horizontal: 4,
+              horizontal: AppSpacing.xs,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -627,7 +627,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                       decoration: BoxDecoration(
                         color: isDark
                             ? const Color(0xFF1A1615)
-                            : Colors.white,
+                            : AppColors.white,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color:
@@ -645,7 +645,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(
+                            color: AppColors.black.withValues(
                               alpha: isDark ? 0.15 : 0.04,
                             ),
                             blurRadius: 8,
@@ -774,9 +774,9 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                         type: MaterialType.circle,
                         color: isDark
                             ? const Color(0xFF1E1A19)
-                            : Colors.white,
+                            : AppColors.white,
                         elevation: 3,
-                        shadowColor: Colors.black.withValues(alpha: 0.3),
+                        shadowColor: AppColors.black.withValues(alpha: 0.3),
                         child: Container(
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
@@ -796,7 +796,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                             onPressed: _swapRouteLocations,
                             tooltip: AppTexts.formSwap,
                             visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.all(6),
+                            padding: const EdgeInsets.all(AppSpacing.xs),
                             constraints: const BoxConstraints(),
                           ),
                         ),
@@ -840,7 +840,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                 borderRadius: BorderRadius.circular(14),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(
+                                    color: AppColors.black.withValues(
                                       alpha: isDark ? 0.15 : 0.04,
                                     ),
                                     blurRadius: 8,
@@ -851,7 +851,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               child: Material(
                                 color: isDark
                                     ? const Color(0xFF1A1615)
-                                    : Colors.white,
+                                    : AppColors.white,
                                 borderRadius: BorderRadius.circular(14),
                                 child: InkWell(
                                   onTap: widget.onPickDate,
@@ -862,7 +862,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                         Icons.calendar_today,
                                       ),
                                       filled: true,
-                                      fillColor: Colors.transparent,
+                                      fillColor: AppColors.transparent,
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(
                                           14,
@@ -904,7 +904,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                       borderRadius: BorderRadius.circular(14),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(
+                                          color: AppColors.black.withValues(
                                             alpha: isDark ? 0.15 : 0.04,
                                           ),
                                           blurRadius: 8,
@@ -915,7 +915,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                     child: Material(
                                       color: isDark
                                           ? const Color(0xFF1A1615)
-                                          : Colors.white,
+                                          : AppColors.white,
                                       borderRadius: BorderRadius.circular(14),
                                       child: InkWell(
                                         onTap: () =>
@@ -927,7 +927,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                               Icons.access_time,
                                             ),
                                             filled: true,
-                                            fillColor: Colors.transparent,
+                                            fillColor: AppColors.transparent,
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(14),
@@ -969,7 +969,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                       borderRadius: BorderRadius.circular(14),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(
+                                          color: AppColors.black.withValues(
                                             alpha: isDark ? 0.15 : 0.04,
                                           ),
                                           blurRadius: 8,
@@ -980,7 +980,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                     child: Material(
                                       color: isDark
                                           ? const Color(0xFF1A1615)
-                                          : Colors.white,
+                                          : AppColors.white,
                                       borderRadius: BorderRadius.circular(14),
                                       child: InkWell(
                                         onTap: () =>
@@ -992,7 +992,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                               Icons.access_time,
                                             ),
                                             filled: true,
-                                            fillColor: Colors.transparent,
+                                            fillColor: AppColors.transparent,
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(14),
@@ -1075,7 +1075,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                             decoration: BoxDecoration(
                               color: isDark
                                   ? const Color(0xFF1A1615)
-                                  : Colors.white,
+                                  : AppColors.white,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: colorScheme.outlineVariant.withValues(
@@ -1085,7 +1085,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(
+                                  color: AppColors.black.withValues(
                                     alpha: isDark ? 0.15 : 0.04,
                                   ),
                                   blurRadius: 8,
@@ -1183,7 +1183,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                           selected: widget.ticketWatch,
                                           backgroundColor: isDark
                                               ? const Color(0xFF1A1615)
-                                              : Colors.white,
+                                              : AppColors.white,
                                           selectedColor: isDark
                                               ? colorScheme.primaryContainer
                                                     .withValues(alpha: 0.3)
@@ -1210,11 +1210,11 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                           elevation: 1.5,
                                           pressElevation: 3,
                                           shadowColor:
-                                              Colors.black.withValues(
+                                              AppColors.black.withValues(
                                             alpha: isDark ? 0.3 : 0.12,
                                           ),
                                           selectedShadowColor:
-                                              Colors.black.withValues(
+                                              AppColors.black.withValues(
                                             alpha: isDark ? 0.3 : 0.12,
                                           ),
                                           materialTapTargetSize:
@@ -1244,7 +1244,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final unselectedBg = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final unselectedBg = isDark ? const Color(0xFF1A1615) : AppColors.white;
     final selectedBg = isDark
         ? colorScheme.primaryContainer.withValues(alpha: 0.3)
         : colorScheme.primaryContainer.withValues(alpha: 0.6);
@@ -1280,8 +1280,8 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                 ),
           elevation: 1.5,
           pressElevation: 3,
-          shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.12),
-          selectedShadowColor: Colors.black.withValues(
+          shadowColor: AppColors.black.withValues(alpha: isDark ? 0.3 : 0.12),
+          selectedShadowColor: AppColors.black.withValues(
             alpha: isDark ? 0.3 : 0.12,
           ),
           materialTapTargetSize: MaterialTapTargetSize.padded,

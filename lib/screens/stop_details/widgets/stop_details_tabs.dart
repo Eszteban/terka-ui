@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
 import 'stop_line_selector.dart';
 import 'stop_details_schedule.dart';
 import '../../../utils/stop_details_utils.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopDetailsTabs extends StatelessWidget {
   final DateTime now;
@@ -67,7 +68,7 @@ class StopDetailsTabs extends StatelessWidget {
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
             child: Row(
               children: [
                 IconButton(
@@ -87,7 +88,7 @@ class StopDetailsTabs extends StatelessWidget {
                   tooltip: AppTexts.stopNextDay,
                   icon: const Icon(Icons.chevron_right),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 TextButton(
                   onPressed: _isSameDate(selectedDate, DateTime.now())
                       ? null
@@ -99,7 +100,7 @@ class StopDetailsTabs extends StatelessWidget {
           ),
           if (hasPast)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton(
@@ -113,11 +114,11 @@ class StopDetailsTabs extends StatelessWidget {
               ),
             ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: AlertsSection(alerts: stop?['alerts']),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: StopLineSelector(
               uniqueLines: uniqueLines,
               selectedLines: selectedLines,

@@ -7,8 +7,8 @@ import '../models/auth_results.dart';
 import '../repositories/ticket_repository.dart';
 import '../injection_container.dart';
 import '../repositories/pass_type_repository.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../utils/layout_provider.dart';
@@ -29,8 +29,9 @@ class AddTicketScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     return DesktopSidebarWrapper(
+      backgroundAlpha: 1.0,
       child: Scaffold(
-        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        backgroundColor: AppColors.transparent,
         body: SafeArea(
           child: AddTicketView(
             ticket: ticket,
@@ -368,9 +369,9 @@ class _AddTicketViewState extends State<AddTicketView> {
         width: 1,
       ),
     );
-    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
     final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Column(
       children: [
@@ -477,7 +478,7 @@ class _AddTicketViewState extends State<AddTicketView> {
                                               value: agency.id,
                                               child: Padding(
                                                 padding: const EdgeInsets.symmetric(
-                                                  vertical: 8.0,
+                                                  vertical: AppSpacing.sm,
                                                 ),
                                                 child: Text(
                                                   agency.name,

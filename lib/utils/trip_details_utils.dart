@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../widgets/maps/route_map_data.dart';
 import '../widgets/maps/vehicle_info_card.dart';
 import '../utils/markup_text_utils.dart' as markup;

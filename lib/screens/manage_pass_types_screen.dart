@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/pass_type.dart';
 import '../repositories/pass_type_repository.dart';
 import '../injection_container.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../utils/layout_provider.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
@@ -24,8 +24,9 @@ class ManagePassTypesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     return DesktopSidebarWrapper(
+      backgroundAlpha: 1.0,
       child: Scaffold(
-        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        backgroundColor: AppColors.transparent,
         body: SafeArea(
           child: ManagePassTypesView(
             onBack: onBack,
@@ -88,7 +89,7 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
         context: context,
         builder: (_) => Dialog(
           clipBehavior: Clip.antiAlias,
-          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 720, maxHeight: 760),
             child: PassTypeEditorScreen(passType: passType),
@@ -152,9 +153,9 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
         width: 1,
       ),
     );
-    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
     final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Column(
       children: [
@@ -203,8 +204,8 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
                                   if (isPrebaked)
                                     Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
+                                        horizontal: AppSpacing.sm,
+                                        vertical: AppSpacing.none,
                                       ),
                                       decoration: BoxDecoration(
                                         color: colorScheme.primaryContainer,

@@ -3,10 +3,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/news_item.dart';
 import '../repositories/news_repository.dart';
 import '../injection_container.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../utils/layout_provider.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -57,29 +58,29 @@ class _NewsScreenState extends State<NewsScreen> {
           content = Center(child: Text(AppTexts.newsEmpty));
         } else {
           content = ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.2),
                     ),
                     boxShadow: isDark ? null : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
+                        color: AppColors.black.withValues(alpha: 0.03),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
+                    contentPadding: const EdgeInsets.all(AppSpacing.lg),
                     title: Text(
                       item.title,
                       style: const TextStyle(
@@ -90,7 +91,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     ),
                     subtitle: item.pubDate != null
                         ? Padding(
-                            padding: const EdgeInsets.only(top: 8.0),
+                            padding: const EdgeInsets.only(top: AppSpacing.sm),
                             child: Row(
                               children: [
                                 Icon(
@@ -98,7 +99,7 @@ class _NewsScreenState extends State<NewsScreen> {
                                   size: 14,
                                   color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
                                 ),
-                                const SizedBox(width: 4),
+                                const SizedBox(width: AppSpacing.xs),
                                 Text(
                                   _formatDateTime(item.pubDate!),
                                   style: TextStyle(
@@ -111,7 +112,7 @@ class _NewsScreenState extends State<NewsScreen> {
                           )
                         : (item.rawPubDate != null
                             ? Padding(
-                                padding: const EdgeInsets.only(top: 8.0),
+                                padding: const EdgeInsets.only(top: AppSpacing.sm),
                                 child: Text(
                                   item.rawPubDate!,
                                   style: TextStyle(
@@ -147,14 +148,14 @@ class _NewsScreenState extends State<NewsScreen> {
           displayWidget = Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
+                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
+                    color: AppColors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.amber.withValues(alpha: isDark ? 0.3 : 0.4),
+                      color: AppColors.amber.withValues(alpha: isDark ? 0.3 : 0.4),
                       width: 1,
                     ),
                   ),
@@ -162,15 +163,15 @@ class _NewsScreenState extends State<NewsScreen> {
                     children: [
                       Icon(
                         Icons.g_translate_rounded,
-                        color: isDark ? Colors.amber[200] : Colors.amber[800],
+                        color: isDark ? AppColors.amber[200] : AppColors.amber[800],
                         size: 20,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
                           AppTexts.newsLanguageWarning,
                           style: TextStyle(
-                            color: isDark ? Colors.amber[100] : Colors.amber[900],
+                            color: isDark ? AppColors.amber[100] : AppColors.amber[900],
                             fontWeight: FontWeight.w500,
                             fontSize: 14,
                           ),
@@ -186,12 +187,32 @@ class _NewsScreenState extends State<NewsScreen> {
         }
 
         if (!isDesktop) {
-          return Card(
-            elevation: isDark ? 0 : 2,
-            shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-            shape: bentoShape,
-            color: isDark ? const Color(0xFF1A1615) : Colors.white,
-            child: displayWidget,
+          return Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
+                    child: Text(
+                      AppTexts.newsTitle,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Text(AppTexts.newsInstruction),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Expanded(child: displayWidget),
+                ],
+              ),
+            ),
           );
         }
 
@@ -206,18 +227,18 @@ class _NewsScreenState extends State<NewsScreen> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xs),
             Text(AppTexts.newsInstruction),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.lg),
             Expanded(
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
                   child: Card(
                     elevation: isDark ? 0 : 2,
-                    shadowColor: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                    shadowColor: AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08),
                     shape: bentoShape,
-                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
                     child: displayWidget,
                   ),
                 ),
@@ -286,22 +307,22 @@ class _NewsLoadingViewState extends State<_NewsLoadingView>
         return Opacity(
           opacity: opacity,
           child: ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
             itemCount: 5,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
                 child: Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1615) : Colors.white,
+                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.2),
                     ),
                     boxShadow: isDark ? null : [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
+                        color: AppColors.black.withValues(alpha: 0.03),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -321,7 +342,7 @@ class _NewsLoadingViewState extends State<_NewsLoadingView>
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.sm),
                             Container(
                               height: 14,
                               width: 140,
@@ -333,7 +354,7 @@ class _NewsLoadingViewState extends State<_NewsLoadingView>
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.lg),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: 16,

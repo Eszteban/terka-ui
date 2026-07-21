@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'layout_provider.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 Future<T?> showAdaptiveDetailsDialog<T>({
   required BuildContext context,
@@ -21,16 +22,16 @@ Future<T?> showAdaptiveDetailsDialog<T>({
     final padding = MediaQuery.of(context).padding;
     final insetPadding = orientation == NativeDeviceOrientation.landscapeRight
         ? EdgeInsets.only(
-            left: 80.0 + padding.left,
-            right: 8.0,
-            top: 8.0,
-            bottom: 8.0,
+            left: 80 + padding.left,
+            right: AppSpacing.sm,
+            top: AppSpacing.sm,
+            bottom: AppSpacing.sm,
           )
         : EdgeInsets.only(
-            left: 8.0,
-            right: 80.0 + padding.right,
-            top: 8.0,
-            bottom: 8.0,
+            left: AppSpacing.sm,
+            right: 80 + padding.right,
+            top: AppSpacing.sm,
+            bottom: AppSpacing.sm,
           );
 
     return showDialog<T>(
@@ -59,10 +60,10 @@ Future<T?> showAdaptiveDetailsDialog<T>({
     builder: (_) => Dialog(
       clipBehavior: Clip.antiAlias,
       insetPadding: EdgeInsets.only(
-        left: 24,
-        right: 24,
-        top: 24 + padding.top,
-        bottom: 24 + padding.bottom,
+        left: AppSpacing.xl,
+        right: AppSpacing.xl,
+        top: AppSpacing.xl + padding.top,
+        bottom: AppSpacing.xl + padding.bottom,
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(

@@ -1,5 +1,5 @@
 const bool useProxy = bool.fromEnvironment('USE_PROXY', defaultValue: true);
-const String proxyBaseUrl = String.fromEnvironment('PROXY_URL', defaultValue: 'http://eszteban.hu/api/mav_api_proxy_tester.php');
+const String proxyBaseUrl = String.fromEnvironment('PROXY_URL', defaultValue: 'https://eszteban.hu/api/mav_api_proxy_tester.php');
 
 String get searchApiUrl => useProxy 
     ? '$proxyBaseUrl?endpoint=stations' 

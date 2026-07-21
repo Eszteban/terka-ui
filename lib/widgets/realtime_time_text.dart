@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/trip_details_utils.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class RealtimeTimeText extends StatelessWidget {
   final num? scheduled;
@@ -40,12 +41,12 @@ class RealtimeTimeText extends StatelessWidget {
     } else if (!isRealtime) {
       color = baseTextColor;
     } else if (scheduled == realtime || (scheduled == null && realtime == null)) {
-      color = Colors.green;
+      color = AppColors.green;
     } else {
       color = (delay ?? 0) > 0
-          ? Colors.red
+          ? AppColors.red
           : (delay ?? 0) < 0
-              ? Colors.blue
+              ? AppColors.blue
               : baseTextColor;
     }
 

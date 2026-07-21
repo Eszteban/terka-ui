@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../utils/stop_details_utils.dart';
 import '../../../widgets/departure_card.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopDetailsTimesList extends StatelessWidget {
   final List<Map<String, dynamic>> items;
@@ -27,10 +28,10 @@ class StopDetailsTimesList extends StatelessWidget {
       return Center(child: Text(emptyMessage));
     }
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       itemCount: items.length,
       shrinkWrap: true,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
       itemBuilder: (context, index) {
         final departure = items[index];
         final trip = departure['trip'];

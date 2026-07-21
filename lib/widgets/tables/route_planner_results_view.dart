@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../maps/route_map_data.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../models/ticket_item.dart';
 import '../../utils/route_mapping_utils.dart';
 import '../../utils/route_data_utils.dart';
@@ -12,6 +12,7 @@ import '../itinerary_leg_tile.dart';
 import '../../extensions/string_html_cleaner.dart';
 
 import '../forms/route_plan_form.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class SelectedItineraryMapPayload {
   final RouteMapData routeData;
@@ -157,7 +158,7 @@ class RoutePlannerResultsView extends StatefulWidget {
     }
 
     final durationTimeTile = Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: durationTimeBg,
         borderRadius: BorderRadius.circular(12),
@@ -178,7 +179,7 @@ class RoutePlannerResultsView extends StatefulWidget {
               color: colorScheme.primary,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSpacing.none),
           Text(
             summary['duration'] ?? '-',
             style: TextStyle(
@@ -187,7 +188,7 @@ class RoutePlannerResultsView extends StatefulWidget {
               color: colorScheme.onPrimaryContainer,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               Icon(
@@ -195,7 +196,7 @@ class RoutePlannerResultsView extends StatefulWidget {
                 size: 13,
                 color: colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppSpacing.xs),
               Text(
                 '${summary['start']} - ${summary['end']}',
                 style: TextStyle(
@@ -215,7 +216,7 @@ class RoutePlannerResultsView extends StatefulWidget {
         : AppTexts.tableTransfersCount(summary['transfers']!);
 
     final linesTile = Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: linesBg,
         borderRadius: BorderRadius.circular(12),
@@ -236,7 +237,7 @@ class RoutePlannerResultsView extends StatefulWidget {
               color: colorScheme.primary,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSpacing.xs),
           if (lineBadges.isNotEmpty)
             Wrap(spacing: 4, runSpacing: 4, children: lineBadges)
           else
@@ -253,19 +254,19 @@ class RoutePlannerResultsView extends StatefulWidget {
     );
 
     final routeHeader = Padding(
-      padding: const EdgeInsets.only(bottom: 12, right: 28),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md, right: AppSpacing.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 2),
+            padding: const EdgeInsets.only(top: AppSpacing.none),
             child: Icon(
               Icons.directions_transit_rounded,
               size: 20,
               color: colorScheme.primary,
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               '$fromName → $toName',
@@ -285,12 +286,12 @@ class RoutePlannerResultsView extends StatefulWidget {
       children: [
         routeHeader,
         durationTimeTile,
-        const SizedBox(height: 6),
+        const SizedBox(height: AppSpacing.xs),
         linesTile,
         if (missingAgencies.isNotEmpty) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF2C1E1D) : const Color(0xFFFDE8E8),
               borderRadius: BorderRadius.circular(8),
@@ -305,7 +306,7 @@ class RoutePlannerResultsView extends StatefulWidget {
                   size: 16,
                   color: isDark ? const Color(0xFFEF5350) : const Color(0xFFC62828),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     AppTexts.ticketsMissingFor(missingAgencies.join(", ")),
@@ -395,17 +396,21 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
       children: [
         if (widget.fromController != null && widget.toController != null) ...[
           _buildCollapsibleFormPanel(context),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
         ],
         Text(summaryLabel, style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.lg),
         if (itineraries.isEmpty)
           Card(
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 220),
               child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: SelectableText(widget.responseText),
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: SelectableText(
+                  widget.responseText.toLowerCase().contains('internal server error') || widget.responseText.toLowerCase().contains('internal-error')
+                      ? AppTexts.planInternalError
+                      : widget.responseText,
+                ),
               ),
             ),
           )
@@ -437,7 +442,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
             return Padding(
               padding: EdgeInsets.only(bottom: index < itineraries.length - 1 ? 12.0 : 0.0),
               child: Card(
-                margin: const EdgeInsets.symmetric(vertical: 6),
+                margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
                 clipBehavior: Clip.antiAlias,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -447,7 +452,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.md),
                   child: ExpansionTile(
                     shape: const Border(),
                     collapsedShape: const Border(),
@@ -487,7 +492,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
           }),
         if (itineraries.isNotEmpty && widget.canLoadMore)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.only(top: AppSpacing.md),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -543,7 +548,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
       badges.add(
         _containsSpanMarkup(lineNumber)
             ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none),
                 decoration: BoxDecoration(
                   color: backgroundColor,
                   borderRadius: BorderRadius.circular(7),
@@ -562,8 +567,8 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
               )
             : Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 3,
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
                   color: backgroundColor,
@@ -848,7 +853,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
 
     return Card(
       elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.1),
+      shadowColor: AppColors.black.withValues(alpha: 0.1),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
@@ -894,7 +899,7 @@ class _RoutePlannerResultsViewState extends State<RoutePlannerResultsView> {
           ),
           if (_isFormExpanded)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.none, AppSpacing.md, AppSpacing.md),
               child: RoutePlanForm(
                 fromController: widget.fromController!,
                 toController: widget.toController!,

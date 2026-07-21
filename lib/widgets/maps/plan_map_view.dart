@@ -5,11 +5,12 @@ import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
 
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'user_location_dot.dart';
 import 'map_controls.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class PlanMapView extends StatefulWidget {
   final RouteMapData routeData;
@@ -31,7 +32,7 @@ class PlanMapView extends StatefulWidget {
   const PlanMapView({
     super.key,
     required this.routeData,
-    this.fitPadding = const EdgeInsets.all(48),
+    this.fitPadding = const EdgeInsets.all(AppSpacing.touchTarget),
     this.controlsBottomInset = 0,
     this.initialZoom = 12,
     this.singlePointZoom = 15,
@@ -314,7 +315,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                     : '• Map tiles: © CARTO\n• Map data: © OpenStreetMap contributors',
                 style: const TextStyle(height: 1.5),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 AppTexts.isHungarian
                     ? 'A térképi adatok az OpenStreetMap nyílt adatbázisából származnak (ODbL).'
@@ -431,11 +432,11 @@ class _PlanMapViewState extends State<PlanMapView> {
   Color _markerColor(RouteStopType type) {
     switch (type) {
       case RouteStopType.start:
-        return Colors.green;
+        return AppColors.green;
       case RouteStopType.transfer:
-        return Colors.orange;
+        return AppColors.orange;
       case RouteStopType.end:
-        return Colors.red;
+        return AppColors.red;
     }
   }
 
@@ -510,7 +511,7 @@ class _PlanMapViewState extends State<PlanMapView> {
                           (segment) => Polyline(
                             points: segment.points,
                             color: segment.isWalk
-                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)
+                                ? (Theme.of(context).brightness == Brightness.dark ? AppColors.white : AppColors.black)
                                 : segment.color,
                             strokeWidth: 5,
                             pattern: segment.isWalk
@@ -597,9 +598,9 @@ class _PlanMapViewState extends State<PlanMapView> {
                                                       ).brightness ==
                                                       Brightness.dark;
                                                   final bgColor = isDark
-                                                      ? Colors.grey[900]!
+                                                      ? AppColors.grey[900]!
                                                             .withValues(alpha: 0.92)
-                                                      : Colors.white
+                                                      : AppColors.white
                                                             .withValues(alpha: 0.92);
                                                   return Container(
                                                     constraints:
@@ -608,8 +609,8 @@ class _PlanMapViewState extends State<PlanMapView> {
                                                         ),
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2,
+                                                          horizontal: AppSpacing.xs,
+                                                          vertical: AppSpacing.none,
                                                         ),
                                                     decoration: BoxDecoration(
                                                       color: bgColor,
@@ -651,10 +652,10 @@ class _PlanMapViewState extends State<PlanMapView> {
                                                 Theme.of(context).brightness ==
                                                 Brightness.dark;
                                             final bgColor = isDark
-                                                ? Colors.grey[900]!.withValues(
+                                                ? AppColors.grey[900]!.withValues(
                                                     alpha: 0.92,
                                                   )
-                                                : Colors.white.withValues(
+                                                : AppColors.white.withValues(
                                                     alpha: 0.92,
                                                   );
                                             return Container(
@@ -663,8 +664,8 @@ class _PlanMapViewState extends State<PlanMapView> {
                                               ),
                                               padding:
                                                   const EdgeInsets.symmetric(
-                                                    horizontal: 6,
-                                                    vertical: 2,
+                                                    horizontal: AppSpacing.xs,
+                                                    vertical: AppSpacing.none,
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: bgColor,
@@ -757,8 +758,8 @@ class _PlanMapViewState extends State<PlanMapView> {
 
   Widget _buildBaseMapStopDot(double? bearing) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final circleColor = isDark ? Colors.black : Colors.white;
-    final contentColor = isDark ? Colors.white : Colors.black;
+    final circleColor = isDark ? AppColors.black : AppColors.white;
+    final contentColor = isDark ? AppColors.white : AppColors.black;
 
     return SizedBox(
       width: 38,
@@ -825,7 +826,7 @@ class _PlanMapViewState extends State<PlanMapView> {
               child: const Icon(
                 Icons.arrow_upward,
                 size: 11,
-                color: Colors.white,
+                color: AppColors.white,
               ),
             ),
           ),

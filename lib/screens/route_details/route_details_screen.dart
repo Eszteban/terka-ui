@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/router/app_router.dart';
 import '../../controllers/route_details_cubit.dart';
 import '../../widgets/layout/screen_header.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../utils/trip_details_utils.dart';
 import '../../widgets/line_badge.dart';
@@ -13,6 +13,7 @@ import 'widgets/route_trip_card.dart';
 import '../../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../../utils/layout_provider.dart';
 import 'widgets/route_details_mobile_sheet.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class RouteDetailsScreen extends StatelessWidget {
   final String routeId;
@@ -105,7 +106,19 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
     final colorScheme = theme.colorScheme;
     final todayDateString = _formatDateForActiveDates(StopDetailsUtils.budapestToday());
 
-    return BlocBuilder<RouteDetailsCubit, RouteDetailsState>(
+    return BlocConsumer<RouteDetailsCubit, RouteDetailsState>(
+      listener: (context, state) {
+        if (state is RouteDetailsError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTexts.routeNotFound(widget.routeId))),
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/');
+          }
+        }
+      },
       builder: (context, state) {
         Widget headerTitleWidget = Text(AppTexts.routeDetailsTitle);
         if (state is RouteDetailsLoaded) {
@@ -131,7 +144,7 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   badge,
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
                       plainLongName,
@@ -163,16 +176,7 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
               child: state is RouteDetailsLoading
                   ? const Center(child: CircularProgressIndicator())
                   : state is RouteDetailsError
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Text(
-                              state.message,
-                              style: TextStyle(color: colorScheme.error),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        )
+                      ? const SizedBox.shrink()
                       : state is RouteDetailsLoaded
                           ? useMobileSheet
                               ? RouteDetailsMobileSheet(
@@ -233,7 +237,7 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
     });
 
     return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.xl),
       itemCount: allTrips.length,
       shrinkWrap: true,
       itemBuilder: (context, index) {

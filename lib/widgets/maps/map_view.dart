@@ -9,7 +9,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import 'map_controls.dart';
 import '../../constants/search_api.dart';
 import '../../services/graphql/graphql_client.dart';
@@ -29,6 +29,7 @@ import '../../controllers/map_cubit.dart';
 import '../../controllers/stop_details_cubit.dart';
 import '../../repositories/transit_repository.dart';
 import '../../injection_container.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 part 'map_view_models.dart';
 part 'map_view_overlays.dart';
@@ -63,7 +64,7 @@ class MapView extends StatefulWidget {
     this.showRotationControls = true,
     this.routeOverlayData,
     this.routeVehicleMarker,
-    this.routeFitPadding = const EdgeInsets.all(48),
+    this.routeFitPadding = const EdgeInsets.all(AppSpacing.touchTarget),
     this.showRouteStopLabels = false,
     this.useBaseMapStopIcon = true,
     this.onOpenTripDetailsRequested,
@@ -89,6 +90,7 @@ class _MapViewState extends State<MapView> {
   static const double _stopMinZoom = 15;
   static const String _lastLatKey = 'last_lat';
   static const String _lastLonKey = 'last_lon';
+  static const String _lastZoomKey = 'last_zoom';
 
   static const List<String> _railModes = [
     'RAIL',
@@ -126,8 +128,9 @@ class _MapViewState extends State<MapView> {
   bool _isLoadingVehicles = false;
   bool _isRotationGestureEnabled = false;
   bool _suppressNextMapTapClose = false;
-  bool _didTryInitialGpsFocus = false;
+  static bool _didTryInitialGpsFocus = false;
   LatLng? _lastStoredLocation;
+  double? _lastStoredZoom;
   StreamSubscription<Position>? _positionSubscription;
   Position? _currentPosition;
 
@@ -304,11 +307,11 @@ class _MapViewState extends State<MapView> {
   Color _routeStopColor(RouteStopType type) {
     switch (type) {
       case RouteStopType.start:
-        return Colors.green;
+        return AppColors.green;
       case RouteStopType.transfer:
-        return Colors.orange;
+        return AppColors.orange;
       case RouteStopType.end:
-        return Colors.red;
+        return AppColors.red;
     }
   }
 
@@ -372,7 +375,7 @@ class _MapViewState extends State<MapView> {
                     : '• Map tiles: © CARTO\n• Map data: © OpenStreetMap contributors',
                 style: const TextStyle(height: 1.5),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 AppTexts.isHungarian
                     ? 'A térképi adatok az OpenStreetMap nyílt adatbázisából származnak (ODbL).'
@@ -409,11 +412,12 @@ class _MapViewState extends State<MapView> {
 
   void _moveToPosition(Position position) {
     final camera = _mapController.camera;
+    final targetZoom = camera.zoom < 16 ? 16.0 : camera.zoom;
     _mapController.move(
       LatLng(position.latitude, position.longitude),
-      camera.zoom < 16 ? 16 : camera.zoom,
+      targetZoom,
     );
-    unawaited(_saveLastLocation(position.latitude, position.longitude));
+    unawaited(_saveLastLocation(position.latitude, position.longitude, targetZoom));
   }
 
   void _scheduleVehicleRefresh() {
@@ -544,7 +548,14 @@ class _MapViewState extends State<MapView> {
                                 });
                               }
                             },
-                            onPositionChanged: (_, _) {
+                            onPositionChanged: (position, hasGesture) {
+                              if (hasGesture) {
+                                unawaited(_saveLastLocation(
+                                  position.center.latitude,
+                                  position.center.longitude,
+                                  position.zoom,
+                                ));
+                              }
                               _scheduleVehicleRefresh();
                             },
                             interactionOptions: InteractionOptions(
@@ -558,7 +569,7 @@ class _MapViewState extends State<MapView> {
                           )
                         : MapOptions(
                             initialCenter: initialCenter,
-                            initialZoom: 12,
+                            initialZoom: _lastStoredZoom ?? 12,
                             minZoom: _minZoom,
                             maxZoom: _maxZoom,
                             onLongPress: _handleMapInteraction,
@@ -580,7 +591,14 @@ class _MapViewState extends State<MapView> {
                                 });
                               }
                             },
-                            onPositionChanged: (_, _) {
+                            onPositionChanged: (position, hasGesture) {
+                              if (hasGesture) {
+                                unawaited(_saveLastLocation(
+                                  position.center.latitude,
+                                  position.center.longitude,
+                                  position.zoom,
+                                ));
+                              }
                               _scheduleVehicleRefresh();
                             },
                             interactionOptions: InteractionOptions(
@@ -611,8 +629,8 @@ class _MapViewState extends State<MapView> {
                                   color: segment.isWalk
                                       ? (Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? Colors.white
-                                            : Colors.black)
+                                            ? AppColors.white
+                                            : AppColors.black)
                                       : segment.color,
                                   strokeWidth: 5,
                                   pattern: segment.isWalk
@@ -684,11 +702,11 @@ class _MapViewState extends State<MapView> {
                                                       ).brightness ==
                                                       Brightness.dark;
                                                   final bgColor = isDark
-                                                      ? Colors.grey[900]!
+                                                      ? AppColors.grey[900]!
                                                             .withValues(
                                                               alpha: 0.92,
                                                             )
-                                                      : Colors.white.withValues(
+                                                      : AppColors.white.withValues(
                                                           alpha: 0.92,
                                                         );
                                                   return Container(
@@ -698,8 +716,8 @@ class _MapViewState extends State<MapView> {
                                                         ),
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 2,
+                                                          horizontal: AppSpacing.xs,
+                                                          vertical: AppSpacing.none,
                                                         ),
                                                     decoration: BoxDecoration(
                                                       color: bgColor,
@@ -805,7 +823,7 @@ class _MapViewState extends State<MapView> {
                               alignment: Alignment.center,
                               child: const Icon(
                                 Icons.location_on,
-                                color: Colors.red,
+                                color: AppColors.red,
                                 size: 40,
                               ),
                             ),
@@ -821,7 +839,7 @@ class _MapViewState extends State<MapView> {
                               alignment: Alignment.center,
                               child: const Icon(
                                 Icons.location_on,
-                                color: Colors.red,
+                                color: AppColors.red,
                                 size: 40,
                               ),
                             ),
@@ -841,7 +859,7 @@ class _MapViewState extends State<MapView> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: const Padding(
-                          padding: EdgeInsets.all(8),
+                          padding: EdgeInsets.all(AppSpacing.sm),
                           child: SizedBox(
                             width: 18,
                             height: 18,

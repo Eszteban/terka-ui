@@ -1,7 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripDetailsAdditionalInfo extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -23,13 +24,13 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
         );
         if (!isLaunched && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to open link: $urlString')),
+            SnackBar(content: Text(AppTexts.errorFailedToOpenLink(urlString))),
           );
         }
       } catch (_) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to open link: $urlString')),
+            SnackBar(content: Text(AppTexts.errorFailedToOpenLink(urlString))),
           );
         }
       }
@@ -70,14 +71,14 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
     final Color greyColor = colorScheme.outline;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.lg, horizontal: AppSpacing.xs),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
+              ? AppColors.white.withValues(alpha: 0.08)
               : colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),
       ),
@@ -91,7 +92,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                 size: 18,
                 color: colorScheme.primary,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 AppTexts.tripAdditionalInfoTitle,
                 style: TextStyle(
@@ -103,12 +104,12 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           // Operator Row
           if (agencyName != null && agencyName.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -117,7 +118,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                     size: 18,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: RichText(
                       text: TextSpan(
@@ -154,7 +155,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
           // Service Description Row
           if (serviceDescText != null && serviceDescText.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,7 +164,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                     size: 18,
                     color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       AppTexts.tripRuns(serviceDescText),
@@ -181,7 +182,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
           
           // Service Day Row
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -190,7 +191,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                   size: 18,
                   color: colorScheme.onSurfaceVariant,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     '${AppTexts.isHungarian ? "Kiválasztott nap:" : "Selected day:"} $serviceDay',
@@ -207,7 +208,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
 
           // Wheelchair Accessibility Row
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -220,7 +221,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                           ? redColor
                           : greyColor,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     isWheelchair
@@ -241,7 +242,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
 
           // Bicycle Accessibility Row
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -254,7 +255,7 @@ class TripDetailsAdditionalInfo extends StatelessWidget {
                           ? redColor
                           : greyColor,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     isBike

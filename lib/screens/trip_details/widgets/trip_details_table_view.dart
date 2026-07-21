@@ -6,6 +6,7 @@ import '../../../widgets/alerts_section.dart';
 import '../../../widgets/tables/trip_stop_times_list.dart';
 import '../../../models/trip_stop_time.dart';
 import 'trip_details_additional_info.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripDetailsTableView extends StatelessWidget {
   final Map<String, dynamic> trip;
@@ -67,7 +68,7 @@ class TripDetailsTableView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.sm),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -79,7 +80,7 @@ class TripDetailsTableView extends StatelessWidget {
                     routeTextColor: routeTextColor,
                     useSpanFont: lineLabelUsesSpanFont,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       title,
@@ -89,7 +90,7 @@ class TripDetailsTableView extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.xs),
               Text(
                 tripHeadsign,
                 softWrap: true,
@@ -102,13 +103,13 @@ class TripDetailsTableView extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           child: AlertsSection(alerts: combinedAlerts),
         ),
         Flexible(
           fit: FlexFit.loose,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

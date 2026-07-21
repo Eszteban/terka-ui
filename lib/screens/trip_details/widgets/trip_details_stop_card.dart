@@ -5,6 +5,7 @@ import '../../../injection_container.dart';
 import '../../../models/trip_stop_quick_info.dart';
 import '../../../widgets/maps/route_map_data.dart';
 import '../../../widgets/line_badge.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripDetailsStopCard extends StatefulWidget {
   final RouteStopMarker stop;
@@ -98,7 +99,7 @@ class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
     final lines = _selectedStopQuickInfo?.lines ?? const <TripStopQuickRoute>[];
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: stopId.isEmpty
@@ -112,13 +113,13 @@ class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
               },
         child: Container(
           constraints: const BoxConstraints(maxWidth: 300),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: AppColors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -136,7 +137,7 @@ class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.xs),
               if (_isLoadingSelectedStopQuickInfo && stopId.isNotEmpty)
                 const SizedBox(
                   width: 16,
@@ -144,7 +145,7 @@ class _TripDetailsStopCardState extends State<TripDetailsStopCard> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else if (lines.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,

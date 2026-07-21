@@ -1,8 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-import '../../../theme/app_texts.dart';
-import '../../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 import '../../../utils/stop_details_utils.dart';
 import '../../../utils/markup_text_utils.dart' as markup;
 import '../../../widgets/forms/autocomplete_search_field.dart';
@@ -94,7 +94,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                 AppTexts.isHungarian ? 'Megállók' : 'Stops',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               StatefulBuilder(
                 builder: (context, setStateSB) => Switch(
                   value: _searchStops,
@@ -117,7 +117,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                 AppTexts.isHungarian ? 'Címek' : 'Addresses',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               StatefulBuilder(
                 builder: (context, setStateSB) => Switch(
                   value: _searchAddresses,
@@ -140,7 +140,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                 AppTexts.isHungarian ? 'Vonalak' : 'Lines',
                 style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.lg),
               StatefulBuilder(
                 builder: (context, setStateSB) => Switch(
                   value: _searchLines,
@@ -196,7 +196,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                         borderRadius: BorderRadius.circular(26),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
+                            color: AppColors.black.withValues(alpha: 0.05),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -243,7 +243,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                       prefixIcon: Icon(
                         Icons.search,
                         color: colorScheme.onSurfaceVariant,
@@ -268,7 +268,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
               ),
               ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Builder(
                 builder: (menuContext) => Container(
                   decoration: BoxDecoration(
@@ -276,7 +276,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: AppColors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -296,7 +296,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
           ),
           
           if (_showDropdown && _searchController.text.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Container(
               constraints: const BoxConstraints(maxHeight: 400),
               decoration: BoxDecoration(
@@ -304,7 +304,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: AppColors.black.withValues(alpha: 0.15),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
@@ -316,7 +316,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Material(
-                  color: Colors.transparent,
+                  color: AppColors.transparent,
                   child: _buildDropdownContent(context, colorScheme),
                 ),
               ),
@@ -330,14 +330,14 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
   Widget _buildDropdownContent(BuildContext context, ColorScheme colorScheme) {
     if (_isLoading) {
       return const Padding(
-        padding: EdgeInsets.all(24.0),
+        padding: EdgeInsets.all(AppSpacing.xl),
         child: Center(child: CircularProgressIndicator()),
       );
     }
     
     if (_suggestions.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl, horizontal: AppSpacing.lg),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -347,7 +347,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
                 size: 48,
                 color: colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 _searchController.text.length < 3
                     ? (AppTexts.isHungarian ? 'Írj be legalább 3 karaktert' : 'Type at least 3 characters')
@@ -365,7 +365,7 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
     
     return ListView.separated(
       shrinkWrap: true,
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       itemCount: _suggestions.length,
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {

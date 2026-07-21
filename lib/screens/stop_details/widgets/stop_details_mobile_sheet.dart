@@ -3,11 +3,12 @@ import 'package:latlong2/latlong.dart';
 import '../../../utils/stop_details_utils.dart';
 import '../../../widgets/maps/plan_map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/alerts_section.dart';
 import 'stop_details_times_list.dart';
 import 'stop_line_selector.dart';
 import 'stop_details_schedule.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopDetailsMobileSheet extends StatefulWidget {
   static const double _mobileSheetMinSize = 0.2;
@@ -171,7 +172,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
           controller: sheetScrollController,
           physics: const ClampingScrollPhysics(),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -185,7 +186,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Center(
                   child: Text(
                     AppTexts.stopSwipeInstruction,
@@ -193,7 +194,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     textAlign: TextAlign.center,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Row(
                   children: [
                     IconButton(
@@ -217,7 +218,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                       tooltip: AppTexts.stopNextDay,
                       icon: const Icon(Icons.chevron_right),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.sm),
                     TextButton(
                       onPressed:
                           _isSameDate(widget.selectedDate, DateTime.now())
@@ -228,7 +229,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                   ],
                 ),
                 if (hasPast) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppSpacing.xs),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: OutlinedButton(
@@ -241,7 +242,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 AlertsSection(alerts: widget.stop['alerts']),
                 StopLineSelector(
                   uniqueLines: widget.uniqueLines,
@@ -249,7 +250,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                   onLineSelected: widget.onLineSelected,
                   onClearSelection: widget.onClearLineSelection,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Wrap(
@@ -285,7 +286,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.sm),
               ],
             ),
           ),

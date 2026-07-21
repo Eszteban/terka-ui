@@ -7,24 +7,24 @@ extension _MapViewHelpers on _MapViewState {
       case 'SUBURBAN_RAILWAY':
       case 'TRAMTRAIN':
       case 'RAIL_REPLACEMENT_BUS':
-        return Colors.blueAccent;
+        return AppColors.blue;
       case 'COACH':
-        return Colors.deepPurple;
+        return AppColors.deepPurple;
       case 'SUBWAY':
       case 'TRAM':
       case 'TROLLEYBUS':
       case 'BUS':
       case 'FERRY':
-        return Colors.teal;
+        return AppColors.teal;
       default:
-        return Colors.grey;
+        return AppColors.grey;
     }
   }
 
   Color _parseRouteColor(String rawHex, {required String mode}) {
     final hex = rawHex.trim().replaceAll('#', '').toUpperCase();
     if (_MapViewState._fallbackWhiteHexColors.contains(hex)) {
-      return hex == 'FEFEFE' ? const Color(0xFFFEFEFE) : Colors.white;
+      return hex == 'FEFEFE' ? const Color(0xFFFEFEFE) : AppColors.white;
     }
     final normalized = switch (hex.length) {
       3 => '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}',
@@ -53,7 +53,7 @@ extension _MapViewHelpers on _MapViewState {
     };
     final value = int.tryParse(normalized, radix: 16);
     if (value == null) {
-      return Colors.white;
+      return AppColors.white;
     }
     return Color(0xFF000000 | value);
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../../utils/stop_details_utils.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class StopLineSelector extends StatefulWidget {
   final List<Map<String, dynamic>> uniqueLines;
@@ -39,7 +40,7 @@ class _StopLineSelectorState extends State<StopLineSelector> {
     final primaryColor = Theme.of(context).colorScheme.primary;
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -52,11 +53,11 @@ class _StopLineSelectorState extends State<StopLineSelector> {
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(
-          dividerColor: Colors.transparent,
+          dividerColor: AppColors.transparent,
         ),
         child: ExpansionTile(
           initiallyExpanded: false,
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+          tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.none),
           leading: Icon(
             Icons.filter_list_rounded,
             color: primaryColor,
@@ -71,7 +72,7 @@ class _StopLineSelectorState extends State<StopLineSelector> {
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   letterSpacing: 0.5,
-                  color: isDark ? Colors.white.withValues(alpha: 0.9) : Colors.black87,
+                  color: isDark ? AppColors.white.withValues(alpha: 0.9) : AppColors.black.withValues(alpha: 0.87),
                 ),
               ),
               if (widget.selectedLines.isNotEmpty)
@@ -91,7 +92,7 @@ class _StopLineSelectorState extends State<StopLineSelector> {
                 ),
             ],
           ),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          childrenPadding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.none, AppSpacing.md, AppSpacing.md),
           children: [
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 140),
@@ -101,7 +102,7 @@ class _StopLineSelectorState extends State<StopLineSelector> {
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
+                    padding: const EdgeInsets.only(right: AppSpacing.md),
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Wrap(
@@ -118,7 +119,7 @@ class _StopLineSelectorState extends State<StopLineSelector> {
                             label: Text(shortName),
                             labelStyle: TextStyle(
                               fontWeight: FontWeight.bold,
-                              color: isSelected ? routeTextColor : (isDark ? Colors.white70 : Colors.black87),
+                              color: isSelected ? routeTextColor : (isDark ? AppColors.white.withValues(alpha: 0.70) : AppColors.black.withValues(alpha: 0.87)),
                               fontSize: useSpanFont ? 12 * (28 / 16) : 12,
                               fontFamily: useSpanFont ? 'MNR2007' : null,
                               leadingDistribution: useSpanFont ? TextLeadingDistribution.even : null,
@@ -133,8 +134,8 @@ class _StopLineSelectorState extends State<StopLineSelector> {
                               width: 1,
                             ),
                             padding: useSpanFont
-                                ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0)
-                                : const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                ? const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none)
+                                : const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.none),
                             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             onSelected: (selected) {
                               widget.onLineSelected(shortName, selected);

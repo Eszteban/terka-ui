@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../theme/app_texts.dart';
-import '../../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 import '../../../utils/markup_text_utils.dart' as markup;
 import '../../../widgets/maps/map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
@@ -94,7 +94,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: AppColors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(2, 0),
             ),
@@ -149,7 +149,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                 routeVehicleMarker: widget.desktopRouteVehicleMarker,
                 routeFitPadding: showPlannerPanel && _isPanelVisible
                     ? EdgeInsets.fromLTRB(leftPadding, 48, 48, 260)
-                    : const EdgeInsets.fromLTRB(48, 48, 48, 220),
+                    : const EdgeInsets.fromLTRB(AppSpacing.touchTarget, AppSpacing.touchTarget, AppSpacing.touchTarget, 220),
                 showRouteStopLabels: false,
                 useBaseMapStopIcon: true,
                 onOpenTripDetailsRequested: widget.onOpenTripDetailsRequested,
@@ -178,7 +178,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                     children: [
                       Container(
                         width: panelWidth,
-                        padding: const EdgeInsets.only(left: 16.0),
+                        padding: const EdgeInsets.only(left: AppSpacing.lg),
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             maxHeight: maxPanelHeight,
@@ -227,7 +227,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                         widget.searchHighlightName != null)
                       Card(
                         elevation: 6,
-                        shadowColor: Colors.black.withValues(alpha: 0.15),
+                        shadowColor: AppColors.black.withValues(alpha: 0.15),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                           side: BorderSide(
@@ -243,14 +243,14 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
-                                padding: const EdgeInsets.all(8),
+                                padding: const EdgeInsets.all(AppSpacing.sm),
                                 decoration: BoxDecoration(
                                   color: Theme.of(
                                     context,
@@ -263,7 +263,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                                   size: 20,
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppSpacing.md),
                               ConstrainedBox(
                                 constraints: const BoxConstraints(
                                   maxWidth: 200,
@@ -296,7 +296,7 @@ class _TerkaTabletLayoutState extends State<TerkaTabletLayout> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.sm),
                               if (widget.onPlanRouteToStop != null)
                                 IconButton(
                                   icon: Icon(

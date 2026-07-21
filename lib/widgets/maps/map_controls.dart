@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class _MapControlButton {
   final IconData icon;
@@ -109,7 +110,7 @@ class _MapControlsState extends State<MapControls> {
                     width: 24,
                     height: 24,
                     child: Padding(
-                      padding: EdgeInsets.all(3.0),
+                      padding: EdgeInsets.all(AppSpacing.xs),
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
@@ -151,7 +152,7 @@ class _MapControlsState extends State<MapControls> {
               child: InkWell(
                 onTap: widget.onShowAttribution,
                 child: Padding(
-                  padding: const EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   child: Icon(
                     Icons.info_outline,
                     size: 18,
@@ -173,7 +174,7 @@ class _MapControlsState extends State<MapControls> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  color: AppColors.black.withValues(alpha: 0.12),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -187,7 +188,7 @@ class _MapControlsState extends State<MapControls> {
                 children: [
                   for (var i = 0; i < buttons.length; i++) ...[
                     Material(
-                      color: Colors.transparent,
+                      color: AppColors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.vertical(
                           top: i == 0 ? const Radius.circular(12) : Radius.zero,
@@ -195,7 +196,7 @@ class _MapControlsState extends State<MapControls> {
                         ),
                         onTap: buttons[i].onTap,
                         child: Padding(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(AppSpacing.sm),
                           child: buttons[i].customIcon ?? Icon(
                             buttons[i].icon,
                             color: buttons[i].iconColor ?? Theme.of(context).colorScheme.onSurface,

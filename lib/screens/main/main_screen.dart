@@ -7,8 +7,8 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../controllers/route_planner_cubit.dart';
 import '../../controllers/map_cubit.dart';
-import '../../theme/app_tokens.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../widgets/maps/map_view.dart';
 import '../../widgets/navigation/top_navbar.dart';
 import '../../widgets/forms/autocomplete_search_field.dart';
@@ -204,7 +204,10 @@ class _MainScreenState extends State<MainScreen> {
                   !location.startsWith('/stop/') &&
                   !location.startsWith('/route/') &&
                   !location.startsWith('/routes/') &&
-                  !location.startsWith('/trip/');
+                  !location.startsWith('/trip/') &&
+                  !location.startsWith('/about') &&
+                  !location.startsWith('/tickets') &&
+                  !location.startsWith('/pass-types');
               final useDesktopMapLayout = isDesktop;
               final colorScheme = Theme.of(context).colorScheme;
               final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -459,9 +462,9 @@ class _MainScreenState extends State<MainScreen> {
                                                                 padding:
                                                                     const EdgeInsets.symmetric(
                                                                       horizontal:
-                                                                          16,
+                                                                          AppSpacing.lg,
                                                                       vertical:
-                                                                          8,
+                                                                          AppSpacing.sm,
                                                                     ),
                                                                 child: Row(
                                                                   children: [
@@ -615,9 +618,9 @@ class _MainScreenState extends State<MainScreen> {
                                                                 padding:
                                                                     const EdgeInsets.symmetric(
                                                                       horizontal:
-                                                                          16,
+                                                                          AppSpacing.lg,
                                                                       vertical:
-                                                                          12,
+                                                                          AppSpacing.md,
                                                                     ),
                                                                 child: Row(
                                                                   children: [
@@ -778,7 +781,7 @@ class _MainScreenState extends State<MainScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             iconWidget,
-            const SizedBox(height: 2),
+            const SizedBox(height: AppSpacing.none),
             Text(
               label,
               style: textStyle,

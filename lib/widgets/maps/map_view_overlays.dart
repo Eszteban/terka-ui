@@ -54,8 +54,8 @@ extension _MapViewOverlays on _MapViewState {
 
   Widget _buildMapStopDot(double? bearing) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final circleColor = isDark ? Colors.black : Colors.white;
-    final contentColor = isDark ? Colors.white : Colors.black;
+    final circleColor = isDark ? AppColors.black : AppColors.white;
+    final contentColor = isDark ? AppColors.white : AppColors.black;
 
     return SizedBox(
       width: 38,
@@ -104,7 +104,7 @@ extension _MapViewOverlays on _MapViewState {
     final lines = info?.lines ?? const <_StopQuickRoute>[];
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
@@ -113,13 +113,13 @@ extension _MapViewOverlays on _MapViewState {
         },
         child: Container(
           constraints: const BoxConstraints(maxWidth: 300),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
+                color: AppColors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -134,7 +134,7 @@ extension _MapViewOverlays on _MapViewState {
                 softWrap: true,
                 style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: AppSpacing.xs),
               if (_isLoadingSelectedStopQuickInfo)
                 const SizedBox(
                   width: 16,
@@ -142,7 +142,7 @@ extension _MapViewOverlays on _MapViewState {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               else if (!_isLoadingSelectedStopQuickInfo && lines.isNotEmpty) ...[
-                const SizedBox(height: 6),
+                const SizedBox(height: AppSpacing.xs),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -160,8 +160,8 @@ extension _MapViewOverlays on _MapViewState {
   Widget _buildStopRouteBadge(_StopQuickRoute line) {
     return Container(
       padding: line.usesSpanFont
-          ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0)
-          : const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          ? const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none)
+          : const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
         color: line.backgroundColor,
         borderRadius: BorderRadius.circular(6),

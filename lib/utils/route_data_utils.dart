@@ -1,5 +1,5 @@
 import 'dart:convert';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 
 class RouteDataUtils {
   static List<Map<String, dynamic>> extractItineraries(String rawJson) {

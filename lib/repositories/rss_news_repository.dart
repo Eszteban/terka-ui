@@ -2,7 +2,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'package:html_unescape/html_unescape.dart';
 import '../models/news_item.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import 'news_repository.dart';
 import '../constants/search_api.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_texts.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 import '../../utils/markup_text_utils.dart' as markup;
 import '../../utils/vehicle_type_lookup.dart';
 
@@ -217,10 +217,10 @@ class VehicleInfoCard extends StatelessWidget {
   }
 
   Color _delayColor(int? delaySeconds) {
-    if (delaySeconds == null) return Colors.grey;
+    if (delaySeconds == null) return AppColors.grey;
     final minutes = (delaySeconds / 60).round();
-    if (minutes > 0) return Colors.redAccent;
-    return Colors.green;
+    if (minutes > 0) return AppColors.red;
+    return AppColors.green;
   }
 
   @override
@@ -248,13 +248,13 @@ class VehicleInfoCard extends StatelessWidget {
 
     final cardContent = Container(
       constraints: const BoxConstraints(maxWidth: 300),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: AppColors.getVehicleCardBackground(context),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppColors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -268,8 +268,8 @@ class VehicleInfoCard extends StatelessWidget {
             children: [
               Container(
                 padding: lineLabelUsesSpanFont
-                    ? const EdgeInsets.symmetric(horizontal: 0, vertical: 0)
-                    : const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    ? const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none)
+                    : const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
                   color: markerColor,
                   borderRadius: BorderRadius.circular(8),
@@ -288,7 +288,7 @@ class VehicleInfoCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
                   tripNumberLabel,
@@ -304,7 +304,7 @@ class VehicleInfoCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.md),
 
           if (tripHeadsignLabel.isNotEmpty) ...[
             Text(
@@ -315,20 +315,20 @@ class VehicleInfoCard extends StatelessWidget {
                 color: colorScheme.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
           ],
 
           Text(
             '$serviceLabel\n$modelLabel\n$vehicleSpeed km/h',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white.withValues(alpha: 0.5)
-                  : Colors.black.withValues(alpha: 0.5),
+                  ? AppColors.white.withValues(alpha: 0.5)
+                  : AppColors.black.withValues(alpha: 0.5),
               fontSize: 13,
               height: 1.3,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
 
           Row(
             children: [
@@ -351,7 +351,7 @@ class VehicleInfoCard extends StatelessWidget {
     );
 
     return Material(
-      color: Colors.transparent,
+      color: AppColors.transparent,
       child: onTap != null
           ? GestureDetector(
               behavior: HitTestBehavior.opaque,

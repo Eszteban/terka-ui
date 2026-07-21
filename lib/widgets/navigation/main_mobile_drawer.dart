@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../theme/app_texts.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class MainMobileDrawer extends StatelessWidget {
   const MainMobileDrawer({super.key});
@@ -17,7 +17,7 @@ class MainMobileDrawer extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.none),
           children: [
             DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.transparent),
+              decoration: const BoxDecoration(color: AppColors.transparent),
               child: Text(
                 AppTexts.menu,
                 style: TextStyle(

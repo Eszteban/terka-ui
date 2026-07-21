@@ -5,8 +5,8 @@ import '../models/ticket_options.dart';
 import '../repositories/pass_type_repository.dart';
 import '../repositories/ticket_repository.dart';
 import '../injection_container.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../utils/layout_provider.dart';
@@ -27,8 +27,9 @@ class PassTypeEditorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600.0);
     return DesktopSidebarWrapper(
+      backgroundAlpha: 1.0,
       child: Scaffold(
-        backgroundColor: isDesktop ? Colors.transparent : AppColors.getScaffoldBackground(context),
+        backgroundColor: AppColors.transparent,
         body: SafeArea(
           child: PassTypeEditorView(
             passType: passType,
@@ -190,7 +191,7 @@ class _PassTypeEditorViewState extends State<PassTypeEditorView> {
         width: 1,
       ),
     );
-    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
 
     Widget content;
     if (_isLoading) {
@@ -283,7 +284,7 @@ class _PassTypeEditorViewState extends State<PassTypeEditorView> {
                       .where((agency) => _selectedAgencies.contains(agency.id))
                       .map((agency) {
                     return Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
+                      padding: const EdgeInsets.only(right: AppSpacing.sm),
                       child: InputChip(
                         label: Text(
                           agency.name,
@@ -351,7 +352,7 @@ class _PassTypeEditorViewState extends State<PassTypeEditorView> {
                   }
 
                   return SingleChildScrollView(
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(AppSpacing.sm),
                     child: Wrap(
                       spacing: 8.0,
                       runSpacing: 4.0,
@@ -397,7 +398,7 @@ class _PassTypeEditorViewState extends State<PassTypeEditorView> {
     }
 
     final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return Column(
       children: [

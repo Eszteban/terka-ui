@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
-import '../../theme/app_texts.dart';
-import '../../theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
 import '../../constants/search_api.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../utils/markup_text_utils.dart' as markup;
@@ -221,7 +221,9 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
       // 1. Station geocoder search
       Future<void>? stopsFuture;
       if (widget.searchStops) {
-        final stationUri = Uri.parse(searchApiUrl).replace(queryParameters: {
+        final baseStationUri = Uri.parse(searchApiUrl);
+        final stationUri = baseStationUri.replace(queryParameters: {
+          ...baseStationUri.queryParameters,
           'q': query,
           'limit': '10',
           'lang': 'hu',
@@ -275,7 +277,9 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
       // 2. Photon address geocoder search
       Future<void>? addressFuture;
       if (widget.searchAddresses) {
-        final photonUri = Uri.parse(photonApiUrl).replace(queryParameters: {
+        final basePhotonUri = Uri.parse(photonApiUrl);
+        final photonUri = basePhotonUri.replace(queryParameters: {
+          ...basePhotonUri.queryParameters,
           'limit': '10',
           'q': query,
           'location_bias_scale': '0.1',
@@ -477,7 +481,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
           labelText: widget.labelText,
           hintText: widget.hintText,
           filled: true,
-          fillColor: Colors.transparent,
+          fillColor: AppColors.transparent,
           prefixIcon: widget.prefixIcon,
           suffixIcon: widget.controller.text.isNotEmpty
               ? IconButton(
@@ -516,26 +520,26 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
         ),
         if (_isLoadingSuggestions && widget.onSuggestionsChanged == null)
           const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: LinearProgressIndicator(),
           ),
         if (showSuggestions && _suggestionEntries.isNotEmpty)
           widget.isFullPage
               ? Expanded(
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     itemCount: _suggestionEntries.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (ctx, idx) => _buildSuggestionTile(ctx, idx, isDark, colorScheme),
                   ),
                 )
               : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 220),
                     child: Card(
                       elevation: 4,
-                      shadowColor: Colors.black.withValues(alpha: 0.2),
+                      shadowColor: AppColors.black.withValues(alpha: 0.2),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
@@ -544,7 +548,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
                           ),
                         ),
                       ),
-                      margin: const EdgeInsets.only(top: 8, bottom: 8),
+                      margin: const EdgeInsets.only(top: AppSpacing.sm, bottom: AppSpacing.sm),
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: _suggestionEntries.length,
@@ -569,7 +573,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
 
     if (isCurrentLocation) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
         child: Container(
           decoration: BoxDecoration(
             color: colorScheme.primaryContainer.withValues(alpha: isDark ? 0.15 : 0.25),
@@ -580,9 +584,9 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
             ),
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
             leading: Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: colorScheme.primary.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
@@ -635,7 +639,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
       final cleanShortName = markup.plainTextFromHtml(shortName).trim();
 
       return ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
         leading: LineBadge(
           lineLabel: cleanShortName,
           routeColor: parsedColor,
@@ -688,7 +692,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
     }
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       leading: leadingWidget,
       title: Text(
         entry.name,

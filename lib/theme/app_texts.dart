@@ -26,7 +26,7 @@ class AppTexts {
   static String get lists => isHungarian ? 'Listázások' : 'Lists';
   static String get stops => isHungarian ? 'Megállók' : 'Stops';
   static String get lines => isHungarian ? 'Vonalak' : 'Lines';
-  static String get mavNews => isHungarian ? 'MÁV Hírek' : 'MÁV News';
+  static String get mavNews => isHungarian ? 'Hírek' : 'News';
 
   static String get myTickets => isHungarian ? 'Jegyeim' : 'My Tickets';
   static String get addTicket => isHungarian ? 'Jegy hozzáadása' : 'Add Ticket';
@@ -75,7 +75,7 @@ class AppTexts {
       isHungarian ? 'Külön köszönet' : 'Special thanks';
   static String get aboutDeveloper => isHungarian ? 'Fejlesztő' : 'Developer';
   static String get aboutContactDeveloper =>
-      isHungarian ? 'Kapcsolatfelvétel' : 'Contact Developer';
+      isHungarian ? 'Kapcsolat' : 'Contact';
   static String get aboutGithub => isHungarian ? 'GitHub' : 'GitHub';
   static String get aboutDataSources =>
       isHungarian ? 'Adatforrások & API-k' : 'Data Sources & APIs';
@@ -612,6 +612,14 @@ class AppTexts {
       : 'Response is not a JSON object.';
   static String apiException(String e) =>
       isHungarian ? 'Plan API kivétel: $e' : 'Plan API exception: $e';
+  static String get planInternalError =>
+      isHungarian ? 'Hiba történt az útvonaltervezés során. Kérjük, ellenőrizze, hogy biztosan rákattintott-e bármelyik találatra, vagy a \'Jelenlegi helyzet\' betöltött-e, ha arra nyomott.' : 'An error occurred during route planning. Please check if you clicked on any of the results or if the \'Current location\' has loaded if you selected it.';
+  static String tripNotFound(String id) =>
+      isHungarian ? 'Ilyen azonosítójú járat nem található: $id' : 'Trip with this ID not found: $id';
+  static String routeNotFound(String id) =>
+      isHungarian ? 'Ilyen azonosítójú vonal nem található: $id' : 'Route with this ID not found: $id';
+  static String stopNotFound(String id) =>
+      isHungarian ? 'Ilyen azonosítójú megálló nem található: $id' : 'Stop with this ID not found: $id';
 
   // Alert Details
   static String get alertDefaultHeader =>
@@ -661,4 +669,12 @@ class AppTexts {
       isHungarian ? 'Csak felszállás' : 'Boarding only';
   static String get alightingOnly =>
       isHungarian ? 'Csak leszállás' : 'Alighting only';
+
+  // General & Errors
+  static String errorFailedToOpenLink(String url) => isHungarian
+      ? 'Nem sikerült megnyitni a linket: $url'
+      : 'Failed to open link: $url';
+  static String get ok => 'OK';
+  static String get languageHungarian => 'Magyar';
+  static String get languageEnglish => 'English';
 }

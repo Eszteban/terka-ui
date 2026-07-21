@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../app.dart';
-import '../theme/app_tokens.dart';
-import '../theme/app_texts.dart';
+import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../utils/layout_provider.dart';
 import 'add_ticket_screen.dart';
 import 'about_screen.dart';
@@ -158,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => Dialog(
         clipBehavior: Clip.antiAlias,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
           child: child,
@@ -181,11 +181,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         width: 1,
       ),
     );
-    final cardColor = isDark ? const Color(0xFF1A1615) : Colors.white;
+    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
     final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = Colors.black.withValues(alpha: isDark ? 0.3 : 0.08);
+    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
 
     return DesktopSidebarWrapper(
+      applyPaddingOnMobile: true,
       child: ListView(
         children: [
           const SizedBox(height: AppSpacing.sm),
@@ -207,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SegmentedButton<ThemeMode>(
                   // MEGOLDÁS 1: Csökkentjük a belső paddingot, hogy több hely maradjon a szövegnek
                   style: SegmentedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                   ),
                   segments: [
                     ButtonSegment<ThemeMode>(
@@ -262,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   SegmentedButton<AppLayoutMode>(
                     style: SegmentedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
                     ),
                     segments: [
                       ButtonSegment<AppLayoutMode>(
@@ -313,16 +314,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(AppTexts.profileLanguage, style: textTheme.titleMedium),
                 const SizedBox(height: AppSpacing.sm),
                 SegmentedButton<AppLanguage>(
-                  segments: const [
+                  segments: [
                     ButtonSegment<AppLanguage>(
                       value: AppLanguage.hu,
-                      icon: Icon(Icons.language),
-                      label: Text('Magyar'),
+                      icon: const Icon(Icons.language),
+                      label: Text(AppTexts.languageHungarian),
                     ),
                     ButtonSegment<AppLanguage>(
                       value: AppLanguage.en,
-                      icon: Icon(Icons.language),
-                      label: Text('English'),
+                      icon: const Icon(Icons.language),
+                      label: Text(AppTexts.languageEnglish),
                     ),
                   ],
                   selected: {widget.selectedLanguage},

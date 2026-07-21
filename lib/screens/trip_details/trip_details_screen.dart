@@ -7,10 +7,11 @@ import '../../core/router/app_router.dart';
 import '../../widgets/layout/desktop_sidebar_wrapper.dart';
 import '../../controllers/trip_details_cubit.dart';
 import 'widgets/trip_details_mobile_sheet.dart';
-import '../../theme/app_texts.dart';
+import 'package:terka/theme/app_texts.dart';
 import '../../utils/layout_provider.dart';
 import 'widgets/trip_details_table_view.dart';
 import 'widgets/trip_details_stop_card.dart';
+import 'package:terka/theme/app_tokens.dart';
 
 class TripDetailsScreen extends StatelessWidget {
   final String tripId;
@@ -116,7 +117,7 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
     final title = AppTexts.tripDetails;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
       child: Row(
         children: [
           IconButton(
@@ -133,7 +134,7 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
               }
             },
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               title,
@@ -144,7 +145,7 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
           ),
           if (isRefreshing)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: SizedBox(
                 width: 20,
                 height: 20,
@@ -180,6 +181,15 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(AppTexts.stopErrorUpdate(state.refreshError!))),
           );
+        } else if (state is TripDetailsError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTexts.tripNotFound(widget.tripId))),
+          );
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          } else {
+            context.go('/');
+          }
         }
       },
       builder: (context, state) {
@@ -188,17 +198,7 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
         }
 
         if (state is TripDetailsError) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(state.message, textAlign: TextAlign.center),
-                ],
-              ),
-            ),
-          );
+          return const SizedBox.shrink();
         }
 
         if (state is TripDetailsLoaded) {
