@@ -1,9 +1,0 @@
-alerts_section.dart: \n
-alerts_section.dart: • 
-itinerary_leg_tile.dart:  → 
-profile_screen.dart: English
-profile_screen.dart: Magyar
-trip_details_additional_info.dart:  
-trip_details_additional_info.dart: Failed to open link: $urlString
-trip_stop_times_list.dart: -
-trip_stop_times_list.dart: OK

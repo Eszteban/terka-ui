@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:terka/theme/app_tokens.dart';
 import '../../utils/layout_provider.dart';
@@ -32,20 +33,25 @@ class DesktopSidebarWrapper extends StatelessWidget {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height - 32,
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.getSurface(context).withValues(alpha: backgroundAlpha),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.7),
-            ),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Material(
-            color: AppColors.transparent,
-            child: Padding(
-              padding: padding,
-              child: child,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.getSurface(context).withValues(alpha: backgroundAlpha),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                ),
+              ),
+              child: Material(
+                color: AppColors.transparent,
+                child: Padding(
+                  padding: padding,
+                  child: child,
+                ),
+              ),
             ),
           ),
         ),

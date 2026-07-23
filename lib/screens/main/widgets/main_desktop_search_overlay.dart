@@ -270,25 +270,30 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
               ),
               const SizedBox(width: AppSpacing.sm),
               Builder(
-                builder: (menuContext) => Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.getSurface(context),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                builder: (menuContext) => ClipOval(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.getSurface(context).withValues(alpha: 0.84),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
                       ),
-                    ],
-                    border: Border.all(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                      child: IconButton(
+                        icon: Icon(Icons.tune, color: colorScheme.primary),
+                        onPressed: () => _showSettingsMenu(menuContext),
+                        tooltip: AppTexts.isHungarian ? 'Keresési szűrők' : 'Search filters',
+                      ),
                     ),
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.tune, color: colorScheme.primary),
-                    onPressed: () => _showSettingsMenu(menuContext),
-                    tooltip: AppTexts.isHungarian ? 'Keresési szűrők' : 'Search filters',
                   ),
                 ),
               ),
@@ -297,27 +302,30 @@ class _MainDesktopSearchOverlayState extends State<MainDesktopSearchOverlay> {
           
           if (_showDropdown && _searchController.text.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
-            Container(
-              constraints: const BoxConstraints(maxHeight: 400),
-              decoration: BoxDecoration(
-                color: AppColors.getSurface(context),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.15),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 400),
+                  decoration: BoxDecoration(
+                    color: AppColors.getSurface(context).withValues(alpha: 0.84),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.black.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
                   ),
-                ],
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Material(
-                  color: AppColors.transparent,
-                  child: _buildDropdownContent(context, colorScheme),
+                  child: Material(
+                    color: AppColors.transparent,
+                    child: _buildDropdownContent(context, colorScheme),
+                  ),
                 ),
               ),
             ),

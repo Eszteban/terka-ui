@@ -1,6 +1,0 @@
-alerts_section.dart: \n
-alerts_section.dart: • 
-itinerary_leg_tile.dart:  → 
-route_plan_form.dart: ${widget.maxWalk.toInt()}
-route_plan_form.dart: ${widget.transfers.toInt()}
-trip_details_additional_info.dart:  

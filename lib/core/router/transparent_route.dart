@@ -14,7 +14,7 @@ class TransparentRoute<T> extends TransitionRoute<T> with LocalHistoryRoute<T> {
   }
 
   @override
-  bool get opaque => false;
+  bool get opaque => true;
 
   @override
   Duration get transitionDuration => Duration.zero;
