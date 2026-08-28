@@ -38,7 +38,7 @@ jobs:
 
       # 5. Lépés: Az APK legyártása Release (optimalizált) módban
       - name: APK buildelése
-        run: flutter build apk --release --dart-define=USE_PROXY=false --dart-define=CARTO_API_KEY=${{ secrets.CARTO_API_KEY }} --no-lint
+        run: flutter build apk --release --dart-define=USE_PROXY=false --dart-define=CARTO_API_KEY=${{ secrets.CARTO_API_KEY }} -- --no-lint
 
       # 6. Lépés: A legenerált APK feltöltése a GitHub Releases-be
       - name: GitHub Release létrehozása és APK csatolása
