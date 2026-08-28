@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "TERKA (Debug)",
+      "request": "launch",
+      "type": "dart",
+      "toolArgs": [
+        "--dart-define",
+        "CARTO_API_KEY=your_carto_api_key_here"
+      ]
+    }
+  ]
+}

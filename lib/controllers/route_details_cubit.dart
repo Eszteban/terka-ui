@@ -45,6 +45,16 @@ class RouteDetailsCubit extends Cubit<RouteDetailsState> {
     }
   }
 
+  Future<void> refresh() async {
+    try {
+      final route = await _transitRepository.fetchRouteDetails(routeId: routeId);
+      if (route != null) {
+        emit(RouteDetailsLoaded(routeData: route));
+        _updateMapData(route);
+      }
+    } catch (_) {}
+  }
+
   @override
   Future<void> close() {
     _mapCubit.clearDesktopRouteSelection();

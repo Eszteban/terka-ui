@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 import '../../utils/markup_text_utils.dart' as markup;
 import '../../utils/vehicle_type_lookup.dart';
 
-class VehicleInfoCard extends StatelessWidget {
+class VehicleInfoCard extends StatefulWidget {
   final String lineLabel;
   final bool lineLabelUsesSpanFont;
   final String tripNumberLabel;
@@ -17,6 +19,7 @@ class VehicleInfoCard extends StatelessWidget {
   final Color markerColor;
   final Color markerTextColor;
   final String nextStopStatus;
+  final int? lastUpdated;
   final VoidCallback? onTap;
 
   static const String _spanFontFamily = 'MNR2007';
@@ -36,6 +39,7 @@ class VehicleInfoCard extends StatelessWidget {
     required this.markerColor,
     required this.markerTextColor,
     required this.nextStopStatus,
+    this.lastUpdated,
     this.onTap,
   });
 
@@ -190,6 +194,8 @@ class VehicleInfoCard extends StatelessWidget {
         ? ((vehicle['speed'] as num) * 3.6).round()
         : 0;
 
+    final lastUpdated = (vehicle['lastUpdated'] as num?)?.toInt();
+
     return VehicleInfoCard(
       lineLabel: lineLabel,
       lineLabelUsesSpanFont: routeShortNameUsesSpanFont,
@@ -203,8 +209,55 @@ class VehicleInfoCard extends StatelessWidget {
       markerColor: markerColor,
       markerTextColor: markerTextColor,
       nextStopStatus: stopStatus ?? "",
+      lastUpdated: lastUpdated,
       onTap: onTap,
     );
+  }
+
+  @override
+  State<VehicleInfoCard> createState() => _VehicleInfoCardState();
+}
+
+class _VehicleInfoCardState extends State<VehicleInfoCard> {
+  int? _elapsedSeconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCounter();
+  }
+
+  void _initCounter() {
+    _timer?.cancel();
+    if (widget.lastUpdated != null) {
+      final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      _elapsedSeconds = (nowSeconds - widget.lastUpdated!).clamp(0, 999999);
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) {
+          setState(() {
+            _elapsedSeconds = (_elapsedSeconds ?? 0) + 1;
+          });
+        }
+      });
+    } else {
+      _elapsedSeconds = null;
+      _timer = null;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant VehicleInfoCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.lastUpdated != oldWidget.lastUpdated) {
+      _initCounter();
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   String _formatDelayValue(int? delaySeconds) {
@@ -216,25 +269,26 @@ class VehicleInfoCard extends StatelessWidget {
     return '$minutes$unit';
   }
 
-  Color _delayColor(int? delaySeconds) {
-    if (delaySeconds == null) return AppColors.grey;
+  Color _delayColor(int? delaySeconds, TerkaSemanticColors semantic) {
+    if (delaySeconds == null) return semantic.scheduledOnly;
     final minutes = (delaySeconds / 60).round();
-    if (minutes > 0) return AppColors.red;
-    return AppColors.green;
+    if (minutes > 0) return semantic.delayed;
+    return semantic.onTime;
   }
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final semantic = context.semanticColors;
 
-    final nextStop = (nextStopName ?? tripHeadsignLabel).trim();
-    String stopStatusText = nextStopStatus;
+    final nextStop = (widget.nextStopName ?? widget.tripHeadsignLabel).trim();
+    String stopStatusText = widget.nextStopStatus;
     if (stopStatusText.isNotEmpty) {
       if (stopStatusText == "IN_TRANSIT_TO") {
         stopStatusText = AppTexts.tripNextStopPrefix;
       } else if (stopStatusText == "INCOMING_AT") {
         stopStatusText = AppTexts.tripNextStopIncomingAt;
-      } else if (nextStopStatus == "STOPPED_AT") {
+      } else if (widget.nextStopStatus == "STOPPED_AT") {
         stopStatusText = AppTexts.tripNextStopStoppedAt;
       } else {
         stopStatusText = "";
@@ -243,19 +297,19 @@ class VehicleInfoCard extends StatelessWidget {
 
     final nextStopPart = nextStop.isNotEmpty ? '$stopStatusText$nextStop' : '';
 
-    final delayString = _formatDelayValue(arrivalDelaySeconds);
-    final delayColor = _delayColor(arrivalDelaySeconds);
+    final delayString = _formatDelayValue(widget.arrivalDelaySeconds);
+    final delayColor = _delayColor(widget.arrivalDelaySeconds, semantic);
 
     final cardContent = Container(
       constraints: const BoxConstraints(maxWidth: 300),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.getVehicleCardBackground(context),
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
+            color: AppColors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -267,31 +321,31 @@ class VehicleInfoCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: lineLabelUsesSpanFont
+                padding: widget.lineLabelUsesSpanFont
                     ? const EdgeInsets.symmetric(horizontal: AppSpacing.none, vertical: AppSpacing.none)
                     : const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                 decoration: BoxDecoration(
-                  color: markerColor,
+                  color: widget.markerColor,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  lineLabel,
+                  widget.lineLabel,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: markerTextColor,
-                    fontSize: lineLabelUsesSpanFont ? 14 * _spanFontScale : 14,
-                    fontFamily: lineLabelUsesSpanFont ? _spanFontFamily : null,
-                    leadingDistribution: lineLabelUsesSpanFont
+                    color: widget.markerTextColor,
+                    fontSize: widget.lineLabelUsesSpanFont ? 14 * VehicleInfoCard._spanFontScale : 14,
+                    fontFamily: widget.lineLabelUsesSpanFont ? VehicleInfoCard._spanFontFamily : null,
+                    leadingDistribution: widget.lineLabelUsesSpanFont
                         ? TextLeadingDistribution.even
                         : null,
-                    height: lineLabelUsesSpanFont ? 1.0 : null,
+                    height: widget.lineLabelUsesSpanFont ? 1.0 : null,
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Text(
-                  tripNumberLabel,
+                  widget.tripNumberLabel,
                   softWrap: true,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -306,9 +360,9 @@ class VehicleInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.md),
 
-          if (tripHeadsignLabel.isNotEmpty) ...[
+          if (widget.tripHeadsignLabel.isNotEmpty) ...[
             Text(
-              tripHeadsignLabel,
+              widget.tripHeadsignLabel,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w500,
@@ -319,11 +373,11 @@ class VehicleInfoCard extends StatelessWidget {
           ],
 
           Text(
-            '$serviceLabel\n$modelLabel\n$vehicleSpeed km/h',
+            '${widget.serviceLabel}\n${widget.modelLabel}\n${widget.vehicleSpeed} km/h',
             style: TextStyle(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? AppColors.white.withValues(alpha: 0.5)
-                  : AppColors.black.withValues(alpha: 0.5),
+                  ? AppColors.white.withValues(alpha: 0.6)
+                  : AppColors.black.withValues(alpha: 0.6),
               fontSize: 13,
               height: 1.3,
             ),
@@ -345,17 +399,42 @@ class VehicleInfoCard extends StatelessWidget {
               ),
             ],
           ),
-          Text(nextStopPart, style: TextStyle(color: colorScheme.onSurface)),
+          if (nextStopPart.isNotEmpty)
+            Text(nextStopPart, style: TextStyle(color: colorScheme.onSurface)),
+
+          if (_elapsedSeconds != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                Icon(
+                  Icons.access_time_rounded,
+                  size: 13,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    AppTexts.vehicleLastUpdatedSeconds(_elapsedSeconds!),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
 
     return Material(
       color: AppColors.transparent,
-      child: onTap != null
+      child: widget.onTap != null
           ? GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTap: onTap,
+              onTap: widget.onTap,
               child: cardContent,
             )
           : cardContent,

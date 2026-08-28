@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:html_unescape/html_unescape.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 
 class AlertsSection extends StatelessWidget {
   final List<dynamic>? alerts;
@@ -81,6 +82,7 @@ class AlertsSection extends StatelessWidget {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final semantic = context.semanticColors;
 
     final validAlerts = list.where((dynamic a) {
       if (a is! Map) return false;
@@ -93,7 +95,7 @@ class AlertsSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final baseAlertColor = isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00);
+    final baseAlertColor = semantic.alertWarning;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
@@ -105,7 +107,7 @@ class AlertsSection extends StatelessWidget {
           width: 1.2,
         ),
       ),
-      color: baseAlertColor.withValues(alpha: isDark ? 0.08 : 0.04),
+      color: semantic.alertWarningContainer,
       clipBehavior: Clip.antiAlias,
       child: Theme(
         data: Theme.of(context).copyWith(
@@ -143,21 +145,28 @@ class AlertsSection extends StatelessWidget {
             final start = alert['effectiveStartDate'] is num ? (alert['effectiveStartDate'] as num).toInt() : null;
             final end = alert['effectiveEndDate'] is num ? (alert['effectiveEndDate'] as num).toInt() : null;
 
-            Color severityColor;
-            IconData severityIcon;
-            if (severity == 'SEVERE') {
-              severityColor = isDark ? const Color(0xFFFF5252) : const Color(0xFFD32F2F);
-              severityIcon = Icons.error_outline_rounded;
-            } else if (severity == 'WARNING') {
-              severityColor = isDark ? const Color(0xFFFFB74D) : const Color(0xFFF57C00);
-              severityIcon = Icons.warning_amber_rounded;
-            } else if (severity == 'INFO') {
-              severityColor = isDark ? const Color(0xFF64B5F6) : const Color(0xFF1976D2);
-              severityIcon = Icons.info_outline_rounded;
-            } else {
-              severityColor = isDark ? const Color(0xFFB0BEC5) : const Color(0xFF607D8B);
-              severityIcon = Icons.campaign_rounded;
-            }
+            final ({Color color, Color containerColor, IconData icon}) severityStyle = switch (severity) {
+              'SEVERE' => (
+                  color: semantic.alertSevere,
+                  containerColor: semantic.alertSevereContainer,
+                  icon: Icons.error_outline_rounded,
+                ),
+              'WARNING' => (
+                  color: semantic.alertWarning,
+                  containerColor: semantic.alertWarningContainer,
+                  icon: Icons.warning_amber_rounded,
+                ),
+              'INFO' => (
+                  color: semantic.alertInfo,
+                  containerColor: semantic.alertInfoContainer,
+                  icon: Icons.info_outline_rounded,
+                ),
+              _ => (
+                  color: semantic.alertNeutral,
+                  containerColor: semantic.alertNeutralContainer,
+                  icon: Icons.campaign_rounded,
+                ),
+            };
 
             final timeRangeStr = _formatTimeRange(start, end);
 
@@ -167,14 +176,14 @@ class AlertsSection extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: severityColor.withValues(alpha: 0.3),
+                  color: severityStyle.color.withValues(alpha: 0.3),
                   width: 1.2,
                 ),
               ),
-              color: severityColor.withValues(alpha: isDark ? 0.08 : 0.04),
+              color: severityStyle.containerColor,
               clipBehavior: Clip.antiAlias,
               child: ExpansionTile(
-                leading: Icon(severityIcon, color: severityColor, size: 24),
+                leading: Icon(severityStyle.icon, color: severityStyle.color, size: 24),
                 title: RichText(
                   text: TextSpan(
                     children: parseHtmlToTextSpans(

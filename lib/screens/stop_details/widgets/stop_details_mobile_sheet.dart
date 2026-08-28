@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../utils/stop_details_utils.dart';
@@ -30,7 +31,7 @@ class StopDetailsMobileSheet extends StatefulWidget {
   final void Function(int) onStepSelectedDate;
   final VoidCallback onGoToToday;
   final void Function({required String tripId, required String serviceDay})
-  onOpenTripDetails;
+      onOpenTripDetails;
 
   final Set<String> selectedLines;
   final List<Map<String, dynamic>> uniqueLines;
@@ -120,7 +121,6 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
               48,
               controlsBottomInset + 120,
             ),
-            initialZoom: StopDetailsMobileSheet._mobileStopFocusZoom,
             singlePointZoom: StopDetailsMobileSheet._mobileStopFocusZoom,
             showStopLabels: false,
             useBaseMapStopIcon: true,
@@ -138,19 +138,29 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
           ],
           builder: (context, scrollController) {
             final colorScheme = Theme.of(context).colorScheme;
-            return Material(
-              elevation: 8,
-              color: colorScheme.surface.withValues(alpha: 0.97),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: _buildStopDetailsSheetList(
-                sheetScrollController: scrollController,
-                now: widget.now,
-                hasPast: widget.hasPast,
-                visibleArrivals: widget.visibleArrivals,
-                visibleDepartures: widget.visibleDepartures,
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.getSurface(context).withValues(alpha: 0.84),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  child: Material(
+                    color: AppColors.transparent,
+                    child: _buildStopDetailsSheetList(
+                      sheetScrollController: scrollController,
+                      now: widget.now,
+                      hasPast: widget.hasPast,
+                      visibleArrivals: widget.visibleArrivals,
+                      visibleDepartures: widget.visibleDepartures,
+                    ),
+                  ),
+                ),
               ),
             );
           },
@@ -218,7 +228,7 @@ class _StopDetailsMobileSheetState extends State<StopDetailsMobileSheet> {
                       tooltip: AppTexts.stopNextDay,
                       icon: const Icon(Icons.chevron_right),
                     ),
-                    const SizedBox(width: AppSpacing.sm),
+                    const SizedBox(width: AppSpacing.xs),
                     TextButton(
                       onPressed:
                           _isSameDate(widget.selectedDate, DateTime.now())

@@ -3,6 +3,7 @@ import '../utils/stop_details_utils.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'line_badge.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 
 class DepartureCard extends StatelessWidget {
   static const String spanFontFamily = 'MNR2007';
@@ -68,30 +69,32 @@ class DepartureCard extends StatelessWidget {
     final isPast = StopDetailsUtils.isPastDeparture(departure, now);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isRealtime = departure['realtime'] == true;
+    final semantic = context.semanticColors;
+    final onSurfaceColor = Theme.of(context).colorScheme.onSurface;
 
     final arrDelay = StopDetailsUtils.asNum(departure['arrivalDelay']);
     final isArrivalOnTime = (arrDelay ?? 0) == 0;
     final realtimeArrivalColor = isPast
-        ? AppColors.grey
+        ? semantic.scheduledOnly
         : !isRealtime
-            ? (isDark ? AppColors.white : AppColors.black)
+            ? onSurfaceColor
             : isArrivalOnTime
-                ? AppColors.green
+                ? semantic.onTime
                 : (arrDelay ?? 0) < 0
-                    ? AppColors.blue
-                    : AppColors.red;
+                    ? semantic.early
+                    : semantic.delayed;
 
     final depDelay = StopDetailsUtils.asNum(departure['departureDelay']);
     final isDepartureOnTime = (depDelay ?? 0) == 0;
     final realtimeDepartureColor = isPast
-        ? AppColors.grey
+        ? semantic.scheduledOnly
         : !isRealtime
-            ? (isDark ? AppColors.white : AppColors.black)
+            ? onSurfaceColor
             : isDepartureOnTime
-                ? AppColors.green
+                ? semantic.onTime
                 : (depDelay ?? 0) < 0
-                    ? AppColors.blue
-                    : AppColors.red;
+                    ? semantic.early
+                    : semantic.delayed;
 
     final platformCode = departure['stop'] is Map
         ? (departure['stop']['platformCode']?.toString().trim() ?? '')

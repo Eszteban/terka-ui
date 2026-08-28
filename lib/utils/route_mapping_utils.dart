@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'transit_color_resolver.dart';
 
 class RouteMappingUtils {
   static List<LatLng> decodePolyline(String encoded) {
@@ -38,25 +39,11 @@ class RouteMappingUtils {
   }
 
   static Color? parseHexColor(String value) {
-    final hex = value.replaceAll('#', '').trim();
-    if (hex.length != 6) {
-      return null;
-    }
-
-    final parsed = int.tryParse(hex, radix: 16);
-    if (parsed == null) {
-      return null;
-    }
-
-    return Color(0xFF000000 | parsed);
+    return ColorUtils.tryParseHex(value);
   }
 
   static bool isWhiteColor(Color color) {
-    final isPureWhite =
-        color.red == 255 && color.green == 255 && color.blue == 255;
-    final isNearWhite =
-        color.red == 254 && color.green == 254 && color.blue == 254;
-    return isPureWhite || isNearWhite;
+    return ColorUtils.isNearWhite(color);
   }
 
   static Color parseRouteColor(Map<String, dynamic> leg) {

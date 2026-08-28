@@ -33,8 +33,8 @@ const Map<String, String> apiRequestHeaders = {
 			'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
 	'Origin': 'https://mavplusz.hu',
 	'Referer': 'https://mavplusz.hu/',
-	'Host': 'mavplusz.hu',
 	'Connection': 'keep-alive',
 	'Sec-Fetch-Dest': 'empty',
 	'Sec-Fetch-Mode': 'cors',
 };
+

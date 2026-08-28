@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 import 'services/ticket_api_service.dart';
 import 'services/transit_api_service.dart';
 import 'services/pass_type_api_service.dart';
+import 'services/search_api_service.dart';
 import 'repositories/ticket_repository.dart';
 import 'repositories/http_ticket_repository.dart';
 import 'repositories/transit_repository.dart';
@@ -10,6 +11,8 @@ import 'repositories/pass_type_repository.dart';
 import 'repositories/http_pass_type_repository.dart';
 import 'repositories/news_repository.dart';
 import 'repositories/rss_news_repository.dart';
+import 'repositories/search_repository.dart';
+import 'repositories/http_search_repository.dart';
 import 'controllers/navigation_cubit.dart';
 import 'controllers/route_planner_cubit.dart';
 import 'controllers/map_cubit.dart';
@@ -21,6 +24,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<TicketApiService>(() => const TicketApiService());
   sl.registerLazySingleton<TransitApiService>(() => const TransitApiService());
   sl.registerLazySingleton<PassTypeApiService>(() => const PassTypeApiService());
+  sl.registerLazySingleton<SearchApiService>(() => SearchApiService());
 
   // Repositories
   sl.registerLazySingleton<TicketRepository>(
@@ -35,7 +39,9 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<NewsRepository>(
     () => RssNewsRepository(),
   );
-
+  sl.registerLazySingleton<SearchRepository>(
+    () => HttpSearchRepository(apiService: sl<SearchApiService>()),
+  );
 
   // Cubits
   sl.registerFactory(() => NavigationCubit());

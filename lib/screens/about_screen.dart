@@ -73,6 +73,7 @@ class _AboutViewState extends State<AboutView> {
 
   Future<void> _loadPackageInfo() async {
     final info = await PackageInfo.fromPlatform();
+    if (!mounted) return;
     setState(() {
       _version = info.version;
       _appName = info.appName;

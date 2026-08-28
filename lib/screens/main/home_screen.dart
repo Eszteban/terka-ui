@@ -8,7 +8,6 @@ import '../../controllers/map_cubit.dart';
 import '../../models/ticket_item.dart';
 import '../../repositories/ticket_repository.dart';
 import '../../injection_container.dart';
-import 'package:terka/theme/app_texts.dart';
 import '../../widgets/forms/route_plan_form.dart';
 
 import '../../widgets/layout/desktop_sidebar_wrapper.dart';
@@ -148,6 +147,8 @@ class _HomeScreenState extends State<HomeScreen> {
       lastDate: DateTime(2100),
     );
 
+    if (!mounted) return;
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -163,6 +164,13 @@ class _HomeScreenState extends State<HomeScreen> {
         _selectedKozlekedes.add(label);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController1.dispose();
+    _searchController2.dispose();
+    super.dispose();
   }
 
   @override

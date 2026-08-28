@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/trip_details_utils.dart';
 import 'package:terka/theme/app_texts.dart';
-import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 
 class RealtimeTimeText extends StatelessWidget {
   final num? scheduled;
@@ -30,7 +30,7 @@ class RealtimeTimeText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final baseTextColor = colorScheme.onSurface;
+    final semantic = context.semanticColors;
     final mutedTextColor = colorScheme.onSurfaceVariant;
     final scheduledText = TripDetailsUtils.formatEpoch(scheduled, serviceDay);
     final realtimeText = TripDetailsUtils.formatEpoch(realtime, serviceDay);
@@ -39,15 +39,15 @@ class RealtimeTimeText extends StatelessWidget {
     if (passedStop) {
       color = mutedTextColor;
     } else if (!isRealtime) {
-      color = baseTextColor;
+      color = colorScheme.onSurface;
     } else if (scheduled == realtime || (scheduled == null && realtime == null)) {
-      color = AppColors.green;
+      color = semantic.onTime;
     } else {
       color = (delay ?? 0) > 0
-          ? AppColors.red
+          ? semantic.delayed
           : (delay ?? 0) < 0
-              ? AppColors.blue
-              : baseTextColor;
+              ? semantic.early
+              : semantic.onTime;
     }
 
     final mainText = suffix != null ? '$realtimeText $suffix' : realtimeText;

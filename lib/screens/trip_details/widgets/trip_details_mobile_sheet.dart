@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../utils/trip_details_utils.dart';
@@ -49,10 +50,14 @@ class TripDetailsMobileSheet extends StatelessWidget {
         .toList();
     final rawTripHeadsign = trip['tripHeadsign']?.toString() ?? '-';
     final tripHeadsign = TripDetailsUtils.plainText(rawTripHeadsign);
+    final rawTripShortName = trip['tripShortName']?.toString() ?? '-';
+    final tripShortName = TripDetailsUtils.plainText(rawTripShortName);
     final rawLineLabel = route['shortName']?.toString() ?? '-';
     final lineLabel = TripDetailsUtils.plainText(rawLineLabel);
-    final lineLabelUsesSpanFont = TripDetailsUtils.containsSpanMarkup(rawLineLabel);
-    final tripShortName = TripDetailsUtils.plainText(trip['tripShortName']?.toString() ?? '-');
+    final lineLabelUsesSpanFont = TripDetailsUtils.containsSpanMarkup(
+      rawLineLabel,
+    );
+
     final combinedAlerts = <dynamic>[];
     final seenIds = <String>{};
     if (trip['alerts'] is List) {
@@ -114,96 +119,106 @@ class TripDetailsMobileSheet extends StatelessWidget {
           snapSizes: const [_mobileSheetInitialSize, 0.5, _mobileSheetMaxSize],
           builder: (context, scrollController) {
             final colorScheme = Theme.of(context).colorScheme;
-            return Material(
-              elevation: 8,
-              color: colorScheme.surface.withValues(alpha: 0.97),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  SingleChildScrollView(
-                    controller: scrollController,
-                    physics: const ClampingScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Container(
-                              width: 42,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: colorScheme.outlineVariant,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.sm),
-                          Center(
-                            child: Text(
-                              AppTexts.tripSwipeInstruction,
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              LineBadge(
-                                lineLabel: lineLabel,
-                                routeColor: routeColor,
-                                routeTextColor: routeTextColor,
-                                useSpanFont: lineLabelUsesSpanFont,
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  tripShortName,
-                                  style: Theme.of(context).textTheme.titleMedium,
-                                  softWrap: true,
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.getSurface(context).withValues(alpha: 0.84),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  child: Material(
+                    color: AppColors.transparent,
+                    child: Column(
+                      children: [
+                        SingleChildScrollView(
+                          controller: scrollController,
+                          physics: const ClampingScrollPhysics(),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.none),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: Container(
+                                    width: 42,
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.outlineVariant,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.xs),
-                          Text(
-                            tripHeadsign,
-                            softWrap: true,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                                const SizedBox(height: AppSpacing.sm),
+                                Center(
+                                  child: Text(
+                                    AppTexts.tripSwipeInstruction,
+                                    style: Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    LineBadge(
+                                      lineLabel: lineLabel,
+                                      routeColor: routeColor,
+                                      routeTextColor: routeTextColor,
+                                      useSpanFont: lineLabelUsesSpanFont,
+                                    ),
+                                    const SizedBox(width: AppSpacing.sm),
+                                    Expanded(
+                                      child: Text(
+                                        tripShortName,
+                                        style: Theme.of(context).textTheme.titleMedium,
+                                        softWrap: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  tripHeadsign,
+                                  softWrap: true,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                                AlertsSection(alerts: combinedAlerts),
+                                const SizedBox(height: AppSpacing.sm),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.md),
-                          AlertsSection(alerts: combinedAlerts),
-                          const SizedBox(height: AppSpacing.sm),
-                        ],
-                      ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.none, AppSpacing.md, AppSpacing.xl),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TripStopTimesList(
+                                  stopTimes: stopTimes,
+                                  serviceDay: serviceDay,
+                                  onStopTap: onStopTap,
+                                ),
+                                TripDetailsAdditionalInfo(
+                                  trip: trip,
+                                  serviceDay: serviceDay,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.none, AppSpacing.md, AppSpacing.xl),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TripStopTimesList(
-                            stopTimes: stopTimes,
-                            serviceDay: serviceDay,
-                            onStopTap: onStopTap,
-                          ),
-                          TripDetailsAdditionalInfo(
-                            trip: trip,
-                            serviceDay: serviceDay,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             );
           },

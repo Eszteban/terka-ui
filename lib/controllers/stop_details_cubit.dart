@@ -61,9 +61,14 @@ class StopDetailsCubit extends Cubit<StopDetailsState> {
   
   final String stopId;
   final List<String> groupedStopIds;
-  final DateTime selectedDate;
-  final bool showPastDepartures;
-  final Set<String> selectedLines;
+  
+  DateTime _selectedDate;
+  bool _showPastDepartures;
+  Set<String> _selectedLines;
+
+  DateTime get selectedDate => _selectedDate;
+  bool get showPastDepartures => _showPastDepartures;
+  Set<String> get selectedLines => _selectedLines;
   
   Timer? _refreshTimer;
   bool _isFetching = false;
@@ -81,9 +86,9 @@ class StopDetailsCubit extends Cubit<StopDetailsState> {
   })  : _transitRepository = transitRepository,
         _mapCubit = mapCubit,
         groupedStopIds = groupedStopIds ?? [stopId],
-        selectedDate = date ?? StopDetailsUtils.budapestToday(),
-        showPastDepartures = past ?? false,
-        selectedLines = lines ?? <String>{},
+        _selectedDate = date ?? StopDetailsUtils.budapestToday(),
+        _showPastDepartures = past ?? false,
+        _selectedLines = lines != null ? Set<String>.from(lines) : <String>{},
         super(StopDetailsLoading()) {
     _mapCubit?.clearDesktopRouteSelection();
     if (initialStopPoint != null) {
@@ -93,10 +98,64 @@ class StopDetailsCubit extends Cubit<StopDetailsState> {
     _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _loadData());
   }
 
+  @override
   Future<void> close() {
     _refreshTimer?.cancel();
     _mapCubit?.clearStopHighlight();
     return super.close();
+  }
+
+  Future<void> refresh() => _loadData();
+
+  void toggleLine(String line, bool selected) {
+    final updated = Set<String>.from(_selectedLines);
+    if (selected) {
+      updated.add(line);
+    } else {
+      updated.remove(line);
+    }
+    _selectedLines = updated;
+    if (state is StopDetailsLoaded) {
+      emit((state as StopDetailsLoaded).copyWith(selectedLines: updated));
+    }
+  }
+
+  void setSelectedLines(Set<String> lines) {
+    _selectedLines = Set<String>.from(lines);
+    if (state is StopDetailsLoaded) {
+      emit((state as StopDetailsLoaded).copyWith(selectedLines: _selectedLines));
+    }
+  }
+
+  void clearSelectedLines() {
+    _selectedLines = <String>{};
+    if (state is StopDetailsLoaded) {
+      emit((state as StopDetailsLoaded).copyWith(selectedLines: <String>{}));
+    }
+  }
+
+  void toggleShowPastDepartures([bool? value]) {
+    _showPastDepartures = value ?? !_showPastDepartures;
+    if (state is StopDetailsLoaded) {
+      emit((state as StopDetailsLoaded).copyWith(showPastDepartures: _showPastDepartures));
+    }
+  }
+
+  void changeDate(DateTime newDate) {
+    _selectedDate = newDate;
+    _loadData();
+  }
+
+  void stepSelectedDate(int deltaDays) {
+    _selectedDate = _selectedDate.add(Duration(days: deltaDays));
+    _showPastDepartures = false;
+    _loadData();
+  }
+
+  void goToToday() {
+    _selectedDate = StopDetailsUtils.budapestToday();
+    _showPastDepartures = false;
+    _loadData();
   }
 
   void forceRefreshMap() {
@@ -196,7 +255,7 @@ class StopDetailsCubit extends Cubit<StopDetailsState> {
     try {
       final stopsData = await _transitRepository.fetchStopDetails(
         stopIds: groupedStopIds,
-        selectedDate: selectedDate,
+        selectedDate: _selectedDate,
       );
 
       if (stopsData == null || stopsData.isEmpty) {
@@ -233,9 +292,9 @@ class StopDetailsCubit extends Cubit<StopDetailsState> {
       emit(StopDetailsLoaded(
         stop: stop,
         uniqueLines: uniqueLines,
-        selectedDate: selectedDate,
-        showPastDepartures: showPastDepartures,
-        selectedLines: selectedLines,
+        selectedDate: _selectedDate,
+        showPastDepartures: _showPastDepartures,
+        selectedLines: _selectedLines,
       ));
 
     } catch (e) {

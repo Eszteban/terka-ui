@@ -8,29 +8,83 @@ class RouteDataUtils {
       if (decoded is! Map) {
         return const [];
       }
-
-      final data = decoded['data'];
-      if (data is! Map) {
-        return const [];
-      }
-
-      final plan = data['plan'];
-      if (plan is! Map) {
-        return const [];
-      }
-
-      final itineraries = plan['itineraries'];
-      if (itineraries is! List) {
-        return const [];
-      }
-
-      return itineraries
-          .whereType<Map>()
-          .map((e) => e.cast<String, dynamic>())
-          .toList();
+      return extractItinerariesFromJson(decoded.cast<String, dynamic>());
     } catch (_) {
       return const [];
     }
+  }
+
+  static List<Map<String, dynamic>> extractItinerariesFromJson(Map<String, dynamic>? decoded) {
+    if (decoded == null) {
+      return const [];
+    }
+
+    final data = decoded['data'];
+    if (data is! Map) {
+      return const [];
+    }
+
+    final plan = data['plan'];
+    if (plan is! Map) {
+      return const [];
+    }
+
+    final itineraries = plan['itineraries'];
+    if (itineraries is! List) {
+      return const [];
+    }
+
+    return itineraries
+        .whereType<Map>()
+        .map((e) => e.cast<String, dynamic>())
+        .toList();
+  }
+
+  static List<Map<String, String>> toApiTransportModes(Set<String> selectedModes) {
+    const mapping = <String, List<String>>{
+      'Helyi busz': ['BUS'],
+      'Helyközi busz': ['COACH'],
+      'Vonat': [
+        'RAIL',
+        'SUBURBAN_RAILWAY',
+        'TRAMTRAIN',
+        'RAIL_REPLACEMENT_BUS',
+      ],
+      'Metró': ['SUBWAY'],
+      'Troli': ['TROLLEYBUS'],
+      'Villamos': ['TRAM'],
+      'Hajó': ['FERRY'],
+    };
+
+    final modes = <String>[];
+    for (final modeLabel in selectedModes) {
+      final mappedModes = mapping[modeLabel];
+      if (mappedModes == null) {
+        continue;
+      }
+      for (final mode in mappedModes) {
+        if (!modes.contains(mode)) {
+          modes.add(mode);
+        }
+      }
+    }
+
+    if (modes.isEmpty) {
+      modes.addAll([
+        'RAIL',
+        'RAIL_REPLACEMENT_BUS',
+        'SUBURBAN_RAILWAY',
+        'TRAMTRAIN',
+        'SUBWAY',
+        'TRAM',
+        'TROLLEYBUS',
+        'BUS',
+        'FERRY',
+        'COACH',
+      ]);
+    }
+
+    return modes.map((mode) => {'mode': mode}).toList();
   }
 
   static Map<String, String> buildSummary(Map<String, dynamic> itinerary) {

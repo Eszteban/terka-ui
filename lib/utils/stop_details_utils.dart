@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'transit_color_resolver.dart';
 import '../utils/markup_text_utils.dart' as markup;
 
 class StopDetailsUtils {
@@ -15,9 +16,7 @@ class StopDetailsUtils {
   }
 
   static Color hexColor(String rawHex) {
-    final hex = rawHex.replaceAll('#', '').trim();
-    final parsed = int.tryParse(hex.length == 6 ? hex : '0A84FF', radix: 16);
-    return parsed == null ? const Color(0xFF0A84FF) : Color(0xFF000000 | parsed);
+    return ColorUtils.parseHex(rawHex, fallback: const Color(0xFF0A84FF));
   }
 
   static bool isArrivalEntry(Map<String, dynamic> stopTime) {

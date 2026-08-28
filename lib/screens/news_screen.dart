@@ -5,9 +5,9 @@ import '../repositories/news_repository.dart';
 import '../injection_container.dart';
 import 'package:terka/theme/app_texts.dart';
 import '../utils/layout_provider.dart';
-import '../widgets/layout/screen_header.dart';
 import '../widgets/layout/desktop_sidebar_wrapper.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 
 class NewsScreen extends StatefulWidget {
   const NewsScreen({super.key});
@@ -17,28 +17,46 @@ class NewsScreen extends StatefulWidget {
 }
 
 class _NewsScreenState extends State<NewsScreen> {
-  late final Future<List<NewsItem>> _newsFuture = sl<NewsRepository>().fetchNews();
+  late Future<List<NewsItem>> _newsFuture = sl<NewsRepository>().fetchNews();
 
-  Future<void> _openLink(String link) async {
-    final uri = Uri.tryParse(link);
-    if (uri == null) {
-      return;
-    }
+  Future<void> _refresh() async {
+    setState(() {
+      _newsFuture = sl<NewsRepository>().fetchNews();
+    });
+    try {
+      await _newsFuture;
+    } catch (_) {}
+  }
 
-    final isLaunched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!isLaunched && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppTexts.newsLinkOpenFailed)),
-      );
+  Future<void> _openLink(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null) {
+      try {
+        final isLaunched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!isLaunched && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTexts.newsLinkOpenFailed)),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppTexts.newsLinkOpenFailed)),
+          );
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isDesktop = LayoutProvider.isDesktop(context, breakpoint: 600);
+    final semantic = context.semanticColors;
 
     return FutureBuilder<List<NewsItem>>(
       future: _newsFuture,
@@ -52,33 +70,64 @@ class _NewsScreenState extends State<NewsScreen> {
           content = const _NewsLoadingView();
         } else if (hasError) {
           content = Center(
-            child: Text(AppTexts.newsLoadError),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline_rounded, size: 48, color: colorScheme.error),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    AppTexts.newsLoadError,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  FilledButton.icon(
+                    onPressed: _refresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(AppTexts.isHungarian ? 'Újrapróbálkozás' : 'Retry'),
+                  ),
+                ],
+              ),
+            ),
           );
         } else if (items.isEmpty) {
-          content = Center(child: Text(AppTexts.newsEmpty));
+          content = Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(AppTexts.newsEmpty),
+                const SizedBox(height: AppSpacing.md),
+                OutlinedButton.icon(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: Text(AppTexts.isHungarian ? 'Frissítés' : 'Refresh'),
+                ),
+              ],
+            ),
+          );
         } else {
-          content = ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
+          content = RefreshIndicator(
+            onRefresh: _refresh,
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+              itemCount: items.length,
+              itemBuilder: (context, index) {
+                final item = items[index];
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
+                child: Material(
+                  color: colorScheme.surfaceContainerLowest,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
+                    side: BorderSide(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.2),
                     ),
-                    boxShadow: isDark ? null : [
-                      BoxShadow(
-                        color: AppColors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
+                  shadowColor: isDark ? null : AppColors.black.withValues(alpha: 0.03),
+                  elevation: isDark ? 0 : 2,
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(AppSpacing.lg),
                     title: Text(
@@ -125,23 +174,16 @@ class _NewsScreenState extends State<NewsScreen> {
                     trailing: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
-                      color: const Color(0xFF8D4B20).withValues(alpha: 0.5),
+                      color: colorScheme.primary.withValues(alpha: 0.5),
                     ),
                     onTap: () => _openLink(item.link),
                   ),
                 ),
               );
             },
-          );
-        }
-
-        final bentoShape = RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
-            width: 1,
           ),
         );
+      }
 
         Widget displayWidget = content;
         if (AppTexts.isEnglish) {
@@ -152,10 +194,10 @@ class _NewsScreenState extends State<NewsScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.amber.withValues(alpha: isDark ? 0.15 : 0.1),
+                    color: semantic.alertWarningContainer,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.amber.withValues(alpha: isDark ? 0.3 : 0.4),
+                      color: semantic.alertWarning.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -163,7 +205,7 @@ class _NewsScreenState extends State<NewsScreen> {
                     children: [
                       Icon(
                         Icons.g_translate_rounded,
-                        color: isDark ? AppColors.amber[200] : AppColors.amber[800],
+                        color: semantic.alertWarning,
                         size: 20,
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -171,7 +213,7 @@ class _NewsScreenState extends State<NewsScreen> {
                         child: Text(
                           AppTexts.newsLanguageWarning,
                           style: TextStyle(
-                            color: isDark ? AppColors.amber[100] : AppColors.amber[900],
+                            color: semantic.onAlertWarningContainer,
                             fontWeight: FontWeight.w500,
                             fontSize: 14,
                           ),
@@ -194,21 +236,6 @@ class _NewsScreenState extends State<NewsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xs),
-                    child: Text(
-                      AppTexts.newsTitle,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Text(AppTexts.newsInstruction),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
                   Expanded(child: displayWidget),
                 ],
               ),
@@ -234,13 +261,7 @@ class _NewsScreenState extends State<NewsScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 980),
-                  child: Card(
-                    elevation: isDark ? 0 : 2,
-                    shadowColor: AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08),
-                    shape: bentoShape,
-                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
-                    child: displayWidget,
-                  ),
+                  child: displayWidget,
                 ),
               ),
             ),
@@ -315,7 +336,7 @@ class _NewsLoadingViewState extends State<_NewsLoadingView>
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1A1615) : AppColors.white,
+                    color: colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: colorScheme.outlineVariant.withValues(alpha: 0.2),

@@ -203,7 +203,7 @@ extension _MapViewInteractions on _MapViewState {
   }
 
   Future<void> _refreshVehiclesForVisibleBounds() async {
-    if (!mounted) {
+    if (!mounted || !_isMapReady) {
       return;
     }
 
@@ -286,7 +286,7 @@ extension _MapViewInteractions on _MapViewState {
         if (markers.length >= maxVehicles) {
           break;
         }
-        if (item is! Map<String, dynamic>) {
+        if (item is! Map) {
           continue;
         }
 
@@ -365,7 +365,9 @@ extension _MapViewInteractions on _MapViewState {
             markerColor: markerColor,
             markerTextColor: markerTextColor,
             markerOutlineHeadingColor: markerOutlineHeadingColor,
-            rawVehicle: item,
+            rawVehicle: item is Map<String, dynamic>
+                ? item
+                : item.cast<String, dynamic>(),
           ),
         );
       }

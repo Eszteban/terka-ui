@@ -75,6 +75,8 @@ class TripDetailsCubit extends Cubit<TripDetailsState> {
     }
   }
 
+  Future<void> refresh() => _loadData();
+
   @override
   Future<void> close() {
     _refreshTimer?.cancel();

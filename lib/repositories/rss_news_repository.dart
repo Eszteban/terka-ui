@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 import 'package:html_unescape/html_unescape.dart';
@@ -9,14 +10,48 @@ import '../constants/search_api.dart';
 class RssNewsRepository implements NewsRepository {
   final _unescape = HtmlUnescape();
 
+  static const _rssHeaders = {
+    'User-Agent':
+        'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+  };
+
   @override
   Future<List<NewsItem>> fetchNews() async {
-    final response = await http.get(Uri.parse(rssApiUrl));
+    try {
+      final items = await _fetchFromUrl(rssApiUrl);
+      if (items.isNotEmpty) {
+        return items;
+      }
+    } catch (_) {
+      // Try fallback url if primary throws
+    }
+
+    if (rssApiUrl != 'https://www.mavcsoport.hu/rss.xml') {
+      try {
+        final fallbackItems = await _fetchFromUrl('https://www.mavcsoport.hu/rss.xml');
+        if (fallbackItems.isNotEmpty) {
+          return fallbackItems;
+        }
+      } catch (_) {
+        // Fallback failed
+      }
+    }
+
+    throw Exception(AppTexts.newsLoadFailed);
+  }
+
+  Future<List<NewsItem>> _fetchFromUrl(String url) async {
+    final response = await http
+        .get(Uri.parse(url), headers: _rssHeaders)
+        .timeout(const Duration(seconds: 10));
+
     if (response.statusCode != 200) {
       throw Exception(AppTexts.newsLoadFailed);
     }
 
-    final document = XmlDocument.parse(response.body);
+    final rawString = utf8.decode(response.bodyBytes, allowMalformed: true);
+    final document = XmlDocument.parse(rawString);
     final items = document.findAllElements('item');
 
     return items

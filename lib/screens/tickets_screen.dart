@@ -193,21 +193,6 @@ class _TicketsViewState extends State<TicketsView> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    final bentoShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-      side: BorderSide(
-        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
-        width: 1,
-      ),
-    );
-    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
-    final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
-
     return Column(
       children: [
         ScreenHeader(
@@ -246,10 +231,6 @@ class _TicketsViewState extends State<TicketsView> {
                       final ticket = _tickets[index];
                       final isSingle = ticket.ticketType == 'vonaljegy';
                       return Card(
-                        elevation: cardElevation,
-                        shadowColor: cardShadowColor,
-                        shape: bentoShape,
-                        color: cardColor,
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.md),
                           child: Column(

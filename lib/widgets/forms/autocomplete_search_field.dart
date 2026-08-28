@@ -1,36 +1,15 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:geolocator/geolocator.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
-import '../../constants/search_api.dart';
+import '../../injection_container.dart';
+import '../../models/suggestion_entry.dart';
+import '../../repositories/search_repository.dart';
 import '../../utils/stop_details_utils.dart';
 import '../../utils/markup_text_utils.dart' as markup;
-import '../../services/graphql/graphql_client.dart';
-import '../../services/graphql/graphql_queries.dart';
 import '../line_badge.dart';
 
-enum SuggestionType { stop, address, route }
-
-class SuggestionEntry {
-  final String name;
-  final String? id;
-  final List<double>? coordinates;
-  final List<IconData> icons;
-  final SuggestionType type;
-  final Map<String, dynamic>? rawData;
-
-  const SuggestionEntry({
-    required this.name,
-    required this.id,
-    required this.coordinates,
-    required this.icons,
-    required this.type,
-    this.rawData,
-  });
-}
+export '../../models/suggestion_entry.dart';
 
 class AutocompleteSearchField extends StatefulWidget {
   final TextEditingController controller;
@@ -49,6 +28,7 @@ class AutocompleteSearchField extends StatefulWidget {
   final VoidCallback? onClear;
   final InputDecoration? decoration;
   final void Function(List<SuggestionEntry> suggestions, bool isLoading)? onSuggestionsChanged;
+  final SearchRepository? searchRepository;
 
   const AutocompleteSearchField({
     super.key,
@@ -68,6 +48,7 @@ class AutocompleteSearchField extends StatefulWidget {
     this.onClear,
     this.decoration,
     this.onSuggestionsChanged,
+    this.searchRepository,
   });
 
   @override
@@ -80,6 +61,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
   List<SuggestionEntry> _suggestionEntries = [];
   late final FocusNode _internalFocusNode;
   bool _showSuggestionsOverlay = false;
+  int _searchRequestId = 0;
 
   @override
   void initState() {
@@ -98,28 +80,6 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
       _internalFocusNode.removeListener(_onFocusChange);
     }
     super.dispose();
-  }
-
-  int _compareAlphanumeric(String a, String b) {
-    final regExp = RegExp(r'(\d+|\D+)');
-    final matchesA = regExp.allMatches(a).map((m) => m.group(0)!).toList();
-    final matchesB = regExp.allMatches(b).map((m) => m.group(0)!).toList();
-    
-    for (int i = 0; i < matchesA.length && i < matchesB.length; i++) {
-      final partA = matchesA[i];
-      final partB = matchesB[i];
-      
-      final numA = int.tryParse(partA);
-      final numB = int.tryParse(partB);
-      
-      if (numA != null && numB != null) {
-        if (numA != numB) return numA.compareTo(numB);
-      } else {
-        final cmp = partA.compareTo(partB);
-        if (cmp != 0) return cmp;
-      }
-    }
-    return matchesA.length.compareTo(matchesB.length);
   }
 
   void _onFocusChange() {
@@ -197,278 +157,32 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
 
   Future<void> _fetchSuggestions(String query) async {
     if (!mounted) return;
+    final currentRequestId = ++_searchRequestId;
     _updateSuggestionsState(isLoading: true);
 
-    final newEntries = <SuggestionEntry>[];
-
-    // Prepend current location if enabled and query is empty
-    if (query.isEmpty && widget.isCurrentLocationEnabled) {
-      final name = AppTexts.isHungarian ? 'Jelenlegi helyzet' : 'Current location';
-      newEntries.add(
-        SuggestionEntry(
-          name: name,
-          id: 'CURRENT_LOCATION',
-          coordinates: null,
-          icons: const [Icons.my_location],
-          type: SuggestionType.address,
-        ),
-      );
-    }
-
     try {
-      final futures = <Future>[];
+      final repository = widget.searchRepository ?? sl<SearchRepository>();
+      final newEntries = await repository.searchAll(
+        query: query,
+        includeStops: widget.searchStops,
+        includeAddresses: widget.searchAddresses,
+        includeLines: widget.searchLines,
+        isCurrentLocationEnabled: widget.isCurrentLocationEnabled,
+      );
 
-      // 1. Station geocoder search
-      Future<void>? stopsFuture;
-      if (widget.searchStops) {
-        final baseStationUri = Uri.parse(searchApiUrl);
-        final stationUri = baseStationUri.replace(queryParameters: {
-          ...baseStationUri.queryParameters,
-          'q': query,
-          'limit': '10',
-          'lang': 'hu',
-        });
-        stopsFuture = http.get(stationUri, headers: apiRequestHeaders).timeout(const Duration(seconds: 5)).then((response) {
-          if (response.statusCode == 200) {
-            final dynamic body = jsonDecode(response.body);
-            if (body is Map && body['features'] is List) {
-              for (final item in body['features']) {
-                if (item is Map) {
-                  final properties = item['properties'];
-                  final geometry = item['geometry'];
-                  String? id = item['id']?.toString();
-                  String? name;
-                  List<double>? coord;
-                  List<String> modes = const [];
-                  
-                  if (properties is Map) {
-                    final n = properties['name'];
-                    if (n is String) name = n;
-                    final m = properties['modes'];
-                    if (m is List) {
-                      modes = m.whereType<String>().toList();
-                    }
-                  }
-                  if (geometry is Map && geometry['coordinates'] is List) {
-                    final c = geometry['coordinates'];
-                    if (c.length == 2 && c[0] is num && c[1] is num) {
-                      coord = [c[0].toDouble(), c[1].toDouble()];
-                    }
-                  }
-                  if (name != null) {
-                    newEntries.add(
-                      SuggestionEntry(
-                        name: name,
-                        id: id,
-                        coordinates: coord,
-                        icons: _iconsForModes(modes),
-                        type: SuggestionType.stop,
-                      ),
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }).catchError((_) {});
-        futures.add(stopsFuture);
+      if (!mounted || currentRequestId != _searchRequestId) {
+        return;
       }
-
-      // 2. Photon address geocoder search
-      Future<void>? addressFuture;
-      if (widget.searchAddresses) {
-        final basePhotonUri = Uri.parse(photonApiUrl);
-        final photonUri = basePhotonUri.replace(queryParameters: {
-          ...basePhotonUri.queryParameters,
-          'limit': '10',
-          'q': query,
-          'location_bias_scale': '0.1',
-          'osm_tag': '!place:region',
-          'zoom': '12',
-          'bbox': '16,45.273,23,48.7',
-          'lang': 'hu',
-        });
-        addressFuture = http.get(photonUri, headers: apiRequestHeaders).timeout(const Duration(seconds: 5)).then((response) {
-          if (response.statusCode == 200) {
-            final dynamic body = jsonDecode(response.body);
-            if (body is Map && body['features'] is List) {
-              for (final item in body['features']) {
-                if (item is Map) {
-                  final properties = item['properties'];
-                  final geometry = item['geometry'];
-                  List<double>? coord;
-                  if (geometry is Map && geometry['coordinates'] is List) {
-                    final c = geometry['coordinates'];
-                    if (c.length == 2 && c[0] is num && c[1] is num) {
-                      coord = [c[0].toDouble(), c[1].toDouble()];
-                    }
-                  }
-                  if (properties is Map && coord != null) {
-                    final formattedName = _formatPhotonName(properties.cast<String, dynamic>());
-                    final lat = coord[1];
-                    final lon = coord[0];
-                    newEntries.add(
-                      SuggestionEntry(
-                        name: formattedName,
-                        id: '$lat,$lon',
-                        coordinates: coord,
-                        icons: const [Icons.place],
-                        type: SuggestionType.address,
-                      ),
-                    );
-                  }
-                }
-              }
-            }
-          }
-        }).catchError((_) {});
-        futures.add(addressFuture);
-      }
-
-      // 3. Lines search via GraphQL
-      Future<void>? linesFuture;
-      if (widget.searchLines) {
-        linesFuture = const GraphqlClient().execute(
-          query: searchRoutesQuery,
-          variables: {'name': query},
-        ).timeout(const Duration(seconds: 5)).then((response) {
-          if (response.isSuccess && response.json != null) {
-            final data = response.json!['data'];
-            final routes = data is Map ? data['routes'] : null;
-            if (routes is List) {
-              routes.sort((a, b) {
-                final sA = (a is Map ? a['shortName']?.toString() : '') ?? '';
-                final sB = (b is Map ? b['shortName']?.toString() : '') ?? '';
-                return _compareAlphanumeric(sA, sB);
-              });
-              for (final r in routes) {
-                if (r is Map) {
-                  final gtfsId = r['gtfsId']?.toString();
-                  final shortName = r['shortName']?.toString() ?? '-';
-                  final longName = r['longName']?.toString();
-                  final mode = r['mode']?.toString();
-                  final color = r['color']?.toString() ?? '0A84FF';
-                  final textColor = r['textColor']?.toString() ?? 'FFFFFF';
-                  final agency = r['agency'] is Map ? r['agency']['name']?.toString() : null;
-
-                  newEntries.add(
-                    SuggestionEntry(
-                      name: longName != null && longName.isNotEmpty ? '$shortName - $longName' : shortName,
-                      id: gtfsId,
-                      coordinates: null,
-                      icons: const [Icons.directions_bus],
-                      type: SuggestionType.route,
-                      rawData: {
-                        'gtfsId': gtfsId,
-                        'shortName': shortName,
-                        'longName': longName,
-                        'mode': mode,
-                        'color': color,
-                        'textColor': textColor,
-                        'agency': agency,
-                      },
-                    ),
-                  );
-                }
-              }
-            }
-          }
-        }).catchError((_) {});
-        futures.add(linesFuture);
-      }
-
-      await Future.wait(futures);
 
       _updateSuggestionsState(
         entries: newEntries,
         isLoading: false,
       );
     } catch (_) {
-      _updateSuggestionsState(isLoading: false);
-    }
-  }
-
-  List<IconData> _iconsForModes(List<String> modes) {
-    if (modes.isEmpty) {
-      return const [Icons.directions_bus];
-    }
-    final mapped = <IconData>[];
-    for (final mode in modes) {
-      switch (mode) {
-        case 'RAIL':
-        case 'SUBURBAN_RAILWAY':
-          mapped.add(Icons.train);
-          break;
-        case 'RAIL_REPLACEMENT_BUS':
-          mapped.add(Icons.bus_alert);
-          break;
-        case 'BUS':
-          mapped.add(Icons.airport_shuttle);
-          break;
-        case 'COACH':
-          mapped.add(Icons.directions_bus);
-          break;
-        case 'SUBWAY':
-          mapped.add(Icons.directions_subway);
-          break;
-        case 'TRAM':
-        case 'TRAMTRAIN':
-          mapped.add(Icons.tram);
-          break;
-        case 'TROLLEYBUS':
-          mapped.add(Icons.directions_bus);
-          break;
-        case 'FERRY':
-          mapped.add(Icons.directions_boat);
-          break;
+      if (mounted && currentRequestId == _searchRequestId) {
+        _updateSuggestionsState(isLoading: false);
       }
     }
-    final unique = <IconData>[];
-    for (final icon in mapped) {
-      if (!unique.contains(icon)) {
-        unique.add(icon);
-      }
-    }
-    return unique.isEmpty ? const [Icons.directions_bus] : unique;
-  }
-
-  String _formatPhotonName(Map<String, dynamic> properties) {
-    final name = properties['name']?.toString() ?? '';
-    final street = properties['street']?.toString() ?? '';
-    final houseNumber = properties['housenumber']?.toString() ?? '';
-    final city = properties['city']?.toString() ?? '';
-    final postcode = properties['postcode']?.toString() ?? '';
-
-    final cleanName = (name.isNotEmpty && RegExp(r'^\d+$').hasMatch(name)) ? '' : name;
-    final parts = <String>[];
-
-    if (cleanName.isNotEmpty) {
-      parts.add(cleanName);
-      if (street.isNotEmpty) {
-        if (houseNumber.isNotEmpty) {
-          parts.add('$street $houseNumber');
-        } else {
-          parts.add(street);
-        }
-      }
-    } else if (street.isNotEmpty) {
-      if (houseNumber.isNotEmpty) {
-        parts.add('$street $houseNumber');
-      } else {
-        parts.add(street);
-      }
-    }
-
-    if (city.isNotEmpty && !parts.contains(city)) {
-      parts.add(city);
-    }
-    if (postcode.isNotEmpty) {
-      parts.add(postcode);
-    }
-
-    return parts.isEmpty
-        ? (AppTexts.isHungarian ? 'Ismeretlen hely' : 'Unknown location')
-        : parts.join(', ');
   }
 
   @override
@@ -488,9 +202,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
                   icon: const Icon(Icons.clear),
                   onPressed: () {
                     widget.controller.clear();
-                    if (widget.onClear != null) {
-                      widget.onClear!();
-                    }
+                    widget.onClear?.call();
                     _onQueryChanged('');
                   },
                 )
@@ -529,7 +241,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                     itemCount: _suggestionEntries.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => const Divider(height: 1),
                     itemBuilder: (ctx, idx) => _buildSuggestionTile(ctx, idx, isDark, colorScheme),
                   ),
                 )
@@ -552,7 +264,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
                       child: ListView.separated(
                         shrinkWrap: true,
                         itemCount: _suggestionEntries.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (ctx, idx) => _buildSuggestionTile(ctx, idx, isDark, colorScheme),
                       ),
                     ),
@@ -671,7 +383,7 @@ class _AutocompleteSearchFieldState extends State<AutocompleteSearchField> {
 
     // Default stops and addresses tile
     final subtitleText = entry.type == SuggestionType.stop
-        ? (AppTexts.isHungarian ? 'Megálló' : 'Stop')
+        ? (AppTexts.isHungarian ? 'Megálló' : 'Cím')
         : (AppTexts.isHungarian ? 'Cím' : 'Address');
 
     Widget leadingWidget;

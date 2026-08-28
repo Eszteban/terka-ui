@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../controllers/route_planner_cubit.dart';
 import '../../controllers/map_cubit.dart';
@@ -164,6 +163,8 @@ class _PlanScreenState extends State<PlanScreen> {
       lastDate: DateTime(2100),
     );
 
+    if (!mounted) return;
+
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -203,6 +204,7 @@ class _PlanScreenState extends State<PlanScreen> {
           responseText: plannerState.planResponseText.isEmpty
               ? AppTexts.mainDefaultPlanResponse
               : plannerState.planResponseText,
+          itineraries: plannerState.itineraries,
           desktopInlineMapMode: isDesktop,
           hasDesktopMapSelection: hasDesktopMapSelection,
           canLoadMore: canLoadMore,

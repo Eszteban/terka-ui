@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 
 class RouteTripCard extends StatelessWidget {
   final Map<String, dynamic> trip;
   final bool runsToday;
+  final bool? hasActiveVehicle;
   final VoidCallback? onTap;
 
   const RouteTripCard({
     super.key,
     required this.trip,
     required this.runsToday,
+    this.hasActiveVehicle,
     this.onTap,
   });
 
@@ -19,6 +22,7 @@ class RouteTripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final semantics = context.semanticColors;
     
     final headsign = trip['tripHeadsign']?.toString() ?? '-';
     final shortName = trip['tripShortName']?.toString();
@@ -27,17 +31,24 @@ class RouteTripCard extends StatelessWidget {
         ? '$shortName - $headsign'
         : headsign;
 
+    final vehicles = trip['vehiclePositions'];
+    final isVehicleActive = hasActiveVehicle ?? (vehicles is List && vehicles.isNotEmpty);
+
     return Card(
-      elevation: runsToday ? 1 : 0,
+      elevation: isVehicleActive ? 2 : (runsToday ? 1 : 0),
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: runsToday
-            ? BorderSide.none
-            : BorderSide(color: colorScheme.outlineVariant, width: 1),
+        side: isVehicleActive
+            ? BorderSide(color: semantics.onTime, width: 2)
+            : (runsToday
+                ? BorderSide.none
+                : BorderSide(color: colorScheme.outlineVariant, width: 1)),
       ),
       color: runsToday
-          ? colorScheme.surfaceContainer
+          ? (isVehicleActive
+              ? semantics.successContainer.withValues(alpha: 0.12)
+              : colorScheme.surfaceContainer)
           : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -50,14 +61,20 @@ class RouteTripCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      titleText,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: runsToday ? FontWeight.w600 : FontWeight.w400,
-                        color: runsToday
-                            ? colorScheme.onSurface
-                            : colorScheme.onSurfaceVariant,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            titleText,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: (runsToday || isVehicleActive) ? FontWeight.w600 : FontWeight.w400,
+                              color: runsToday
+                                  ? colorScheme.onSurface
+                                  : colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        )
+                      ],
                     ),
                     if (!runsToday) ...[
                       const SizedBox(height: AppSpacing.xs),

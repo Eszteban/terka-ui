@@ -25,4 +25,8 @@ abstract class TransitRepository {
     required Map<String, dynamic> originalVariables,
     required String nextPageCursor,
   });
+
+  Future<Map<String, dynamic>?> searchRoutePlans({
+    required Map<String, dynamic> variables,
+  });
 }

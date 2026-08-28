@@ -343,6 +343,7 @@ query TripDetails($tripId: String!, $serviceDay: String!) {
         departureDelay
       }
       vehicleId
+      lastUpdated
       speed
       isEstimated
       label
@@ -377,6 +378,7 @@ query VehiclePositions(
     modes: [$modesLiteral]
   ) {
     vehicleId
+    lastUpdated
     lat
     lon
     heading
@@ -609,6 +611,15 @@ query RouteDetails($id: String!) {
         tripHeadsign
         directionId
         activeDates
+        vehiclePositions {
+          vehicleId
+          lastUpdated
+          label
+          lat
+          lon
+          speed
+          heading
+        }
       }
     }
   }

@@ -1,18 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../constants/search_api.dart';
-import '../../controllers/plan_response_controller.dart';
-import '../../services/graphql/graphql_client.dart';
-import '../../services/graphql/graphql_queries.dart';
-
+import '../../controllers/route_planner_cubit.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
 import 'autocomplete_search_field.dart';
-
-enum _ActiveSearchField { none, from, to }
 
 class PlanSearchResult {
   final bool hasMeaningfulResponse;
@@ -96,9 +88,6 @@ class RoutePlanForm extends StatefulWidget {
 
 class _RoutePlanFormState extends State<RoutePlanForm>
     with TickerProviderStateMixin {
-  static const bool _useLocalSearch = false;
-  static const bool _deduplicateSuggestions = false;
-
   bool _showAdvancedFields = false;
   bool _planForNow = true;
   bool _isSwapping = false;
@@ -111,31 +100,6 @@ class _RoutePlanFormState extends State<RoutePlanForm>
   List<double>? _selectedToCoordinates;
   TimeOfDay? _departureTime;
   TimeOfDay? _arrivalTime;
-  _ActiveSearchField _activeSearchField = _ActiveSearchField.none;
-  final GraphqlClient _graphqlClient = const GraphqlClient();
-
-  static const List<String> _localStationSuggestions = [
-    'Budapest',
-    'Debrecen',
-    'Szeged',
-    'Miskolc',
-    'Pécs',
-    'Győr',
-    'Nyíregyháza',
-    'Kecskemét',
-    'Székesfehérvár',
-    'Szombathely',
-    'Tatabánya',
-    'Kaposvár',
-    'Békéscsaba',
-    'Eger',
-    'Zalaegerszeg',
-    'Nagykanizsa',
-    'Dunaújváros',
-    'Sopron',
-    'Veszprém',
-    'Szolnok',
-  ];
 
   void _onFromTextChanged() {
     if (_isSwapping) return;
@@ -331,28 +295,6 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     });
     widget.onLoadingChanged(true);
 
-    final onSearchCallback = widget.onSearch;
-    final onLoadingChangedCallback = widget.onLoadingChanged;
-
-    final result = await _fetchPlanResponse();
-
-    onLoadingChangedCallback(false);
-    onSearchCallback(result);
-
-    if (mounted) {
-      setState(() {
-        _isLoadingPlan = false;
-      });
-    }
-  }
-
-  Future<PlanSearchResult> _fetchPlanResponse() async {
-    debugPrint('DEBUG RoutePlanForm _fetchPlanResponse (Keresés gomb callbackje) elindult!');
-    debugPrint(' - Aktuális _selectedFromPlaceToken: $_selectedFromPlaceToken');
-    debugPrint(' - Aktuális widget.fromController.text: ${widget.fromController.text}');
-    debugPrint(' - Aktuális _selectedToPlaceToken: $_selectedToPlaceToken');
-    debugPrint(' - Aktuális widget.toController.text: ${widget.toController.text}');
-    
     final fromPlaceToken =
         widget.initialFromPlaceToken ?? _selectedFromPlaceToken ?? widget.fromController.text.trim();
     final toPlaceToken =
@@ -362,156 +304,25 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     final toCoordinates =
         widget.initialToCoordinates ?? _selectedToCoordinates;
 
-    Map<String, dynamic>? variables;
+    final result = await context.read<RoutePlannerCubit>().searchRoutes(
+      fromPlaceToken: fromPlaceToken,
+      toPlaceToken: toPlaceToken,
+      fromCoordinates: fromCoordinates,
+      toCoordinates: toCoordinates,
+      selectedDate: widget.selectedDate,
+      departureTime: _departureTime,
+      arrivalTime: _arrivalTime,
+      planForNow: _planForNow,
+      selectedTransportModes: widget.selectedTransportModes,
+    );
 
-    try {
-      final now = DateTime.now();
-      final selectedDate = _planForNow ? now : (widget.selectedDate ?? now);
-      final fallbackTime = TimeOfDay.fromDateTime(now);
-      final effectiveTime = _planForNow
-          ? fallbackTime
-          : (_arrivalTime ?? _departureTime ?? fallbackTime);
-      final arriveBy = !_planForNow && _arrivalTime != null;
-      final dateString =
-          '${_twoDigits(selectedDate.year, padTo: 4)}-${_twoDigits(selectedDate.month)}-${_twoDigits(selectedDate.day)}';
-      final timeString =
-          '${_twoDigits(effectiveTime.hour)}:${_twoDigits(effectiveTime.minute)}';
+    widget.onLoadingChanged(false);
+    widget.onSearch(result);
 
-      variables = <String, dynamic>{
-        'arriveBy': arriveBy,
-        'banned': <String, dynamic>{},
-        'bikeReluctance': 1.0,
-        'carReluctance': 1.0,
-        'date': dateString,
-        'fromPlace': fromPlaceToken,
-        'modes': _toApiTransportModes(widget.selectedTransportModes),
-        'numItineraries': 15,
-        'preferred': <String, dynamic>{},
-        'time': timeString,
-        'toPlace': toPlaceToken,
-        'unpreferred': <String, dynamic>{},
-        'walkReluctance': 1.0,
-        'walkSpeed': 1.3888888888888888,
-        'wheelchair': false,
-        'minTransferTime': 0,
-        'transitPassFilter': <String>[],
-        'comfortLevels': <String>[],
-        'searchParameters': <String>[],
-        'distributionChannel': 'ERTEKESITESI_CSATORNA#INTERNET',
-        'distributionSubChannel': 'ERTEKESITESI_ALCSATORNA#EMMA',
-        'pageCursor': '',
-      };
-
-      if (fromCoordinates != null || toCoordinates != null) {
-        debugPrint(
-          'Selected coords -> from: ${fromCoordinates ?? 'n/a'}, to: ${toCoordinates ?? 'n/a'}',
-        );
-      }
-
-      debugPrint('DEBUG RoutePlanForm: A végső payload ami elindul a szerver felé: $variables');
-
-      final response = await _graphqlClient.execute(
-        query: planQuery,
-        variables: variables,
-      );
-
-      if (!response.isSuccess) {
-        debugPrint(
-          'Plan API error: status ${response.statusCode}, body: ${response.rawBody}',
-        );
-        return PlanSearchResult(
-          hasMeaningfulResponse: false,
-          query: planQuery,
-          requestVariables: variables,
-          responseText:
-              'HTTP ${response.statusCode}\n${response.rawBody.isNotEmpty ? response.rawBody : AppTexts.apiNoResponseBody}',
-          fromPlaceToken: fromPlaceToken,
-          toPlaceToken: toPlaceToken,
-          fromCoordinates: fromCoordinates,
-          toCoordinates: toCoordinates,
-        );
-      }
-
-      final bodyMap = response.json;
-      if (bodyMap == null) {
-        return PlanSearchResult(
-          hasMeaningfulResponse: false,
-          responseText: AppTexts.apiResponseNotJson,
-          query: planQuery,
-          requestVariables: variables,
-          fromPlaceToken: fromPlaceToken,
-          toPlaceToken: toPlaceToken,
-          fromCoordinates: fromCoordinates,
-          toCoordinates: toCoordinates,
-        );
-      }
-
-      final data = bodyMap['data'];
-      if (data is! Map) {
-        return PlanSearchResult(
-          hasMeaningfulResponse: false,
-          responseText: _prettyJson(bodyMap),
-          query: planQuery,
-          requestVariables: variables,
-          responseJson: bodyMap,
-          fromPlaceToken: fromPlaceToken,
-          toPlaceToken: toPlaceToken,
-          fromCoordinates: fromCoordinates,
-          toCoordinates: toCoordinates,
-        );
-      }
-
-      final plan = data['plan'];
-      if (plan is! Map) {
-        return PlanSearchResult(
-          hasMeaningfulResponse: false,
-          responseText: _prettyJson(bodyMap),
-          query: planQuery,
-          requestVariables: variables,
-          responseJson: bodyMap,
-          fromPlaceToken: fromPlaceToken,
-          toPlaceToken: toPlaceToken,
-          fromCoordinates: fromCoordinates,
-          toCoordinates: toCoordinates,
-        );
-      }
-
-      final itineraries = plan['itineraries'];
-      final nextPageCursor = PlanResponseController.extractNextPageCursor(
-        plan.cast<String, dynamic>(),
-      );
-      return PlanSearchResult(
-        hasMeaningfulResponse: itineraries is List && itineraries.isNotEmpty,
-        responseText: _prettyJson(bodyMap),
-        query: planQuery,
-        requestVariables: variables,
-        responseJson: bodyMap,
-        nextPageCursor: nextPageCursor,
-        fromPlaceToken: fromPlaceToken,
-        toPlaceToken: toPlaceToken,
-        fromCoordinates: fromCoordinates,
-        toCoordinates: toCoordinates,
-      );
-    } catch (e) {
-      debugPrint('Plan API exception: $e');
-      return PlanSearchResult(
-        hasMeaningfulResponse: false,
-        responseText: AppTexts.apiException(e.toString()),
-        query: planQuery,
-        requestVariables: variables,
-        fromPlaceToken: fromPlaceToken,
-        toPlaceToken: toPlaceToken,
-        fromCoordinates: fromCoordinates,
-        toCoordinates: toCoordinates,
-      );
-    }
-  }
-
-  String _prettyJson(Object body) {
-    try {
-      return const JsonEncoder.withIndent('  ').convert(body);
-    } catch (_) {
-      return body.toString();
+    if (mounted) {
+      setState(() {
+        _isLoadingPlan = false;
+      });
     }
   }
 
@@ -536,7 +347,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
       initialTime: initialTime,
     );
 
-    if (picked == null) {
+    if (picked == null || !mounted) {
       return;
     }
 
@@ -548,53 +359,6 @@ class _RoutePlanFormState extends State<RoutePlanForm>
         _departureTime = picked;
       }
     });
-  }
-
-  List<Map<String, String>> _toApiTransportModes(Set<String> selectedModes) {
-    const mapping = <String, List<String>>{
-      'Helyi busz': ['BUS'],
-      'Helyközi busz': ['COACH'],
-      'Vonat': [
-        'RAIL',
-        'SUBURBAN_RAILWAY',
-        'TRAMTRAIN',
-        'RAIL_REPLACEMENT_BUS',
-      ],
-      'Metró': ['SUBWAY'],
-      'Troli': ['TROLLEYBUS'],
-      'Villamos': ['TRAM'],
-      'Hajó': ['FERRY'],
-    };
-
-    final modes = <String>[];
-    for (final modeLabel in selectedModes) {
-      final mappedModes = mapping[modeLabel];
-      if (mappedModes == null) {
-        continue;
-      }
-      for (final mode in mappedModes) {
-        if (!modes.contains(mode)) {
-          modes.add(mode);
-        }
-      }
-    }
-
-    if (modes.isEmpty) {
-      modes.addAll([
-        'RAIL',
-        'RAIL_REPLACEMENT_BUS',
-        'SUBURBAN_RAILWAY',
-        'TRAMTRAIN',
-        'SUBWAY',
-        'TRAM',
-        'TROLLEYBUS',
-        'BUS',
-        'FERRY',
-        'COACH',
-      ]);
-    }
-
-    return modes.map((mode) => {'mode': mode}).toList();
   }
 
 
@@ -625,9 +389,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                   children: [
                     Container(
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1A1615)
-                            : AppColors.white,
+                        color: colorScheme.surfaceContainerLowest,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
                           color:
@@ -772,9 +534,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                       right: 12,
                       child: Material(
                         type: MaterialType.circle,
-                        color: isDark
-                            ? const Color(0xFF1E1A19)
-                            : AppColors.white,
+                        color: colorScheme.surfaceContainerLowest,
                         elevation: 3,
                         shadowColor: AppColors.black.withValues(alpha: 0.3),
                         child: Container(
@@ -849,9 +609,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                 ],
                               ),
                               child: Material(
-                                color: isDark
-                                    ? const Color(0xFF1A1615)
-                                    : AppColors.white,
+                                color: colorScheme.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(14),
                                 child: InkWell(
                                   onTap: widget.onPickDate,
@@ -913,9 +671,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                       ],
                                     ),
                                     child: Material(
-                                      color: isDark
-                                          ? const Color(0xFF1A1615)
-                                          : AppColors.white,
+                                      color: colorScheme.surfaceContainerLowest,
                                       borderRadius: BorderRadius.circular(14),
                                       child: InkWell(
                                         onTap: () =>
@@ -978,9 +734,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                       ],
                                     ),
                                     child: Material(
-                                      color: isDark
-                                          ? const Color(0xFF1A1615)
-                                          : AppColors.white,
+                                      color: colorScheme.surfaceContainerLowest,
                                       borderRadius: BorderRadius.circular(14),
                                       child: InkWell(
                                         onTap: () =>
@@ -1073,9 +827,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                           padding: const EdgeInsets.only(top: AppSpacing.lg),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF1A1615)
-                                  : AppColors.white,
+                              color: colorScheme.surfaceContainerLowest,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
                                 color: colorScheme.outlineVariant.withValues(
@@ -1181,9 +933,8 @@ class _RoutePlanFormState extends State<RoutePlanForm>
                                         child: FilterChip(
                                           label: Text(AppTexts.formTicketWatch),
                                           selected: widget.ticketWatch,
-                                          backgroundColor: isDark
-                                              ? const Color(0xFF1A1615)
-                                              : AppColors.white,
+                                          backgroundColor:
+                                              colorScheme.surfaceContainerLowest,
                                           selectedColor: isDark
                                               ? colorScheme.primaryContainer
                                                     .withValues(alpha: 0.3)
@@ -1244,7 +995,7 @@ class _RoutePlanFormState extends State<RoutePlanForm>
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final unselectedBg = isDark ? const Color(0xFF1A1615) : AppColors.white;
+    final unselectedBg = colorScheme.surfaceContainerLowest;
     final selectedBg = isDark
         ? colorScheme.primaryContainer.withValues(alpha: 0.3)
         : colorScheme.primaryContainer.withValues(alpha: 0.6);

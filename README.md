@@ -3,9 +3,9 @@
 [![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
 
-A **TERKA** egy prémium minőségű, funkciókban gazdag Flutter alapú közösségi közlekedési alkalmazás, amely részletes utazástervezést, valós idejű térképes nyomon követést, menetrendeket, jegy- és bérletkezelést, valamint a MÁV friss híreit biztosítja a felhasználók számára.
+A **TERKA** egy Flutter alapú közösségi közlekedési alkalmazás, amely részletes utazástervezést, valós idejű térképes nyomon követést, menetrendeket, jegy- és bérletkezelést, valamint a MÁV friss híreit biztosítja a felhasználók számára.
 
-**TERKA** is a premium, feature-rich Flutter-based public transit application providing detailed trip planning, real-time map tracking, schedules, ticket and pass management, and up-to-date MÁV (Hungarian State Railways) news.
+**TERKA** is a Flutter-based public transit application providing detailed trip planning, real-time map tracking, schedules, ticket and pass management, and up-to-date MÁV (Hungarian State Railways) news.
 
 ---
 
@@ -141,5 +141,42 @@ To run this project, make sure you have the Flutter SDK installed.
 # Függőségek letöltése / Get dependencies
 flutter pub get
 
-# Alkalmazás futtatása / Run the application
+# Alkalmazás futtatása (alapértelmezett beállításokkal) / Run the application (default)
 flutter run
+```
+
+### Carto Térkép API Kulcs Konfiguráció / Carto Basemap API Key Setup
+
+Az alkalmazás a Carto alaptérképeit használja. Saját `CARTO_API_KEY` megadásához az alábbi lehetőségek állnak rendelkezésre:
+
+#### 1. Futtatás parancssorból (CLI):
+```bash
+flutter run --dart-define=CARTO_API_KEY=your_key_here
+```
+
+#### 2. Futtatás VS Code-ból:
+1. Másold át a `.vscode/launch.json.example` fájlt `.vscode/launch.json` néven:
+   ```bash
+   cp .vscode/launch.json.example .vscode/launch.json
+   ```
+2. Cseréld ki a `your_carto_api_key_here` értéket a saját Carto API kulcsodra.
+3. Indítsd el az alkalmazást az `F5` billentyűvel vagy a *Run and Debug* menüből.
+
+*(Megjegyzés: Ha a `CARTO_API_KEY` nincs megadva, az alkalmazás automatikusan fallback módban fut az alapértelmezett URL-ekkel.)*
+
+---
+
+#### English: Running with a Custom Carto API Key
+
+The app uses Carto basemaps. To provide your own `CARTO_API_KEY`:
+
+- **From Command Line:**
+  ```bash
+  flutter run --dart-define=CARTO_API_KEY=your_key_here
+  ```
+- **From VS Code:**
+  1. Copy `.vscode/launch.json.example` to `.vscode/launch.json`.
+  2. Replace `your_carto_api_key_here` with your API key.
+  3. Start debugging with `F5` or via the *Run and Debug* panel.
+
+*(Note: If `CARTO_API_KEY` is omitted, the app falls back to standard public URLs.)*

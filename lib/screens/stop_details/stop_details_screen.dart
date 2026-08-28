@@ -81,19 +81,26 @@ class StopDetailsView extends StatefulWidget {
 class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
   static const String _spanFontFamily = 'MNR2007';
   static const double _spanFontScale = 28 / 16;
+  bool _isRouteSubscribed = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final modalRoute = ModalRoute.of(context);
-    if (modalRoute != null) {
-      AppRouter.routeObserver.subscribe(this, modalRoute);
+    if (!_isRouteSubscribed) {
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null) {
+        AppRouter.routeObserver.subscribe(this, modalRoute);
+        _isRouteSubscribed = true;
+      }
     }
   }
 
   @override
   void dispose() {
-    AppRouter.routeObserver.unsubscribe(this);
+    if (_isRouteSubscribed) {
+      AppRouter.routeObserver.unsubscribe(this);
+      _isRouteSubscribed = false;
+    }
     super.dispose();
   }
 
@@ -113,46 +120,14 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
 
 
 
-  void _updateUrl(BuildContext context, {
-    DateTime? newDate,
-    bool? newPast,
-    Set<String>? newLines,
-  }) {
-    final state = GoRouterState.of(context);
-    final currentQuery = Map<String, dynamic>.from(state.uri.queryParameters);
-    
-    if (newDate != null) {
-      currentQuery['date'] = '${newDate.year.toString().padLeft(4, '0')}-${newDate.month.toString().padLeft(2, '0')}-${newDate.day.toString().padLeft(2, '0')}';
-    }
-    
-    if (newPast != null) {
-      if (newPast) {
-        currentQuery['past'] = 'true';
-      } else {
-        currentQuery.remove('past');
-      }
-    }
-    
-    if (newLines != null) {
-      if (newLines.isEmpty) {
-        currentQuery.remove('lines');
-      } else {
-        currentQuery['lines'] = newLines.join(',');
-      }
-    }
-    
-    final uri = state.uri.replace(queryParameters: currentQuery.isEmpty ? null : currentQuery);
-    context.go(uri.toString());
-  }
-
-  Future<void> _pickDate(BuildContext context, DateTime selectedDate) async {
+  Future<void> _pickDate(DateTime selectedDate) async {
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime(selectedDate.year, selectedDate.month, selectedDate.day),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (picked == null) {
+    if (!mounted || picked == null) {
       return;
     }
 
@@ -161,7 +136,9 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
       return;
     }
 
-    _updateUrl(context, newDate: normalized, newPast: false);
+    if (mounted) {
+      context.read<StopDetailsCubit>().changeDate(normalized);
+    }
   }
 
   bool _isSameDate(DateTime a, DateTime b) {
@@ -264,15 +241,19 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
                       }
                     },
                   ),
-                if (isRefreshing)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
-                    ),
-                  )
+                IconButton(
+                  icon: isRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded),
+                  tooltip: AppTexts.isHungarian ? 'Frissítés' : 'Refresh',
+                  onPressed: isRefreshing
+                      ? null
+                      : () => context.read<StopDetailsCubit>().refresh(),
+                ),
               ],
             ),
             Flexible(
@@ -344,27 +325,20 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
           selectedLines: state.selectedLines,
           uniqueLines: state.uniqueLines,
           onLineSelected: (line, selected) {
-            final newLines = Set<String>.from(state.selectedLines);
-            if (selected) {
-              newLines.add(line);
-            } else {
-              newLines.remove(line);
-            }
-            _updateUrl(context, newLines: newLines);
+            context.read<StopDetailsCubit>().toggleLine(line, selected);
           },
           onClearLineSelection: () {
-            _updateUrl(context, newLines: {});
+            context.read<StopDetailsCubit>().clearSelectedLines();
           },
-          onPickDate: () => _pickDate(context, state.selectedDate),
+          onPickDate: () => _pickDate(state.selectedDate),
           onTogglePastDepartures: () {
-            _updateUrl(context, newPast: !state.showPastDepartures);
+            context.read<StopDetailsCubit>().toggleShowPastDepartures();
           },
           onStepSelectedDate: (dayDelta) {
-            final stepped = state.selectedDate.add(Duration(days: dayDelta));
-            _updateUrl(context, newDate: stepped, newPast: false);
+            context.read<StopDetailsCubit>().stepSelectedDate(dayDelta);
           },
           onGoToToday: () {
-            _updateUrl(context, newDate: StopDetailsUtils.budapestToday(), newPast: false);
+            context.read<StopDetailsCubit>().goToToday();
           },
           onOpenTripDetails: ({required tripId, required serviceDay}) {
             if (widget.onCloseRequested == null && Navigator.of(context).canPop()) {
@@ -387,27 +361,20 @@ class _StopDetailsViewState extends State<StopDetailsView> with RouteAware {
         selectedLines: state.selectedLines,
         uniqueLines: state.uniqueLines,
         onLineSelected: (line, selected) {
-          final newLines = Set<String>.from(state.selectedLines);
-          if (selected) {
-            newLines.add(line);
-          } else {
-            newLines.remove(line);
-          }
-          _updateUrl(context, newLines: newLines);
+          context.read<StopDetailsCubit>().toggleLine(line, selected);
         },
         onClearLineSelection: () {
-          _updateUrl(context, newLines: {});
+          context.read<StopDetailsCubit>().clearSelectedLines();
         },
-        onPickDate: () => _pickDate(context, state.selectedDate),
+        onPickDate: () => _pickDate(state.selectedDate),
         onTogglePastDepartures: () {
-          _updateUrl(context, newPast: !state.showPastDepartures);
+          context.read<StopDetailsCubit>().toggleShowPastDepartures();
         },
         onStepSelectedDate: (dayDelta) {
-          final stepped = state.selectedDate.add(Duration(days: dayDelta));
-          _updateUrl(context, newDate: stepped, newPast: false);
+          context.read<StopDetailsCubit>().stepSelectedDate(dayDelta);
         },
         onGoToToday: () {
-          _updateUrl(context, newDate: StopDetailsUtils.budapestToday(), newPast: false);
+          context.read<StopDetailsCubit>().goToToday();
         },
         onOpenTripDetails: ({required tripId, required serviceDay}) {
           if (widget.onCloseRequested == null && Navigator.of(context).canPop()) {

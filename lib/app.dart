@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'core/router/app_router.dart';
 import 'screens/main/main_screen.dart';
 import 'package:terka/theme/app_tokens.dart';
+import 'package:terka/theme/terka_semantic_colors.dart';
 import 'utils/layout_provider.dart';
 import 'package:terka/theme/app_texts.dart';
 
@@ -193,10 +194,31 @@ class _TerkaAppState extends State<TerkaApp> {
     final lightColorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.seed,
       brightness: Brightness.light,
+      surface: AppColors.lightScaffoldBackground,
+      surfaceContainerLowest: AppColors.lightSurfaceContainerLowest,
+      surfaceContainerLow: AppColors.lightSurface,
+      surfaceContainer: AppColors.lightSurfaceContainer,
+      surfaceContainerHigh: AppColors.lightSurfaceContainerHigh,
+      surfaceContainerHighest: AppColors.lightSurfaceContainerHighest,
+      onSurface: AppColors.lightOnSurface,
+      onSurfaceVariant: AppColors.lightOnSurfaceVariant,
+      outline: AppColors.lightOutline,
+      outlineVariant: AppColors.lightOutlineVariant,
     );
+
     final darkColorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.seed,
       brightness: Brightness.dark,
+      surface: AppColors.darkScaffoldBackground,
+      surfaceContainerLowest: AppColors.darkSurfaceContainerLowest,
+      surfaceContainerLow: AppColors.darkSurface,
+      surfaceContainer: AppColors.darkSurfaceContainer,
+      surfaceContainerHigh: AppColors.darkSurfaceContainerHigh,
+      surfaceContainerHighest: AppColors.darkSurfaceContainerHighest,
+      onSurface: AppColors.darkOnSurface,
+      onSurfaceVariant: AppColors.darkOnSurfaceVariant,
+      outline: AppColors.darkOutline,
+      outlineVariant: AppColors.darkOutlineVariant,
     );
 
     return MaterialApp.router(
@@ -205,6 +227,7 @@ class _TerkaAppState extends State<TerkaApp> {
         useMaterial3: true,
         colorScheme: lightColorScheme,
         scaffoldBackgroundColor: lightColorScheme.surface,
+        extensions: const [TerkaSemanticColors.light],
         appBarTheme: AppBarTheme(
           backgroundColor: lightColorScheme.surfaceContainer,
           foregroundColor: lightColorScheme.onSurface,
@@ -217,7 +240,10 @@ class _TerkaAppState extends State<TerkaApp> {
           color: lightColorScheme.surfaceContainerLowest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: lightColorScheme.outlineVariant),
+            side: BorderSide(
+              color: lightColorScheme.outlineVariant.withValues(alpha: 0.4),
+              width: 1,
+            ),
           ),
           margin: EdgeInsets.zero,
         ),
@@ -254,6 +280,7 @@ class _TerkaAppState extends State<TerkaApp> {
         useMaterial3: true,
         colorScheme: darkColorScheme,
         scaffoldBackgroundColor: darkColorScheme.surface,
+        extensions: const [TerkaSemanticColors.dark],
         appBarTheme: AppBarTheme(
           backgroundColor: darkColorScheme.surfaceContainer,
           foregroundColor: darkColorScheme.onSurface,
@@ -266,7 +293,10 @@ class _TerkaAppState extends State<TerkaApp> {
           color: darkColorScheme.surfaceContainerLowest,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: darkColorScheme.outlineVariant),
+            side: BorderSide(
+              color: darkColorScheme.outlineVariant.withValues(alpha: 0.3),
+              width: 1,
+            ),
           ),
           margin: EdgeInsets.zero,
         ),

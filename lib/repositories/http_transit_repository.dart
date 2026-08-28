@@ -148,4 +148,14 @@ Future<List<Map<String, dynamic>>?> fetchStopDetails({
       variables: variables,
     );
   }
+
+  @override
+  Future<Map<String, dynamic>?> searchRoutePlans({
+    required Map<String, dynamic> variables,
+  }) {
+    return _apiService.fetchRoutePlans(
+      query: planQuery,
+      variables: variables,
+    );
+  }
 }

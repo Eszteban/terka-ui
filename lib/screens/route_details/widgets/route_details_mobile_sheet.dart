@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:terka/theme/app_texts.dart';
 import '../../../widgets/maps/map_view.dart';
@@ -105,43 +106,53 @@ class RouteDetailsMobileSheet extends StatelessWidget {
           snapSizes: const [_mobileSheetInitialSize, 0.5, _mobileSheetMaxSize],
           builder: (context, scrollController) {
             final colorScheme = Theme.of(context).colorScheme;
-            return Material(
-              elevation: 8,
-              color: colorScheme.surface.withValues(alpha: 0.97),
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: SingleChildScrollView(
-                controller: scrollController,
-                physics: const ClampingScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 42,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: colorScheme.outlineVariant,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
+            return ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12.0, sigmaY: 12.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.getSurface(context).withValues(alpha: 0.84),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    border: Border.all(
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  child: Material(
+                    color: AppColors.transparent,
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      physics: const ClampingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xl),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 42,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.outlineVariant,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            Center(
+                              child: Text(
+                                AppTexts.tripSwipeInstruction,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                            headerTitleWidget,
+                            const SizedBox(height: AppSpacing.lg),
+                            _buildTripsList(),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      Center(
-                        child: Text(
-                          AppTexts.tripSwipeInstruction,
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      headerTitleWidget,
-                      const SizedBox(height: AppSpacing.lg),
-                      _buildTripsList(),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -176,7 +187,15 @@ class RouteDetailsMobileSheet extends StatelessWidget {
       );
     }
 
+    // Sort trips: first trips with registered/live vehicles, then running today, then the rest.
     allTrips.sort((a, b) {
+      final aVehicles = a['vehiclePositions'] as List?;
+      final bVehicles = b['vehiclePositions'] as List?;
+      final aHasVehicle = aVehicles != null && aVehicles.isNotEmpty;
+      final bHasVehicle = bVehicles != null && bVehicles.isNotEmpty;
+      if (aHasVehicle && !bHasVehicle) return -1;
+      if (!aHasVehicle && bHasVehicle) return 1;
+
       final aActive = (a['activeDates'] as List?)?.contains(todayDateString) ?? false;
       final bActive = (b['activeDates'] as List?)?.contains(todayDateString) ?? false;
       if (aActive && !bActive) return -1;

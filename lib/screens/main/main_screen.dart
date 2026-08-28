@@ -130,7 +130,6 @@ class _MainScreenState extends State<MainScreen> {
     queryParams['toCoords'] =
         '${coordinates.longitude},${coordinates.latitude}';
 
-    bool hasLocation = false;
     try {
       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (serviceEnabled) {
@@ -152,7 +151,6 @@ class _MainScreenState extends State<MainScreen> {
               '$locName::${position.latitude},${position.longitude}';
           queryParams['fromCoords'] =
               '${position.longitude},${position.latitude}';
-          hasLocation = true;
         }
       }
     } catch (_) {}
@@ -188,41 +186,41 @@ class _MainScreenState extends State<MainScreen> {
         BlocProvider<RoutePlannerCubit>.value(value: _routePlannerCubit),
         BlocProvider<MapCubit>.value(value: _mapCubit),
       ],
-      child: BlocBuilder<MapCubit, MapState>(
-        builder: (context, mapState) {
-          return NativeDeviceOrientationReader(
-            builder: (context) {
-              final orientation = NativeDeviceOrientationReader.orientation(
-                context,
-              );
-              final isDesktop = LayoutProvider.isDesktop(context);
-              final location = GoRouterState.of(context).uri.path;
-              final isMapFullscreen = location == '/map';
-              final showMobileTopNavbar =
-                  location != '/map' &&
-                  !location.startsWith('/plan') &&
-                  !location.startsWith('/stop/') &&
-                  !location.startsWith('/route/') &&
-                  !location.startsWith('/routes/') &&
-                  !location.startsWith('/trip/') &&
-                  !location.startsWith('/about') &&
-                  !location.startsWith('/tickets') &&
-                  !location.startsWith('/pass-types');
-              final useDesktopMapLayout = isDesktop;
-              final colorScheme = Theme.of(context).colorScheme;
-              final isDark = Theme.of(context).brightness == Brightness.dark;
+      child: NativeDeviceOrientationReader(
+        builder: (context) {
+          final orientation = NativeDeviceOrientationReader.orientation(
+            context,
+          );
+          final isDesktop = LayoutProvider.isDesktop(context);
+          final location = GoRouterState.of(context).uri.path;
+          final isMapFullscreen = location == '/map';
+          final showMobileTopNavbar =
+              location != '/map' &&
+              !location.startsWith('/plan') &&
+              !location.startsWith('/stop/') &&
+              !location.startsWith('/route/') &&
+              !location.startsWith('/routes/') &&
+              !location.startsWith('/trip/') &&
+              !location.startsWith('/about') &&
+              !location.startsWith('/tickets') &&
+              !location.startsWith('/pass-types');
+          final useDesktopMapLayout = isDesktop;
+          final colorScheme = Theme.of(context).colorScheme;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
 
-              final isPhoneLandscape =
-                  !isDesktop &&
-                  (orientation == NativeDeviceOrientation.landscapeLeft ||
-                      orientation == NativeDeviceOrientation.landscapeRight);
+          final isPhoneLandscape =
+              !isDesktop &&
+              (orientation == NativeDeviceOrientation.landscapeLeft ||
+                  orientation == NativeDeviceOrientation.landscapeRight);
 
-              return Scaffold(
-                body: isDesktop
-                    ? Stack(
-                        children: [
-                          Positioned.fill(
-                            child: TerkaTabletLayout(
+          return Scaffold(
+            body: isDesktop
+                ? Stack(
+                    children: [
+                      Positioned.fill(
+                        child: BlocBuilder<MapCubit, MapState>(
+                          builder: (context, mapState) {
+                            return TerkaTabletLayout(
                               showMap: isMapFullscreen,
                               desktopRouteOverlayData:
                                   mapState.routeOverlayData,
@@ -279,312 +277,295 @@ class _MainScreenState extends State<MainScreen> {
                                   context,
                                 );
                               },
-                            ),
-                          ),
-                          TopNavbar(
-                            isDesktop: isDesktop,
-                            onHomeTap: () {
-                              _mapCubit.clearDesktopRouteSelection();
-                              context.go('/');
-                            },
-                            onNewsTap: () {
-                              _mapCubit.clearDesktopRouteSelection();
-                              context.go('/news');
-                            },
-                            onProfileTap: () {
-                              _mapCubit.clearDesktopRouteSelection();
-                              context.go('/profile');
-                            },
-                            selectedDesktopTabIndex: _currentDesktopTabIndex(
-                              context,
-                            ),
-                            mobileCurrentSectionTitle:
-                                _currentMobileSectionTitle(context),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          if (!isPhoneLandscape && showMobileTopNavbar)
-                            TopNavbar(
-                              isDesktop: isDesktop,
-                              onHomeTap: () => context.go('/'),
-                              onNewsTap: () => context.go('/news'),
-                              onProfileTap: () => context.go('/profile'),
-                              mobileCurrentSectionTitle:
-                                  _currentMobileSectionTitle(context),
-                            ),
-                          Expanded(
-                            child: useDesktopMapLayout
-                                ? const SizedBox.shrink()
-                                : Row(
-                                    children: [
-                                      if (isPhoneLandscape &&
-                                          orientation ==
-                                              NativeDeviceOrientation
-                                                  .landscapeRight)
-                                        _buildRotatedNavBar(
-                                          context,
-                                          orientation,
-                                        ),
-                                      Expanded(
-                                        child: Column(
-                                          children: [
-                                            if (isPhoneLandscape &&
-                                                showMobileTopNavbar)
-                                              TopNavbar(
-                                                isDesktop: isDesktop,
-                                                onHomeTap: () {
-                                                  _mapCubit.clearDesktopRouteSelection();
-                                                  context.go('/');
-                                                },
-                                                onNewsTap: () {
-                                                  _mapCubit.clearDesktopRouteSelection();
-                                                  context.go('/news');
-                                                },
-                                                onProfileTap: () {
-                                                  _mapCubit.clearDesktopRouteSelection();
-                                                  context.go('/profile');
-                                                },
-                                                mobileCurrentSectionTitle:
-                                                    _currentMobileSectionTitle(
-                                                      context,
-                                                    ),
-                                              ),
-                                            Expanded(
-                                              child: isMapFullscreen
-                                                  ? Stack(
+                            );
+                          },
+                        ),
+                      ),
+                      TopNavbar(
+                        isDesktop: isDesktop,
+                        onHomeTap: () {
+                          _mapCubit.clearDesktopRouteSelection();
+                          context.go('/');
+                        },
+                        onNewsTap: () {
+                          _mapCubit.clearDesktopRouteSelection();
+                          context.go('/news');
+                        },
+                        onProfileTap: () {
+                          _mapCubit.clearDesktopRouteSelection();
+                          context.go('/profile');
+                        },
+                        selectedDesktopTabIndex: _currentDesktopTabIndex(
+                          context,
+                        ),
+                        mobileCurrentSectionTitle:
+                            _currentMobileSectionTitle(context),
+                      ),
+                    ],
+                  )
+                : Column(
+                    children: [
+                      if (!isPhoneLandscape && showMobileTopNavbar)
+                        TopNavbar(
+                          isDesktop: isDesktop,
+                          onHomeTap: () => context.go('/'),
+                          onNewsTap: () => context.go('/news'),
+                          onProfileTap: () => context.go('/profile'),
+                          mobileCurrentSectionTitle:
+                              _currentMobileSectionTitle(context),
+                        ),
+                      Expanded(
+                        child: useDesktopMapLayout
+                            ? const SizedBox.shrink()
+                            : Row(
+                                children: [
+                                  if (isPhoneLandscape &&
+                                      orientation ==
+                                          NativeDeviceOrientation
+                                              .landscapeRight)
+                                    _buildRotatedNavBar(
+                                      context,
+                                      orientation,
+                                    ),
+                                  Expanded(
+                                    child: Column(
+                                      children: [
+                                        if (isPhoneLandscape &&
+                                            showMobileTopNavbar)
+                                          TopNavbar(
+                                            isDesktop: isDesktop,
+                                            onHomeTap: () {
+                                              _mapCubit.clearDesktopRouteSelection();
+                                              context.go('/');
+                                            },
+                                            onNewsTap: () {
+                                              _mapCubit.clearDesktopRouteSelection();
+                                              context.go('/news');
+                                            },
+                                            onProfileTap: () {
+                                              _mapCubit.clearDesktopRouteSelection();
+                                              context.go('/profile');
+                                            },
+                                            mobileCurrentSectionTitle:
+                                                _currentMobileSectionTitle(
+                                                  context,
+                                                ),
+                                          ),
+                                        Expanded(
+                                          child: isMapFullscreen
+                                              ? BlocBuilder<MapCubit, MapState>(
+                                                  builder: (context, mapState) {
+                                                    return Stack(
                                                       children: [
                                                         Positioned.fill(
-                                                          child: MapView(
-                                                            controlsBottomInset:
-                                                                (mapState.searchHighlightPoint !=
-                                                                        null ||
-                                                                    mapState.selectedRouteName !=
-                                                                        null)
-                                                                ? 156.0
-                                                                : 88.0,
-                                                            routeOverlayData:
-                                                                mapState
-                                                                    .routeOverlayData,
-                                                            routeVehicleMarker:
-                                                                mapState
-                                                                    .routeVehicleMarker,
-                                                            onOpenTripDetailsRequested:
-                                                                (
-                                                                  tripId,
-                                                                  serviceDay,
-                                                                ) {
-                                                                  final encodedTripId =
-                                                                      Uri.encodeComponent(
-                                                                        tripId,
-                                                                      );
-                                                                  if (serviceDay
-                                                                      .isNotEmpty) {
-                                                                    context.push(
-                                                                      '/trip/$encodedTripId?date=$serviceDay',
-                                                                    );
-                                                                  } else {
-                                                                    context.push(
-                                                                      '/trip/$encodedTripId',
-                                                                    );
-                                                                  }
-                                                                },
-                                                            onOpenStopDetailsRequested:
-                                                                (
-                                                                  stopId,
-                                                                  stopName,
-                                                                  initialStopPoint,
-                                                                  groupedStopIds,
-                                                                ) async {
-                                                                  await context
-                                                                      .push(
-                                                                        '/stop/${Uri.encodeComponent(stopId)}',
-                                                                      );
-                                                                },
-                                                            hideGeneralStopsAndVehicles:
-                                                                (location
-                                                                    .startsWith(
-                                                                      '/trip/',
-                                                                    ) ||
-                                                                location
-                                                                    .startsWith(
-                                                                      '/stop/',
-                                                                    ) ||
-                                                                (mapState.selectedMapPayload !=
-                                                                        null &&
-                                                                    mapState.selectedRouteName ==
-                                                                        null)),
-                                                            searchHighlightPoint:
-                                                                mapState
-                                                                    .searchHighlightPoint,
-                                                            onPlanRouteToStop:
-                                                                _planRouteToDestination,
-                                                            onPlanRouteFromMap:
-                                                                _planRouteFromMap,
-                                                            selectedRouteName:
-                                                                mapState
-                                                                    .selectedRouteName,
-                                                          ),
-                                                        ),
-                                                        if (mapState.searchHighlightPoint !=
-                                                                null &&
-                                                            mapState.searchHighlightName !=
-                                                                null)
-                                                          Positioned(
-                                                            left: 16,
-                                                            right: 16,
-                                                            bottom: 88,
-                                                            child: Card(
-                                                              elevation: 6,
-                                                              shadowColor: Colors
-                                                                  .black
-                                                                  .withValues(
-                                                                    alpha: 0.15,
+                                                      child: MapView(
+                                                        controlsBottomInset:
+                                                            (mapState.searchHighlightPoint !=
+                                                                    null ||
+                                                                mapState.selectedRouteName !=
+                                                                    null)
+                                                            ? 156.0
+                                                            : 88.0,
+                                                        routeOverlayData:
+                                                            mapState
+                                                                .routeOverlayData,
+                                                        routeVehicleMarker:
+                                                            mapState
+                                                                .routeVehicleMarker,
+                                                        onOpenTripDetailsRequested:
+                                                            (
+                                                              tripId,
+                                                              serviceDay,
+                                                            ) {
+                                                              final encodedTripId =
+                                                                  Uri.encodeComponent(
+                                                                    tripId,
+                                                                  );
+                                                              if (serviceDay
+                                                                  .isNotEmpty) {
+                                                                context.push(
+                                                                  '/trip/$encodedTripId?date=$serviceDay',
+                                                                );
+                                                              } else {
+                                                                context.push(
+                                                                  '/trip/$encodedTripId',
+                                                                );
+                                                              }
+                                                            },
+                                                        onOpenStopDetailsRequested:
+                                                            (
+                                                              stopId,
+                                                              stopName,
+                                                              initialStopPoint,
+                                                              groupedStopIds,
+                                                            ) async {
+                                                              await context
+                                                                  .push(
+                                                                    '/stop/${Uri.encodeComponent(stopId)}',
+                                                                  );
+                                                            },
+                                                        hideGeneralStopsAndVehicles:
+                                                            (location
+                                                                .startsWith(
+                                                                  '/trip/',
+                                                                ) ||
+                                                            location
+                                                                .startsWith(
+                                                                  '/stop/',
+                                                                ) ||
+                                                            (mapState.selectedMapPayload !=
+                                                                    null &&
+                                                                mapState.selectedRouteName ==
+                                                                    null)),
+                                                        searchHighlightPoint:
+                                                            mapState
+                                                                .searchHighlightPoint,
+                                                        onPlanRouteToStop:
+                                                            _planRouteToDestination,
+                                                        onPlanRouteFromMap:
+                                                            _planRouteFromMap,
+                                                        selectedRouteName:
+                                                            mapState
+                                                                .selectedRouteName,
+                                                      ),
+                                                    ),
+                                                      if (mapState.searchHighlightPoint !=
+                                                              null &&
+                                                          mapState.searchHighlightName !=
+                                                              null)
+                                                        Positioned(
+                                                          left: 16,
+                                                          right: 16,
+                                                          bottom: 88,
+                                                          child: Card(
+                                                            elevation: 6,
+                                                            shadowColor: Colors
+                                                                .black
+                                                                .withValues(
+                                                                  alpha: 0.15,
+                                                                ),
+                                                            shape: RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    16,
                                                                   ),
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      16,
+                                                              side: BorderSide(
+                                                                color: colorScheme
+                                                                    .outlineVariant
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          isDark
+                                                                          ? 0.3
+                                                                          : 0.4,
                                                                     ),
-                                                                side: BorderSide(
-                                                                  color: colorScheme
-                                                                      .outlineVariant
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            isDark
-                                                                            ? 0.3
-                                                                            : 0.4,
-                                                                      ),
-                                                                ),
                                                               ),
-                                                              child: Padding(
-                                                                padding:
-                                                                    const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          AppSpacing.lg,
-                                                                      vertical:
-                                                                          AppSpacing.sm,
-                                                                    ),
-                                                                child: Row(
-                                                                  children: [
-                                                                    Container(
-                                                                      padding:
-                                                                          const EdgeInsets.all(
-                                                                            8,
+                                                            ),
+                                                            child: Padding(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        AppSpacing.lg,
+                                                                    vertical:
+                                                                        AppSpacing.sm,
+                                                                  ),
+                                                              child: Row(
+                                                                children: [
+                                                                  Container(
+                                                                    padding:
+                                                                        const EdgeInsets.all(
+                                                                          8,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: colorScheme
+                                                                          .primary
+                                                                          .withValues(
+                                                                            alpha: 0.1,
                                                                           ),
-                                                                      decoration: BoxDecoration(
-                                                                        color: colorScheme
-                                                                            .primary
-                                                                            .withValues(
-                                                                              alpha: 0.1,
-                                                                            ),
-                                                                        shape: BoxShape
-                                                                            .circle,
-                                                                      ),
-                                                                      child: Icon(
-                                                                        Icons
-                                                                            .place,
-                                                                        color: colorScheme
-                                                                            .primary,
-                                                                        size:
-                                                                            20,
-                                                                      ),
+                                                                      shape: BoxShape
+                                                                          .circle,
                                                                     ),
-                                                                    const SizedBox(
-                                                                      width: 12,
+                                                                    child: Icon(
+                                                                      Icons
+                                                                          .place,
+                                                                      color: colorScheme
+                                                                          .primary,
+                                                                      size:
+                                                                          20,
                                                                     ),
-                                                                    Expanded(
-                                                                      child: Column(
-                                                                        crossAxisAlignment:
-                                                                            CrossAxisAlignment.start,
-                                                                        mainAxisSize:
-                                                                            MainAxisSize.min,
-                                                                        children: [
-                                                                          Text(
-                                                                            mapState.searchHighlightName!,
-                                                                            style: const TextStyle(
-                                                                              fontWeight: FontWeight.bold,
-                                                                              fontSize: 14,
-                                                                            ),
-                                                                            maxLines:
-                                                                                1,
-                                                                            overflow:
-                                                                                TextOverflow.ellipsis,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 12,
+                                                                  ),
+                                                                  Expanded(
+                                                                    child: Column(
+                                                                      crossAxisAlignment:
+                                                                          CrossAxisAlignment.start,
+                                                                      mainAxisSize:
+                                                                          MainAxisSize.min,
+                                                                      children: [
+                                                                        Text(
+                                                                          mapState.searchHighlightName!,
+                                                                          style: const TextStyle(
+                                                                            fontWeight: FontWeight.bold,
+                                                                            fontSize: 14,
                                                                           ),
-                                                                          Text(
-                                                                            AppTexts.isHungarian
-                                                                                ? 'Kiválasztott hely'
-                                                                                : 'Selected location',
-                                                                            style: TextStyle(
-                                                                              fontSize: 12,
-                                                                              color: colorScheme.onSurfaceVariant.withValues(
-                                                                                alpha: 0.7,
-                                                                              ),
+                                                                          maxLines:
+                                                                              1,
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
+                                                                        ),
+                                                                        Text(
+                                                                          AppTexts.isHungarian
+                                                                              ? 'Kiválasztott hely'
+                                                                              : 'Selected location',
+                                                                          style: TextStyle(
+                                                                            fontSize: 12,
+                                                                            color: colorScheme.onSurfaceVariant.withValues(
+                                                                              alpha: 0.7,
                                                                             ),
                                                                           ),
-                                                                        ],
-                                                                      ),
+                                                                        ),
+                                                                      ],
                                                                     ),
-                                                                    IconButton(
-                                                                      icon: Icon(
-                                                                        Icons
-                                                                            .directions,
-                                                                        color: colorScheme
-                                                                            .primary,
-                                                                      ),
-                                                                      onPressed: () {
-                                                                        _planRouteToDestination(
-                                                                          mapState
-                                                                              .searchHighlightName!,
-                                                                          mapState
-                                                                              .searchHighlightPoint!,
-                                                                        );
-                                                                      },
-                                                                      tooltip:
-                                                                          AppTexts
-                                                                              .isHungarian
-                                                                          ? 'Útvonaltervezés ide'
-                                                                          : 'Plan route here',
+                                                                  ),
+                                                                  IconButton(
+                                                                    icon: Icon(
+                                                                      Icons.directions,
+                                                                      color: colorScheme.primary,
                                                                     ),
-                                                                    IconButton(
-                                                                      icon: const Icon(
-                                                                        Icons
-                                                                            .close,
-                                                                      ),
-                                                                      onPressed: () {
-                                                                        _mapCubit
-                                                                            .clearSearchHighlight();
-                                                                      },
-                                                                    ),
-                                                                  ],
-                                                                ),
+                                                                    onPressed: () {
+                                                                      _planRouteToDestination(
+                                                                        mapState.searchHighlightName!,
+                                                                        mapState.searchHighlightPoint!,
+                                                                      );
+                                                                    },
+                                                                    tooltip: AppTexts.isHungarian
+                                                                        ? 'Útvonaltervezés ide'
+                                                                        : 'Plan route here',
+                                                                  ),
+                                                                  IconButton(
+                                                                    icon: const Icon(Icons.close),
+                                                                    onPressed: () {
+                                                                      _mapCubit.clearSearchHighlight();
+                                                                    },
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ),
                                                           ),
-
+                                                        ),
                                                         Positioned(
                                                           left: 16,
                                                           right: 16,
                                                           bottom: 16,
                                                           child: GestureDetector(
                                                             onTap: () async {
-                                                              final suggestion =
-                                                                  await Navigator.of(
-                                                                    context,
-                                                                  ).push<
-                                                                    SuggestionEntry
-                                                                  >(
-                                                                    MaterialPageRoute(
-                                                                      builder:
-                                                                          (_) =>
-                                                                              const GeneralSearchScreen(),
-                                                                    ),
-                                                                  );
-                                                              if (suggestion !=
-                                                                      null &&
-                                                                  context
-                                                                      .mounted) {
+                                                              final suggestion = await Navigator.of(context).push<SuggestionEntry>(
+                                                                MaterialPageRoute(
+                                                                  builder: (_) => const GeneralSearchScreen(),
+                                                                ),
+                                                              );
+                                                              if (suggestion != null && context.mounted) {
                                                                 _onGeneralSearchSuggestionSelected(
                                                                   suggestion,
                                                                   context,
@@ -593,68 +574,44 @@ class _MainScreenState extends State<MainScreen> {
                                                             },
                                                             child: Card(
                                                               elevation: 6,
-                                                              shadowColor: Colors
-                                                                  .black
-                                                                  .withValues(
-                                                                    alpha: 0.15,
-                                                                  ),
+                                                              shadowColor: Colors.black.withValues(alpha: 0.15),
                                                               shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      24,
-                                                                    ),
+                                                                borderRadius: BorderRadius.circular(24),
                                                                 side: BorderSide(
-                                                                  color: colorScheme
-                                                                      .outlineVariant
-                                                                      .withValues(
-                                                                        alpha:
-                                                                            isDark
-                                                                            ? 0.3
-                                                                            : 0.4,
-                                                                      ),
+                                                                  color: colorScheme.outlineVariant.withValues(
+                                                                    alpha: isDark ? 0.3 : 0.4,
+                                                                  ),
                                                                 ),
                                                               ),
                                                               child: Padding(
-                                                                padding:
-                                                                    const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          AppSpacing.lg,
-                                                                      vertical:
-                                                                          AppSpacing.md,
-                                                                    ),
+                                                                padding: const EdgeInsets.symmetric(
+                                                                  horizontal: AppSpacing.lg,
+                                                                  vertical: AppSpacing.md,
+                                                                ),
                                                                 child: Row(
                                                                   children: [
                                                                     Icon(
-                                                                      Icons
-                                                                          .search,
-                                                                      color: colorScheme
-                                                                          .primary,
+                                                                      Icons.search,
+                                                                      color: colorScheme.primary,
                                                                     ),
-                                                                    const SizedBox(
-                                                                      width: 12,
-                                                                    ),
+                                                                    const SizedBox(width: 12),
                                                                     Expanded(
                                                                       child: Text(
                                                                         AppTexts.isHungarian
                                                                             ? 'Hova utazol?'
                                                                             : 'Where to?',
                                                                         style: TextStyle(
-                                                                          fontSize:
-                                                                              16,
+                                                                          fontSize: 16,
                                                                           color: colorScheme.onSurfaceVariant.withValues(
-                                                                            alpha:
-                                                                                0.7,
+                                                                            alpha: 0.7,
                                                                           ),
-                                                                          fontWeight:
-                                                                              FontWeight.w500,
+                                                                          fontWeight: FontWeight.w500,
                                                                         ),
                                                                       ),
                                                                     ),
                                                                     Icon(
-                                                                      Icons
-                                                                          .tune,
-                                                                      color: colorScheme
-                                                                          .primary,
+                                                                      Icons.tune,
+                                                                      color: colorScheme.primary,
                                                                     ),
                                                                   ],
                                                                 ),
@@ -663,76 +620,76 @@ class _MainScreenState extends State<MainScreen> {
                                                           ),
                                                         ),
                                                       ],
-                                                    )
-                                                  : widget.child,
-                                            ),
-                                          ],
+                                                    );
+                                                  },
+                                                )
+                                              : widget.child,
                                         ),
-                                      ),
-                                      if (isPhoneLandscape &&
-                                          orientation ==
-                                              NativeDeviceOrientation
-                                                  .landscapeLeft)
-                                        _buildRotatedNavBar(
-                                          context,
-                                          orientation,
-                                        ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                          ),
-                        ],
+                                  if (isPhoneLandscape &&
+                                      orientation ==
+                                          NativeDeviceOrientation
+                                              .landscapeLeft)
+                                    _buildRotatedNavBar(
+                                      context,
+                                      orientation,
+                                    ),
+                                ],
+                              ),
                       ),
-                bottomNavigationBar: isDesktop || isPhoneLandscape
-                    ? null
-                    : SafeArea(
-                        top: false,
-                        child: NavigationBar(
-                          selectedIndex: _calculateSelectedIndex(context),
-                          onDestinationSelected: (index) {
-                            switch (index) {
-                              case 0:
-                                _mapCubit.clearDesktopRouteSelection();
-                                context.go('/');
-                                break;
-                              case 1:
-                                _mapCubit.clearDesktopRouteSelection();
-                                context.go('/news');
-                                break;
-                              case 2:
-                                context.go('/map');
-                                break;
-                              case 3:
-                                _mapCubit.clearDesktopRouteSelection();
-                                context.go('/profile');
-                                break;
-                            }
-                          },
-                          destinations: [
-                            NavigationDestination(
-                              icon: const Icon(Icons.home_outlined),
-                              selectedIcon: const Icon(Icons.home),
-                              label: AppTexts.mainHome,
-                            ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.newspaper_outlined),
-                              selectedIcon: const Icon(Icons.newspaper),
-                              label: AppTexts.mainNews,
-                            ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.map_outlined),
-                              selectedIcon: const Icon(Icons.map),
-                              label: AppTexts.mainMap,
-                            ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.person_outline),
-                              selectedIcon: const Icon(Icons.person),
-                              label: AppTexts.mainProfile,
-                            ),
-                          ],
+                    ],
+                  ),
+            bottomNavigationBar: isDesktop || isPhoneLandscape
+                ? null
+                : SafeArea(
+                    top: false,
+                    child: NavigationBar(
+                      selectedIndex: _calculateSelectedIndex(context),
+                      onDestinationSelected: (index) {
+                        switch (index) {
+                          case 0:
+                            _mapCubit.clearDesktopRouteSelection();
+                            context.go('/');
+                            break;
+                          case 1:
+                            _mapCubit.clearDesktopRouteSelection();
+                            context.go('/news');
+                            break;
+                          case 2:
+                            context.go('/map');
+                            break;
+                          case 3:
+                            _mapCubit.clearDesktopRouteSelection();
+                            context.go('/profile');
+                            break;
+                        }
+                      },
+                      destinations: [
+                        NavigationDestination(
+                          icon: const Icon(Icons.home_outlined),
+                          selectedIcon: const Icon(Icons.home),
+                          label: AppTexts.mainHome,
                         ),
-                      ),
-              );
-            },
+                        NavigationDestination(
+                          icon: const Icon(Icons.newspaper_outlined),
+                          selectedIcon: const Icon(Icons.newspaper),
+                          label: AppTexts.mainNews,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.map_outlined),
+                          selectedIcon: const Icon(Icons.map),
+                          label: AppTexts.mainMap,
+                        ),
+                        NavigationDestination(
+                          icon: const Icon(Icons.person_outline),
+                          selectedIcon: const Icon(Icons.person),
+                          label: AppTexts.mainProfile,
+                        ),
+                      ],
+                    ),
+                  ),
           );
         },
       ),

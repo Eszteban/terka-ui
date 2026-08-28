@@ -103,7 +103,7 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
         ),
       );
     }
-    if (result == true) {
+    if (result == true && mounted) {
       _loadPassTypes();
     }
   }
@@ -136,7 +136,9 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
         _isLoading = true;
       });
       await _passTypeRepository.deletePassType(passType.id);
-      _loadPassTypes();
+      if (mounted) {
+        _loadPassTypes();
+      }
     }
   }
 
@@ -144,19 +146,6 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-
-    final bentoShape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-      side: BorderSide(
-        color: colorScheme.outlineVariant.withValues(alpha: isDark ? 0.3 : 0.4),
-        width: 1,
-      ),
-    );
-    final cardColor = isDark ? const Color(0xFF1A1615) : AppColors.white;
-    final cardElevation = isDark ? 0.0 : 2.0;
-    final cardShadowColor = AppColors.black.withValues(alpha: isDark ? 0.3 : 0.08);
-
     return Column(
       children: [
         ScreenHeader(
@@ -182,10 +171,6 @@ class _ManagePassTypesViewState extends State<ManagePassTypesView> {
                           : AppTexts.authPassTypeDays(p.durationDays?.toString() ?? '30');
 
                       return Card(
-                        elevation: cardElevation,
-                        shadowColor: cardShadowColor,
-                        shape: bentoShape,
-                        color: cardColor,
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.md),
                           child: Column(

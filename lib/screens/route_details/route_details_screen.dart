@@ -62,6 +62,7 @@ class RouteDetailsView extends StatefulWidget {
 
 class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
   static const double _desktopBreakpoint = 600;
+  bool _isRouteSubscribed = false;
 
   bool _useMobileMapSheet(BuildContext context) {
     return !LayoutProvider.isDesktop(context, breakpoint: _desktopBreakpoint);
@@ -70,15 +71,21 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final modalRoute = ModalRoute.of(context);
-    if (modalRoute != null) {
-      AppRouter.routeObserver.subscribe(this, modalRoute);
+    if (!_isRouteSubscribed) {
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null) {
+        AppRouter.routeObserver.subscribe(this, modalRoute);
+        _isRouteSubscribed = true;
+      }
     }
   }
 
   @override
   void dispose() {
-    AppRouter.routeObserver.unsubscribe(this);
+    if (_isRouteSubscribed) {
+      AppRouter.routeObserver.unsubscribe(this);
+      _isRouteSubscribed = false;
+    }
     super.dispose();
   }
 
@@ -171,6 +178,13 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
             ScreenHeader(
               title: headerTitleWidget,
               onBack: widget.onCloseRequested ?? () => Navigator.of(context).pop(),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded),
+                  tooltip: AppTexts.isHungarian ? 'Frissítés' : 'Refresh',
+                  onPressed: () => context.read<RouteDetailsCubit>().refresh(),
+                ),
+              ],
             ),
             Flexible(
               child: state is RouteDetailsLoading
@@ -224,8 +238,15 @@ class _RouteDetailsViewState extends State<RouteDetailsView> with RouteAware {
       );
     }
 
-    // Sort trips: first the ones running today, then the rest.
+    // Sort trips: first trips with registered/live vehicles, then running today, then the rest.
     allTrips.sort((a, b) {
+      final aVehicles = a['vehiclePositions'] as List?;
+      final bVehicles = b['vehiclePositions'] as List?;
+      final aHasVehicle = aVehicles != null && aVehicles.isNotEmpty;
+      final bHasVehicle = bVehicles != null && bVehicles.isNotEmpty;
+      if (aHasVehicle && !bHasVehicle) return -1;
+      if (!aHasVehicle && bHasVehicle) return 1;
+
       final aActive = (a['activeDates'] as List?)?.contains(todayDateString) ?? false;
       final bActive = (b['activeDates'] as List?)?.contains(todayDateString) ?? false;
       if (aActive && !bActive) return -1;

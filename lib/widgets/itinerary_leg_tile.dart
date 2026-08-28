@@ -7,6 +7,7 @@ import '../utils/markup_text_utils.dart';
 import '../utils/adaptive_dialog_utils.dart';
 import '../screens/trip_details/trip_details_screen.dart';
 import '../extensions/string_html_cleaner.dart';
+import '../utils/transit_color_resolver.dart';
 import 'package:terka/theme/app_tokens.dart';
 
 class ItineraryLegTile extends StatelessWidget {
@@ -52,34 +53,32 @@ class ItineraryLegTile extends StatelessWidget {
     );
 
     final isWalkLeg = mode.toUpperCase().trim() == 'WALK';
+    final legStyle = TransitColorResolver.resolveLegStyle(
+      routeColor: routeColor,
+      isDark: isDark,
+      isWalk: isWalkLeg,
+    );
     final waitMinutes = isWalkLeg
         ? RouteDataUtils.waitingMinutesUntilNextTransit(leg, nextLeg)
         : null;
 
     final rawTripId = RouteDataUtils.nestedString(leg, ['trip', 'gtfsId']) ?? '';
     final tripId = rawTripId.trim();
+    final canOpenTrip = !isWalkLeg && tripId.isNotEmpty;
+
     final serviceDayRaw = RouteDataUtils.nestedString(leg, ['serviceDate']) ?? '';
     final resolvedServiceDay = serviceDayRaw.trim().isNotEmpty
         ? serviceDayRaw.trim()
         : _todayServiceDate();
-    final canOpenTrip = !isWalkLeg && tripId.isNotEmpty;
 
     final leftTile = Container(
       width: 80,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: isWalkLeg
-            ? (isDark
-                  ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.2)
-                  : colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.4,
-                    ))
-            : routeColor.withValues(alpha: 0.12),
+        color: legStyle.backgroundColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isWalkLeg
-              ? colorScheme.outlineVariant.withValues(alpha: 0.15)
-              : routeColor.withValues(alpha: 0.3),
+          color: legStyle.borderColor,
         ),
       ),
       child: Column(

@@ -66,19 +66,26 @@ class TripDetailsView extends StatefulWidget {
 
 class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
   static const double _desktopBreakpoint = 600;
+  bool _isRouteSubscribed = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final modalRoute = ModalRoute.of(context);
-    if (modalRoute != null) {
-      AppRouter.routeObserver.subscribe(this, modalRoute);
+    if (!_isRouteSubscribed) {
+      final modalRoute = ModalRoute.of(context);
+      if (modalRoute != null) {
+        AppRouter.routeObserver.subscribe(this, modalRoute);
+        _isRouteSubscribed = true;
+      }
     }
   }
 
   @override
   void dispose() {
-    AppRouter.routeObserver.unsubscribe(this);
+    if (_isRouteSubscribed) {
+      AppRouter.routeObserver.unsubscribe(this);
+      _isRouteSubscribed = false;
+    }
     super.dispose();
   }
 
@@ -143,15 +150,19 @@ class _TripDetailsViewState extends State<TripDetailsView> with RouteAware {
                   ),
             ),
           ),
-          if (isRefreshing)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            )
+          IconButton(
+            icon: isRefreshing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+            tooltip: AppTexts.isHungarian ? 'Frissítés' : 'Refresh',
+            onPressed: isRefreshing
+                ? null
+                : () => context.read<TripDetailsCubit>().refresh(),
+          ),
         ],
       ),
     );

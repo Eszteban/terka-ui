@@ -2,14 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'package:terka/theme/app_tokens.dart';
-import '../../../utils/markup_text_utils.dart' as markup;
 import '../../../widgets/maps/map_view.dart';
 import '../../../widgets/maps/route_map_data.dart';
 import '../../../widgets/tables/route_planner_results_view.dart';
 import '../../../widgets/forms/autocomplete_search_field.dart';
-import '../../../widgets/line_badge.dart';
 import 'main_desktop_search_overlay.dart';
-import 'main_selected_map_card.dart';
 
 class TerkaTabletLayout extends StatefulWidget {
   final bool showMap;

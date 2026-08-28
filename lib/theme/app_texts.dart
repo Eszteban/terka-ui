@@ -435,12 +435,20 @@ class AppTexts {
   static String get tripSwipeInstruction => isHungarian
       ? 'Pöccintsd fel az összes időadathoz'
       : 'Swipe up for all times';
+  static String tripShowPassedStops(int count) => isHungarian
+      ? '$count korábbi megálló megjelenítése'
+      : 'Show $count earlier stops';
+  static String get tripHidePassedStops => isHungarian
+      ? 'Korábbi megállók elrejtése'
+      : 'Hide earlier stops';
   static String get tripDelayNa => isHungarian ? 'késés: n/a' : 'delay: n/a';
   static String tripDelayMinutes(String mins) =>
       isHungarian ? 'késés: $mins p' : 'delay: $mins m';
   static String get tripDelayZero => isHungarian ? 'késés: 0p' : 'delay: 0m';
   static String get tripNoVehicle =>
       isHungarian ? 'Nem található jármű' : 'No vehicle found';
+  static String vehicleLastUpdatedSeconds(int seconds) =>
+      isHungarian ? '$seconds másodperce frissült' : 'Updated ${seconds}s ago';
   static String get tripNextStopPrefix => isHungarian ? 'köv: ' : 'next: ';
   static String get tripNextStopStoppedAt =>
       isHungarian ? 'Itt állt meg: ' : 'Stopped at: ';

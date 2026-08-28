@@ -24,14 +24,14 @@ extension _MapViewInitialization on _MapViewState {
   }
 
   Future<void> _tryInitialGpsFocus() async {
-    if (_MapViewState._didTryInitialGpsFocus) {
+    if (!_isMapReady || _MapViewState._didTryInitialGpsFocus) {
       return;
     }
     _MapViewState._didTryInitialGpsFocus = true;
 
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (_lastStoredLocation != null) {
+      if (_lastStoredLocation != null && _isMapReady) {
         _mapController.move(_lastStoredLocation!, _lastStoredZoom ?? 12);
       }
       return;
@@ -44,7 +44,7 @@ extension _MapViewInitialization on _MapViewState {
 
     if (permission != LocationPermission.always &&
         permission != LocationPermission.whileInUse) {
-      if (_lastStoredLocation != null) {
+      if (_lastStoredLocation != null && _isMapReady) {
         _mapController.move(_lastStoredLocation!, _lastStoredZoom ?? 12);
       }
       return;
@@ -58,10 +58,12 @@ extension _MapViewInitialization on _MapViewState {
         return;
       }
       await _saveLastLocation(lastKnown.latitude, lastKnown.longitude, 12);
-      _mapController.move(
-        LatLng(lastKnown.latitude, lastKnown.longitude),
-        12,
-      );
+      if (_isMapReady) {
+        _mapController.move(
+          LatLng(lastKnown.latitude, lastKnown.longitude),
+          12,
+        );
+      }
       return;
     }
 
@@ -76,12 +78,14 @@ extension _MapViewInitialization on _MapViewState {
         return;
       }
       await _saveLastLocation(current.latitude, current.longitude, 12);
-      _mapController.move(
-        LatLng(current.latitude, current.longitude),
-        12,
-      );
+      if (_isMapReady) {
+        _mapController.move(
+          LatLng(current.latitude, current.longitude),
+          12,
+        );
+      }
     } catch (_) {
-      if (_lastStoredLocation != null) {
+      if (_lastStoredLocation != null && _isMapReady) {
         _mapController.move(_lastStoredLocation!, _lastStoredZoom ?? 12);
       }
       // Fallback to default map center when quick GPS lookup fails.
@@ -101,6 +105,7 @@ extension _MapViewInitialization on _MapViewState {
       }
 
       final lastKnown = await Geolocator.getLastKnownPosition();
+      if (!mounted) return;
       if (lastKnown != null && _currentPosition == null) {
         refreshState(() {
           _currentPosition = lastKnown;

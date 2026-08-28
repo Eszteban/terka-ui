@@ -2,23 +2,7 @@ part of 'map_view.dart';
 
 extension _MapViewHelpers on _MapViewState {
   Color _vehicleColor(String mode) {
-    switch (mode) {
-      case 'RAIL':
-      case 'SUBURBAN_RAILWAY':
-      case 'TRAMTRAIN':
-      case 'RAIL_REPLACEMENT_BUS':
-        return AppColors.blue;
-      case 'COACH':
-        return AppColors.deepPurple;
-      case 'SUBWAY':
-      case 'TRAM':
-      case 'TROLLEYBUS':
-      case 'BUS':
-      case 'FERRY':
-        return AppColors.teal;
-      default:
-        return AppColors.grey;
-    }
+    return TransitColorResolver.fallbackColorForMode(mode);
   }
 
   Color _parseRouteColor(String rawHex, {required String mode}) {
@@ -26,36 +10,15 @@ extension _MapViewHelpers on _MapViewState {
     if (_MapViewState._fallbackWhiteHexColors.contains(hex)) {
       return hex == 'FEFEFE' ? const Color(0xFFFEFEFE) : AppColors.white;
     }
-    final normalized = switch (hex.length) {
-      3 => '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}',
-      6 => hex,
-      8 => hex.substring(2),
-      _ => '',
-    };
-    if (normalized.isEmpty) {
-      return _vehicleColor(mode);
-    }
-
-    final value = int.tryParse(normalized, radix: 16);
-    if (value == null) {
-      return _vehicleColor(mode);
-    }
-    return Color(0xFF000000 | value);
+    return TransitColorResolver.resolveRouteColor(
+      rawHex: rawHex,
+      mode: mode,
+      fallback: _vehicleColor(mode),
+    );
   }
 
   Color _parseTextColor(String rawHex) {
-    final hex = rawHex.trim().replaceAll('#', '').toUpperCase();
-    final normalized = switch (hex.length) {
-      3 => '${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}',
-      6 => hex,
-      8 => hex.substring(2),
-      _ => '',
-    };
-    final value = int.tryParse(normalized, radix: 16);
-    if (value == null) {
-      return AppColors.white;
-    }
-    return Color(0xFF000000 | value);
+    return ColorUtils.parseHex(rawHex, fallback: AppColors.white);
   }
 
   String _normalizedStopGroupName(String name) {

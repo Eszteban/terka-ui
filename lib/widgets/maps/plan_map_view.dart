@@ -10,6 +10,7 @@ import 'map_initialization_utils.dart';
 import 'route_map_data.dart';
 import 'user_location_dot.dart';
 import 'map_controls.dart';
+import '../../core/config/app_config.dart';
 import 'package:terka/theme/app_tokens.dart';
 
 class PlanMapView extends StatefulWidget {
@@ -107,7 +108,8 @@ class _PlanMapViewState extends State<PlanMapView> {
       }
 
       final lastKnown = await Geolocator.getLastKnownPosition();
-      if (lastKnown != null && _currentPosition == null && mounted) {
+      if (!mounted) return;
+      if (lastKnown != null && _currentPosition == null) {
         setState(() {
           _currentPosition = lastKnown;
         });
@@ -497,9 +499,10 @@ class _PlanMapViewState extends State<PlanMapView> {
                     ),
               children: [
                 TileLayer(
-                  urlTemplate: Theme.of(context).brightness == Brightness.dark
-                      ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-                      : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
+                  urlTemplate: AppConfig.getCartoTileUrl(
+                    isDark: Theme.of(context).brightness == Brightness.dark,
+                  ),
+                  subdomains: AppConfig.cartoSubdomains,
                   userAgentPackageName: 'hu.terka.terka_mobile_ui',
                   maxZoom: 19,
                 ),
@@ -535,197 +538,160 @@ class _PlanMapViewState extends State<PlanMapView> {
                   ),
                 if (widget.routeData.stops.isNotEmpty)
                   MarkerLayer(
-                    markers: () {
-                      final stops = widget.routeData.stops.toList();
-                      if (_isStopLabelVisible &&
-                          _selectedStopSelectionKey != null) {
-                        final selectedIndex = stops.indexWhere(
-                          (s) =>
-                              _stopSelectionKey(s) == _selectedStopSelectionKey,
-                        );
-                        if (selectedIndex != -1) {
-                          final selected = stops.removeAt(selectedIndex);
-                          stops.add(selected);
-                        }
-                      }
-                      return stops.map((stop) {
-                        final isPopupVisible =
-                            widget.enableStopInfoLabelTap &&
-                            _isStopLabelVisible &&
-                            _selectedStopSelectionKey ==
-                                _stopSelectionKey(stop);
-                        return Marker(
-                          point: stop.point,
-                          width: isPopupVisible ? 320 : 38,
-                          height: isPopupVisible ? 220 : 38,
-                          alignment: Alignment.center,
-                          child:
-                              widget.enableStopInfoLabelTap &&
-                                  widget.stopInfoCardBuilder != null
-                              ? Stack(
-                                  clipBehavior: Clip.none,
-                                  alignment: Alignment.center,
-                                  children: [
-                                    if (isPopupVisible)
-                                      Positioned(
-                                        bottom: 122,
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: _consumeNextMapTapClose,
-                                          child: widget.stopInfoCardBuilder!(
-                                            context,
-                                            stop,
+                    markers: widget.routeData.stops
+                        .where((stop) => !(widget.enableStopInfoLabelTap && _isStopLabelVisible && _selectedStopSelectionKey == _stopSelectionKey(stop)))
+                        .map((stop) {
+                      return Marker(
+                        point: stop.point,
+                        width: 38,
+                        height: 38,
+                        alignment: Alignment.center,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => _toggleStopLabel(stop),
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: widget.useBaseMapStopIcon
+                                ? Alignment.center
+                                : Alignment.bottomCenter,
+                            children: [
+                              if (widget.showStopLabels)
+                                Positioned(
+                                  bottom: 30,
+                                  child: Builder(
+                                    builder: (context) {
+                                      final isDark =
+                                          Theme.of(context).brightness ==
+                                          Brightness.dark;
+                                      final bgColor = isDark
+                                          ? AppColors.grey[900]!.withValues(
+                                              alpha: 0.92,
+                                            )
+                                          : AppColors.white.withValues(
+                                              alpha: 0.92,
+                                            );
+                                      return Container(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 180,
+                                        ),
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: AppSpacing.xs,
+                                              vertical: AppSpacing.none,
+                                            ),
+                                        decoration: BoxDecoration(
+                                          color: bgColor,
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          stop.label,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontSize: 11,
                                           ),
                                         ),
-                                      ),
-                                    GestureDetector(
-                                      behavior: HitTestBehavior.opaque,
-                                      onTap: () => _toggleStopLabel(stop),
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        alignment: widget.useBaseMapStopIcon
-                                            ? Alignment.center
-                                            : Alignment.bottomCenter,
-                                        children: [
-                                          if (widget.showStopLabels)
-                                            Positioned(
-                                              bottom: 30,
-                                              child: Builder(
-                                                builder: (context) {
-                                                  final isDark =
-                                                      Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark;
-                                                  final bgColor = isDark
-                                                      ? AppColors.grey[900]!
-                                                            .withValues(alpha: 0.92)
-                                                      : AppColors.white
-                                                            .withValues(alpha: 0.92);
-                                                  return Container(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                          maxWidth: 180,
-                                                        ),
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: AppSpacing.xs,
-                                                          vertical: AppSpacing.none,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: bgColor,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            6,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      stop.label,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          _buildStopMarkerChild(stop),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                )
-                              : Stack(
-                                  clipBehavior: Clip.none,
-                                  alignment: widget.useBaseMapStopIcon
-                                      ? Alignment.center
-                                      : Alignment.bottomCenter,
-                                  children: [
-                                    if (widget.showStopLabels)
-                                      Positioned(
-                                        bottom: 30,
-                                        child: Builder(
-                                          builder: (context) {
-                                            final isDark =
-                                                Theme.of(context).brightness ==
-                                                Brightness.dark;
-                                            final bgColor = isDark
-                                                ? AppColors.grey[900]!.withValues(
-                                                    alpha: 0.92,
-                                                  )
-                                                : AppColors.white.withValues(
-                                                    alpha: 0.92,
-                                                  );
-                                            return Container(
-                                              constraints: const BoxConstraints(
-                                                maxWidth: 180,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: AppSpacing.xs,
-                                                    vertical: AppSpacing.none,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: bgColor,
-                                                borderRadius:
-                                                    BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                stop.label,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  fontSize: 11,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                                    _buildStopMarkerChild(stop),
-                                  ],
+                                      );
+                                    },
+                                  ),
                                 ),
-                        );
-                      }).toList();
-                    }(),
+                              _buildStopMarkerChild(stop),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                if (widget.vehicleMarker != null)
+                if (widget.vehicleMarker != null && !_isVehicleLabelVisible)
                   MarkerLayer(
                     markers: [
                       Marker(
                         point: widget.vehicleMarker!.point,
-                        width: _isVehicleLabelVisible ? 320 : 24,
-                        height: _isVehicleLabelVisible ? 360 : 24,
+                        width: 24,
+                        height: 24,
                         alignment: Alignment.center,
-                        child:
-                            (widget.enableVehicleInfoLabelTap &&
-                                widget.vehicleInfoCardBuilder != null)
-                            ? Stack(
-                                clipBehavior: Clip.none,
-                                alignment: Alignment.center,
-                                children: [
-                                  if (_isVehicleLabelVisible)
-                                    Positioned(
-                                      bottom: 192,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: _consumeNextMapTapClose,
-                                        child: widget.vehicleInfoCardBuilder!(
-                                          context,
-                                        ),
-                                      ),
-                                    ),
-                                  GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: _toggleVehicleLabel,
-                                    child: _buildVehicleDot(
-                                      widget.vehicleMarker!,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : _buildVehicleDot(widget.vehicleMarker!),
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _toggleVehicleLabel,
+                          child: _buildVehicleDot(widget.vehicleMarker!),
+                        ),
+                      ),
+                    ],
+                  ),
+                // Topmost Selected Stop Popup
+                if (widget.enableStopInfoLabelTap &&
+                    widget.stopInfoCardBuilder != null &&
+                    _isStopLabelVisible &&
+                    _selectedStopSelectionKey != null)
+                  MarkerLayer(
+                    markers: widget.routeData.stops
+                        .where((stop) => _selectedStopSelectionKey == _stopSelectionKey(stop))
+                        .map((stop) {
+                      return Marker(
+                        point: stop.point,
+                        width: 320,
+                        height: 220,
+                        alignment: Alignment.center,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned(
+                              bottom: 122,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _consumeNextMapTapClose,
+                                child: widget.stopInfoCardBuilder!(
+                                  context,
+                                  stop,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () => _toggleStopLabel(stop),
+                              child: _buildStopMarkerChild(stop),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                // Topmost Selected Vehicle Popup
+                if (widget.vehicleMarker != null &&
+                    _isVehicleLabelVisible &&
+                    widget.enableVehicleInfoLabelTap &&
+                    widget.vehicleInfoCardBuilder != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: widget.vehicleMarker!.point,
+                        width: 320,
+                        height: 380,
+                        alignment: Alignment.center,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            Positioned(
+                              bottom: 200,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: _consumeNextMapTapClose,
+                                child: widget.vehicleInfoCardBuilder!(
+                                  context,
+                                ),
+                              ),
+                            ),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: _toggleVehicleLabel,
+                              child: _buildVehicleDot(
+                                widget.vehicleMarker!,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

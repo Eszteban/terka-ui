@@ -12,6 +12,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:terka/theme/app_texts.dart';
 import 'map_controls.dart';
 import '../../constants/search_api.dart';
+import '../../core/config/app_config.dart';
 import '../../services/graphql/graphql_client.dart';
 import '../../services/graphql/graphql_queries.dart';
 
@@ -29,6 +30,7 @@ import '../../controllers/map_cubit.dart';
 import '../../controllers/stop_details_cubit.dart';
 import '../../repositories/transit_repository.dart';
 import '../../injection_container.dart';
+import '../../utils/transit_color_resolver.dart';
 import 'package:terka/theme/app_tokens.dart';
 
 part 'map_view_models.dart';
@@ -129,6 +131,7 @@ class _MapViewState extends State<MapView> {
   bool _isRotationGestureEnabled = false;
   bool _suppressNextMapTapClose = false;
   static bool _didTryInitialGpsFocus = false;
+  bool _isMapReady = false;
   LatLng? _lastStoredLocation;
   double? _lastStoredZoom;
   StreamSubscription<Position>? _positionSubscription;
@@ -145,26 +148,24 @@ class _MapViewState extends State<MapView> {
         });
       }
     });
-    _loadLastLocation().then((_) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        if (_hasRouteOverlayContent) {
-          _fitToOverlayRoute();
-        } else {
-          _tryInitialGpsFocus();
-        }
-        _scheduleVehicleRefresh();
-        _startPositionTracking();
-      });
-    });
+    _loadLastLocation();
     _vehiclePeriodicRefresh = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (!mounted) {
+      if (!mounted || !_isMapReady) {
         return;
       }
       _refreshVehiclesForVisibleBounds();
     });
+  }
+
+  void _onMapReady() {
+    _isMapReady = true;
+    if (_hasRouteOverlayContent) {
+      _fitToOverlayRoute();
+    } else {
+      _tryInitialGpsFocus();
+    }
+    _refreshVehiclesForVisibleBounds();
+    _startPositionTracking();
   }
 
   @override
@@ -180,7 +181,7 @@ class _MapViewState extends State<MapView> {
       _isRouteVehicleLabelVisible = false;
 
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_hasRouteOverlayContent) {
+        if (!mounted || !_isMapReady || !_hasRouteOverlayContent) {
           return;
         }
         _fitToOverlayRoute();
@@ -189,7 +190,7 @@ class _MapViewState extends State<MapView> {
     if (widget.searchHighlightPoint != oldWidget.searchHighlightPoint &&
         widget.searchHighlightPoint != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted && _isMapReady) {
           _mapController.move(widget.searchHighlightPoint!, 15);
         }
       });
@@ -197,7 +198,7 @@ class _MapViewState extends State<MapView> {
     if (widget.stopHighlightPoint != oldWidget.stopHighlightPoint &&
         widget.stopHighlightPoint != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
+        if (mounted && _isMapReady) {
           _mapController.move(widget.stopHighlightPoint!, 15);
         }
       });
@@ -279,7 +280,7 @@ class _MapViewState extends State<MapView> {
   }
 
   void _fitToOverlayRoute() {
-    if (!_hasRouteOverlayContent) {
+    if (!_isMapReady || !_hasRouteOverlayContent) {
       return;
     }
 
@@ -346,6 +347,7 @@ class _MapViewState extends State<MapView> {
   }
 
   void _zoomBy(double delta) {
+    if (!_isMapReady) return;
     final camera = _mapController.camera;
     final newZoom = (camera.zoom + delta).clamp(_minZoom, _maxZoom);
     _mapController.move(camera.center, newZoom);
@@ -353,6 +355,7 @@ class _MapViewState extends State<MapView> {
   }
 
   void _resetNorth() {
+    if (!_isMapReady) return;
     _mapController.rotate(0);
   }
 
@@ -411,6 +414,7 @@ class _MapViewState extends State<MapView> {
   }
 
   void _moveToPosition(Position position) {
+    if (!_isMapReady) return;
     final camera = _mapController.camera;
     final targetZoom = camera.zoom < 16 ? 16.0 : camera.zoom;
     _mapController.move(
@@ -421,6 +425,7 @@ class _MapViewState extends State<MapView> {
   }
 
   void _scheduleVehicleRefresh() {
+    if (!_isMapReady) return;
     _vehicleRefreshDebounce?.cancel();
     _vehicleRefreshDebounce = Timer(
       const Duration(milliseconds: 420),
@@ -467,9 +472,9 @@ class _MapViewState extends State<MapView> {
 
   @override
   void dispose() {
-    _positionSubscription?.cancel();
-    _vehicleRefreshDebounce?.cancel();
     _vehiclePeriodicRefresh?.cancel();
+    _vehicleRefreshDebounce?.cancel();
+    _positionSubscription?.cancel();
     _mapEventSubscription.cancel();
     _mapController.dispose();
     super.dispose();
@@ -477,148 +482,142 @@ class _MapViewState extends State<MapView> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<MapCubit, MapState>(
-      listenWhen: (previous, current) {
-        return previous.routeOverlayData != current.routeOverlayData ||
-            previous.routeVehicleMarker != current.routeVehicleMarker;
-      },
-      listener: (context, state) {
-        _selectedVehicleMarkerId = null;
-        _selectedStopMarkerId = null;
-        _selectedStopQuickInfo = null;
-        _isLoadingSelectedStopQuickInfo = false;
+    return FutureBuilder<bool>(
+      future: _mapReady,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || !_hasRouteOverlayContent) {
-            return;
-          }
-          _fitToOverlayRoute();
-        });
-      },
-      child: BlocBuilder<MapCubit, MapState>(
-        builder: (context, mapState) {
-          return FutureBuilder<bool>(
-            future: _mapReady,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+        final canLoad = snapshot.data ?? true;
+        if (!canLoad) {
+          return Center(
+            child: Text(
+              AppTexts.isHungarian
+                  ? 'A térkép betöltése sikertelen.'
+                  : 'Failed to load map.',
+            ),
+          );
+        }
 
-              if (snapshot.data != true) {
-                return Center(child: Text(AppTexts.mapLoadFailed));
-              }
-
-              final routeData =
-                  widget.routeOverlayData ??
-                  (mapState.routeOverlayData.hasContent
-                      ? mapState.routeOverlayData
-                      : null);
-              final routeVehicleMarker =
-                  widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
-              final initialOverlayFit = _initialOverlayCameraFit();
-              final initialCenter =
-                  _overlayRouteFallbackCenter() ??
-                  _lastStoredLocation ??
-                  LatLng(47.497913, 19.040236);
-              return Stack(
-                children: [
-                  FlutterMap(
-                    mapController: _mapController,
-                    options: initialOverlayFit != null
-                        ? MapOptions(
-                            initialCameraFit: initialOverlayFit,
-                            minZoom: _minZoom,
-                            maxZoom: _maxZoom,
-                            onLongPress: _handleMapInteraction,
-                            onSecondaryTap: _handleMapInteraction,
-                            onTap: (_, _) {
-                              if (_suppressNextMapTapClose) {
-                                _suppressNextMapTapClose = false;
-                                return;
-                              }
-                              if (_selectedVehicleMarkerId != null ||
-                                  _selectedStopMarkerId != null ||
-                                  _isRouteVehicleLabelVisible) {
-                                setState(() {
-                                  _selectedVehicleMarkerId = null;
-                                  _selectedStopMarkerId = null;
-                                  _selectedStopQuickInfo = null;
-                                  _isLoadingSelectedStopQuickInfo = false;
-                                  _isRouteVehicleLabelVisible = false;
-                                });
-                              }
-                            },
-                            onPositionChanged: (position, hasGesture) {
-                              if (hasGesture) {
-                                unawaited(_saveLastLocation(
-                                  position.center.latitude,
-                                  position.center.longitude,
-                                  position.zoom,
-                                ));
-                              }
-                              _scheduleVehicleRefresh();
-                            },
-                            interactionOptions: InteractionOptions(
-                              flags:
-                                  (widget.showRotationControls &&
-                                      _isRotationGestureEnabled)
-                                  ? InteractiveFlag.all
-                                  : InteractiveFlag.all &
-                                        ~InteractiveFlag.rotate,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            return BlocBuilder<MapCubit, MapState>(
+              builder: (context, mapState) {
+                final routeData =
+                    widget.routeOverlayData ??
+                    (mapState.routeOverlayData.hasContent
+                        ? mapState.routeOverlayData
+                        : null);
+                final routeVehicleMarker =
+                    widget.routeVehicleMarker ?? mapState.routeVehicleMarker;
+                final initialOverlayFit = _initialOverlayCameraFit();
+                final initialCenter =
+                    _overlayRouteFallbackCenter() ??
+                    _lastStoredLocation ??
+                    LatLng(47.497913, 19.040236);
+                return Stack(
+                  children: [
+                    FlutterMap(
+                      mapController: _mapController,
+                      options: initialOverlayFit != null
+                          ? MapOptions(
+                              initialCameraFit: initialOverlayFit,
+                              minZoom: _minZoom,
+                              maxZoom: _maxZoom,
+                              onMapReady: _onMapReady,
+                              onLongPress: _handleMapInteraction,
+                              onSecondaryTap: _handleMapInteraction,
+                              onTap: (_, _) {
+                                if (_suppressNextMapTapClose) {
+                                  _suppressNextMapTapClose = false;
+                                  return;
+                                }
+                                if (_selectedVehicleMarkerId != null ||
+                                    _selectedStopMarkerId != null ||
+                                    _isRouteVehicleLabelVisible) {
+                                  setState(() {
+                                    _selectedVehicleMarkerId = null;
+                                    _selectedStopMarkerId = null;
+                                    _selectedStopQuickInfo = null;
+                                    _isLoadingSelectedStopQuickInfo = false;
+                                    _isRouteVehicleLabelVisible = false;
+                                  });
+                                }
+                              },
+                              onPositionChanged: (position, hasGesture) {
+                                if (hasGesture) {
+                                  unawaited(_saveLastLocation(
+                                    position.center.latitude,
+                                    position.center.longitude,
+                                    position.zoom,
+                                  ));
+                                }
+                                _scheduleVehicleRefresh();
+                              },
+                              interactionOptions: InteractionOptions(
+                                flags:
+                                    (widget.showRotationControls &&
+                                        _isRotationGestureEnabled)
+                                    ? InteractiveFlag.all
+                                    : InteractiveFlag.all &
+                                          ~InteractiveFlag.rotate,
+                              ),
+                            )
+                          : MapOptions(
+                              initialCenter: initialCenter,
+                              initialZoom: _lastStoredZoom ?? 12,
+                              minZoom: _minZoom,
+                              maxZoom: _maxZoom,
+                              onMapReady: _onMapReady,
+                              onLongPress: _handleMapInteraction,
+                              onSecondaryTap: _handleMapInteraction,
+                              onTap: (_, _) {
+                                if (_suppressNextMapTapClose) {
+                                  _suppressNextMapTapClose = false;
+                                  return;
+                                }
+                                if (_selectedVehicleMarkerId != null ||
+                                    _selectedStopMarkerId != null ||
+                                    _isRouteVehicleLabelVisible) {
+                                  setState(() {
+                                    _selectedVehicleMarkerId = null;
+                                    _selectedStopMarkerId = null;
+                                    _selectedStopQuickInfo = null;
+                                    _isLoadingSelectedStopQuickInfo = false;
+                                    _isRouteVehicleLabelVisible = false;
+                                  });
+                                }
+                              },
+                              onPositionChanged: (position, hasGesture) {
+                                if (hasGesture) {
+                                  unawaited(_saveLastLocation(
+                                    position.center.latitude,
+                                    position.center.longitude,
+                                    position.zoom,
+                                  ));
+                                }
+                                _scheduleVehicleRefresh();
+                              },
+                              interactionOptions: InteractionOptions(
+                                flags:
+                                    (widget.showRotationControls &&
+                                        _isRotationGestureEnabled)
+                                    ? InteractiveFlag.all
+                                    : InteractiveFlag.all &
+                                          ~InteractiveFlag.rotate,
+                              ),
                             ),
-                          )
-                        : MapOptions(
-                            initialCenter: initialCenter,
-                            initialZoom: _lastStoredZoom ?? 12,
-                            minZoom: _minZoom,
-                            maxZoom: _maxZoom,
-                            onLongPress: _handleMapInteraction,
-                            onSecondaryTap: _handleMapInteraction,
-                            onTap: (_, _) {
-                              if (_suppressNextMapTapClose) {
-                                _suppressNextMapTapClose = false;
-                                return;
-                              }
-                              if (_selectedVehicleMarkerId != null ||
-                                  _selectedStopMarkerId != null ||
-                                  _isRouteVehicleLabelVisible) {
-                                setState(() {
-                                  _selectedVehicleMarkerId = null;
-                                  _selectedStopMarkerId = null;
-                                  _selectedStopQuickInfo = null;
-                                  _isLoadingSelectedStopQuickInfo = false;
-                                  _isRouteVehicleLabelVisible = false;
-                                });
-                              }
-                            },
-                            onPositionChanged: (position, hasGesture) {
-                              if (hasGesture) {
-                                unawaited(_saveLastLocation(
-                                  position.center.latitude,
-                                  position.center.longitude,
-                                  position.zoom,
-                                ));
-                              }
-                              _scheduleVehicleRefresh();
-                            },
-                            interactionOptions: InteractionOptions(
-                              flags:
-                                  (widget.showRotationControls &&
-                                      _isRotationGestureEnabled)
-                                  ? InteractiveFlag.all
-                                  : InteractiveFlag.all &
-                                        ~InteractiveFlag.rotate,
-                            ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: AppConfig.getCartoTileUrl(
+                            isDark:
+                                Theme.of(context).brightness == Brightness.dark,
                           ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            Theme.of(context).brightness == Brightness.dark
-                            ? 'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png'
-                            : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png',
-                        userAgentPackageName: 'hu.terka.terka_mobile_ui',
-                        maxZoom: 19,
-                      ),
+                          subdomains: AppConfig.cartoSubdomains,
+                          userAgentPackageName: 'hu.terka.terka_mobile_ui',
+                          maxZoom: 19,
+                        ),
                       if (routeData != null && routeData.segments.isNotEmpty)
                         PolylineLayer(
                           polylines: routeData.segments
@@ -658,158 +657,188 @@ class _MapViewState extends State<MapView> {
                       ..._buildMapStopLayers(),
                       if (routeData != null && routeData.stops.isNotEmpty)
                         MarkerLayer(
-                          markers: routeData.stops.map((stop) {
-                            final isSelected =
-                                _selectedStopMarkerId == stop.stopId;
+                          markers: routeData.stops
+                              .where((stop) => _selectedStopMarkerId != stop.stopId)
+                              .map((stop) {
                             return Marker(
                               point: stop.point,
-                              width: isSelected ? 320 : 38,
-                              height: isSelected ? 180 : 38,
+                              width: 38,
+                              height: 38,
                               alignment: Alignment.center,
                               child: GestureDetector(
                                 behavior: HitTestBehavior.opaque,
                                 onTap: () => _toggleRouteStopLabel(stop),
-                                child: isSelected
-                                    ? Stack(
-                                        clipBehavior: Clip.none,
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Positioned(
-                                            bottom: 92,
-                                            child: GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTap: _consumeNextMapTapClose,
-                                              child: _buildRouteStopInfoCard(
-                                                stop,
-                                              ),
-                                            ),
-                                          ),
-                                          _buildMapStopDot(stop.bearing),
-                                        ],
-                                      )
-                                    : Stack(
-                                        clipBehavior: Clip.none,
-                                        alignment: Alignment.bottomCenter,
-                                        children: [
-                                          if (widget.showRouteStopLabels)
-                                            Positioned(
-                                              bottom: 30,
-                                              child: Builder(
-                                                builder: (context) {
-                                                  final isDark =
-                                                      Theme.of(
-                                                        context,
-                                                      ).brightness ==
-                                                      Brightness.dark;
-                                                  final bgColor = isDark
-                                                      ? AppColors.grey[900]!
-                                                            .withValues(
-                                                              alpha: 0.92,
-                                                            )
-                                                      : AppColors.white.withValues(
-                                                          alpha: 0.92,
-                                                        );
-                                                  return Container(
-                                                    constraints:
-                                                        const BoxConstraints(
-                                                          maxWidth: 180,
-                                                        ),
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: AppSpacing.xs,
-                                                          vertical: AppSpacing.none,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: bgColor,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            6,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      stop.label,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: const TextStyle(
-                                                        fontSize: 11,
-                                                      ),
-                                                    ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.bottomCenter,
+                                  children: [
+                                    if (widget.showRouteStopLabels)
+                                      Positioned(
+                                        bottom: 30,
+                                        child: Builder(
+                                          builder: (context) {
+                                            final isDark =
+                                                Theme.of(
+                                                  context,
+                                                ).brightness ==
+                                                Brightness.dark;
+                                            final bgColor = isDark
+                                                ? AppColors.grey[900]!
+                                                      .withValues(
+                                                        alpha: 0.92,
+                                                      )
+                                                : AppColors.white.withValues(
+                                                    alpha: 0.92,
                                                   );
-                                                },
-                                              ),
-                                            ),
-                                          widget.useBaseMapStopIcon
-                                              ? _buildMapStopDot(stop.bearing)
-                                              : Icon(
-                                                  Icons.location_on,
-                                                  color: _routeStopColor(
-                                                    stop.type,
+                                            return Container(
+                                              constraints:
+                                                  const BoxConstraints(
+                                                    maxWidth: 180,
                                                   ),
-                                                  size: 30,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: AppSpacing.xs,
+                                                    vertical: AppSpacing.none,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: bgColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      6,
+                                                    ),
+                                              ),
+                                              child: Text(
+                                                stop.label,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
                                                 ),
-                                        ],
+                                              ),
+                                            );
+                                          },
+                                        ),
                                       ),
+                                    widget.useBaseMapStopIcon
+                                        ? _buildMapStopDot(stop.bearing)
+                                        : Icon(
+                                            Icons.location_on,
+                                            color: _routeStopColor(
+                                              stop.type,
+                                            ),
+                                            size: 30,
+                                          ),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList(),
                         ),
                       ..._buildMapVehicleLayers(),
-                      if (routeVehicleMarker != null)
+                      if (routeVehicleMarker != null && !_isRouteVehicleLabelVisible)
                         MarkerLayer(
                           markers: [
                             Marker(
                               point: routeVehicleMarker.point,
-                              width: _isRouteVehicleLabelVisible && routeVehicleMarker.rawVehicle != null ? 320 : 24,
-                              height: _isRouteVehicleLabelVisible && routeVehicleMarker.rawVehicle != null ? 360 : 24,
+                              width: 24,
+                              height: 24,
                               alignment: Alignment.center,
-                              child: _isRouteVehicleLabelVisible && routeVehicleMarker.rawVehicle != null && routeVehicleMarker.rawTrip != null
-                                ? Stack(
-                                    clipBehavior: Clip.none,
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Positioned(
-                                        bottom: 192,
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: _consumeNextMapTapClose,
-                                          child: VehicleInfoCard.fromVehicleMap(
-                                            vehicle: routeVehicleMarker.rawVehicle!,
-                                            trip: routeVehicleMarker.rawTrip!,
-                                            route: routeVehicleMarker.rawTrip!['route'] is Map ? routeVehicleMarker.rawTrip!['route'].cast<String, dynamic>() : const {},
-                                            markerColor: routeVehicleMarker.markerColor,
-                                            markerTextColor: routeVehicleMarker.markerTextColor,
-                                            onTap: null,
-                                          ),
-                                        ),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  _consumeNextMapTapClose();
+                                  if (routeVehicleMarker.rawVehicle != null) {
+                                    setState(() {
+                                      _isRouteVehicleLabelVisible = true;
+                                      _selectedVehicleMarkerId = null;
+                                      _selectedStopMarkerId = null;
+                                      _selectedStopQuickInfo = null;
+                                      _isLoadingSelectedStopQuickInfo = false;
+                                    });
+                                  }
+                                },
+                                child: _buildRouteVehicleDot(routeVehicleMarker),
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (widget.searchHighlightPoint != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: widget.searchHighlightPoint!,
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: AppColors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (widget.stopHighlightPoint != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: widget.stopHighlightPoint!,
+                              width: 40,
+                              height: 40,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: AppColors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                      // Topmost Overlays (Selected cards rendered strictly ABOVE all stop and vehicle dots)
+                      ..._buildSelectedStopOverlayLayers(routeData),
+                      ..._buildSelectedVehicleOverlayLayers(),
+                      if (routeVehicleMarker != null && _isRouteVehicleLabelVisible && routeVehicleMarker.rawVehicle != null && routeVehicleMarker.rawTrip != null)
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              key: const ValueKey('selected_route_veh'),
+                              point: routeVehicleMarker.point,
+                              width: 320,
+                              height: 380,
+                              alignment: Alignment.center,
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned(
+                                    bottom: 200,
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: _consumeNextMapTapClose,
+                                      child: VehicleInfoCard.fromVehicleMap(
+                                        vehicle: routeVehicleMarker.rawVehicle!,
+                                        trip: routeVehicleMarker.rawTrip!,
+                                        route: routeVehicleMarker.rawTrip!['route'] is Map
+                                            ? routeVehicleMarker.rawTrip!['route'].cast<String, dynamic>()
+                                            : const {},
+                                        markerColor: routeVehicleMarker.markerColor,
+                                        markerTextColor: routeVehicleMarker.markerTextColor,
+                                        onTap: null,
                                       ),
-                                      GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTap: () {
-                                          _consumeNextMapTapClose();
-                                          setState(() {
-                                            _isRouteVehicleLabelVisible = false;
-                                          });
-                                        },
-                                        child: _buildRouteVehicleDot(routeVehicleMarker),
-                                      ),
-                                    ],
-                                  )
-                                : GestureDetector(
+                                    ),
+                                  ),
+                                  GestureDetector(
                                     behavior: HitTestBehavior.opaque,
                                     onTap: () {
                                       _consumeNextMapTapClose();
-                                      if (routeVehicleMarker.rawVehicle != null) {
-                                        setState(() {
-                                          _isRouteVehicleLabelVisible = true;
-                                          _selectedVehicleMarkerId = null;
-                                          _selectedStopMarkerId = null;
-                                          _selectedStopQuickInfo = null;
-                                          _isLoadingSelectedStopQuickInfo = false;
-                                        });
-                                      }
+                                      setState(() {
+                                        _isRouteVehicleLabelVisible = false;
+                                      });
                                     },
                                     child: _buildRouteVehicleDot(routeVehicleMarker),
                                   ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -892,9 +921,10 @@ class _MapViewState extends State<MapView> {
             },
           );
         },
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Future<void> _openTripDetails(_VehicleMarkerData vehicle) async {
     debugPrint(
